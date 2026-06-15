@@ -9,7 +9,13 @@ function formatDateTime(dateString: string) {
   const date = new Date(dateString);
   const d = date.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
   const t = date.toLocaleTimeString('bn-BD', { hour: 'numeric', minute: '2-digit', hour12: true });
-  return `${d}, ${t}`;
+  return `${d} | ${t}`;
+}
+
+// প্রথম আলোর মতো শুধু সময় দেখানোর ফাংশন (যেমন: ২ ঘণ্টা আগে - আপাতত স্ট্যাটিক টাইম ফরম্যাট)
+function formatTimeOnly(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('bn-BD', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 export default async function Home({ searchParams }: { searchParams: { category?: string, tab?: string, page?: string, q?: string } }) {
@@ -41,180 +47,256 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
   const leadNews = allNews[0];
   const leftSideNews = allNews.slice(1, 4);
-  const rightSideNews = allNews.slice(4, 7);
+  const rightSideNews = allNews.slice(4, 8);
   
-  const nationalNews = allNews.filter(n => n.category === 'বাংলাদেশ' || n.category === 'জাতীয়' || n.category === 'সারাদেশ').slice(0, 5);
-  const worldNews = allNews.filter(n => n.category === 'আন্তর্জাতিক' || n.category === 'বিশ্ব').slice(0, 5);
+  const nationalNews = allNews.filter(n => n.category === 'বাংলাদেশ' || n.category === 'জাতীয়' || n.category === 'সারাদেশ').slice(0, 6);
+  const worldNews = allNews.filter(n => n.category === 'আন্তর্জাতিক' || n.category === 'বিশ্ব').slice(0, 6);
   const entertainmentNews = allNews.filter(n => n.category === 'বিনোদন').slice(0, 5);
-  const techNews = allNews.filter(n => n.category === 'প্রযুক্তি').slice(0, 4);
+  const techNews = allNews.filter(n => n.category === 'প্রযুক্তি').slice(0, 5);
   const businessNews = allNews.filter(n => n.category === 'বাণিজ্য').slice(0, 5);
-  const lawNews = allNews.filter(n => n.category === 'আইন-আদালত').slice(0, 5);
+  const lawNews = allNews.filter(n => n.category === 'আইন-আদালত').slice(0, 6);
   const religionNews = allNews.filter(n => n.category === 'ধর্ম').slice(0, 4);
-  const sportsNews = allNews.filter(n => n.category === 'খেলাধুলা').slice(0, 5);
+  const sportsNews = allNews.filter(n => n.category === 'খেলাধুলা').slice(0, 6);
   const eduNews = allNews.filter(n => n.category === 'শিক্ষা' || n.title.includes('শিক্ষা')).slice(0, 4);
 
   const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "বিশ্ব", "বাণিজ্য", "মতামত", "খেলা", "বিনোদন", "চাকরি", "জীবনযাপন", "ভিডিও", "আইন-আদালত", "শিক্ষা", "প্রযুক্তি", "ধর্ম"];
 
   return (
     <div className="min-h-screen bg-white text-black font-serif">
-      {/* 1. Prothom Alo Style Header */}
-      <header className="bg-white">
-        <div className="max-w-[1200px] mx-auto px-4 py-4 flex justify-between items-center">
-          <a href="/" className="flex flex-col shrink-0">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-red-700 tracking-tighter">বঙ্গীয় <span className="text-black">টাইমস</span></h1>
+      
+      {/* 1. Exact Prothom Alo Header */}
+      <header className="bg-white pt-3 md:pt-5 pb-0">
+        <div className="max-w-[1200px] mx-auto px-4 flex flex-col md:flex-row justify-between items-center md:items-end pb-3">
+          
+          <a href="/" className="flex flex-col shrink-0 mb-4 md:mb-0">
+             {/* Prothom Alo style big logo representation */}
+            <h1 className="text-5xl md:text-6xl font-extrabold text-black tracking-tighter" style={{ fontFamily: 'serif' }}>বঙ্গীয় <span className="text-red-600">টাইমস</span></h1>
           </a>
-          <div className="hidden md:flex flex-col items-end gap-1">
-             <div className="text-sm text-gray-600 flex items-center gap-3 font-sans">
-                <span className="cursor-pointer hover:text-red-700">🔍 খুঁজুন</span>
-                <span className="border-l border-gray-300 pl-3 cursor-pointer hover:text-red-700">📅 ই-পেপার</span>
-                <span className="border-l border-gray-300 pl-3 font-bold cursor-pointer hover:text-red-700">Eng</span>
-                <span className="border-l border-gray-300 pl-3 cursor-pointer hover:text-red-700">👤 Login</span>
+
+          <div className="w-full md:w-auto flex flex-col items-center md:items-end gap-2">
+             {/* Right side tools */}
+             <div className="text-[15px] text-gray-700 flex flex-wrap justify-center md:justify-end items-center gap-4 font-sans font-medium">
+                <span className="cursor-pointer hover:text-blue-600 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> 
+                  খুঁজুন
+                </span>
+                <span className="cursor-pointer hover:text-blue-600 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
+                  ই-পেপার
+                </span>
+                <span className="bg-red-50 text-red-700 px-3 py-1 cursor-pointer font-bold border border-red-100">Eng</span>
+                <span className="cursor-pointer hover:text-blue-600 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                  Login
+                </span>
              </div>
-             <p className="text-xs text-gray-500 mt-2">ঢাকা | {new Date().toLocaleDateString('bn-BD', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+             {/* Date String exact location */}
+             <div className="text-gray-500 text-sm font-sans mt-1">
+                ঢাকা | {new Date().toLocaleDateString('bn-BD', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+             </div>
           </div>
         </div>
         
-        {/* 2. Compact Navigation Bar */}
-        <div className="border-y border-gray-200 shadow-sm sticky top-0 z-50 bg-white">
+        {/* Exact Nav Bar */}
+        <div className="border-y border-gray-300 shadow-sm sticky top-0 z-50 bg-white">
           <div className="max-w-[1200px] mx-auto px-4 overflow-x-auto scrollbar-hide">
-            <nav className="flex items-center min-w-max py-2 text-[15px] font-bold text-gray-800 gap-4 md:gap-5 font-sans">
-              <a href="/" className="hover:text-red-600 transition">প্রচ্ছদ</a>
+            <nav className="flex items-center min-w-max py-2.5 text-[15px] font-bold text-gray-800 gap-5 md:gap-6 font-sans">
+              <a href="/" className="hover:text-blue-600 transition">প্রচ্ছদ</a>
               {menuCategories.map((cat, index) => (
-                <a key={index} href={`/?category=${cat}`} className={`hover:text-red-600 transition ${activeCategory === cat ? 'text-red-600' : ''}`}>{cat}</a>
+                <a key={index} href={`/?category=${cat}`} className={`hover:text-blue-600 transition ${activeCategory === cat ? 'text-blue-600' : ''}`}>{cat}</a>
               ))}
             </nav>
           </div>
         </div>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-4 mt-4 pb-8">
+      {/* HEADER ADSENSE */}
+      <div className="max-w-[1200px] mx-auto px-4 my-4 flex justify-center">
+        <div className="w-full md:w-[728px] overflow-hidden flex justify-center bg-gray-50 items-center min-h-[90px]">
+          <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6625131155258287" crossOrigin="anonymous"></script>
+          <ins className="adsbygoogle"
+               style={{display:"block", width:"100%"}}
+               data-ad-client="ca-pub-6625131155258287"
+               data-ad-slot="7589682146"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
+        </div>
+      </div>
+
+      <main className="max-w-[1200px] mx-auto px-4 pb-10">
         {(activeCategory || searchQuery) ? (
-           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
               <div className="col-span-1 md:col-span-3">
                  <div className="border-b-[3px] border-black mb-4 pb-1">
-                    <h2 className="text-xl md:text-2xl font-bold text-red-700">
+                    <h2 className="text-xl md:text-2xl font-bold text-blue-800 font-sans">
                        {searchQuery ? `"${searchQuery}" এর সার্চ রেজাল্ট` : `${activeCategory} এর সব খবর`}
                     </h2>
                  </div>
                  {allNews.length === 0 ? (
                     <div className="text-center py-20 text-gray-500 font-bold text-lg font-sans">কোনো খবর পাওয়া যায়নি।</div>
                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                        {allNews.map(news => (
                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col gap-2 pb-4 border-b border-gray-200">
-                             <SafeImage src={news.image_url} alt={news.title} className="w-full h-36 rounded-sm" />
-                             <h3 className="text-[17px] font-bold group-hover:text-red-700 leading-snug">{news.title}</h3>
-                             <p className="text-[12px] text-gray-500 font-sans">{formatDateTime(news.created_at)}</p>
+                             <SafeImage src={news.image_url} alt={news.title} className="w-full h-40 object-cover rounded-sm" />
+                             <h3 className="text-lg font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                             <p className="text-[12px] text-gray-500 font-sans mt-auto pt-1">{formatTimeOnly(news.created_at)}</p>
                           </a>
                        ))}
                     </div>
                  )}
               </div>
               <div className="hidden md:block col-span-1 border-l border-gray-200 pl-4">
-                 <div className="w-full bg-gray-50 border border-gray-100 flex flex-col items-center pt-1 pb-2 sticky top-16">
-                    <span className="text-[10px] text-gray-400 mb-1 font-sans">- বিজ্ঞাপন -</span>
-                    <div className="w-full overflow-hidden flex justify-center">
-                        <ins className="adsbygoogle"
-                             style={{ display: "block", width: "100%" }}
-                             data-ad-client="ca-pub-6625131155258287"
-                             data-ad-slot="4963518807"
-                             data-ad-format="auto"
-                             data-full-width-responsive="true"></ins>
-                        <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
-                    </div>
+                 {/* Sidebar Vertical AdSense */}
+                 <div className="w-full bg-gray-50 overflow-hidden flex justify-center sticky top-20 min-h-[600px]">
+                    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6625131155258287" crossOrigin="anonymous"></script>
+                    <ins className="adsbygoogle"
+                         style={{display:"block", width:"100%"}}
+                         data-ad-client="ca-pub-6625131155258287"
+                         data-ad-slot="4963518807"
+                         data-ad-format="auto"
+                         data-full-width-responsive="true"></ins>
+                    <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
                  </div>
               </div>
            </div>
         ) : (
           <>
-            {/* 3. Prothom Alo Style 3-Column Hero Section */}
+            {/* 3. HERO SECTION - EXACT PA LAYOUT (No gaps, borders between cols) */}
             {leadNews && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 border-b border-gray-300 pb-4 mb-6">
-                {/* Left Column (News List) */}
-                <div className="lg:col-span-3 lg:border-r border-gray-300 lg:pr-4 flex flex-col divide-y divide-gray-200">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 border-b border-gray-300 pb-5 mb-6">
+                
+                {/* Left Column (Text only items, tight divide-y) */}
+                <div className="lg:col-span-3 lg:border-r border-gray-300 lg:pr-5 flex flex-col divide-y divide-gray-200">
                   {leftSideNews.map(news => (
                     <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 block">
-                      <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-red-700 leading-tight mb-2">{news.title}</h3>
-                      <p className="text-xs text-gray-500 font-sans">{formatDateTime(news.created_at)}</p>
+                      <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 leading-tight mb-2">{news.title}</h3>
+                      <p className="text-xs text-gray-500 font-sans">{formatTimeOnly(news.created_at)}</p>
                     </a>
                   ))}
                 </div>
                 
-                {/* Center Column (Lead News) */}
-                <a href={leadNews.is_custom ? `/news/${leadNews.id}` : leadNews.source_url} target="_blank" className="lg:col-span-6 group block px-0 lg:px-4 py-4 lg:py-0 border-y lg:border-0 border-gray-200 my-4 lg:my-0">
-                  <SafeImage src={leadNews.image_url} alt={leadNews.title} className="w-full h-[220px] md:h-[320px] rounded-sm mb-3" />
+                {/* Center Column (Big Lead News) */}
+                <a href={leadNews.is_custom ? `/news/${leadNews.id}` : leadNews.source_url} target="_blank" className="lg:col-span-6 group block px-0 lg:px-5 py-4 lg:py-0 border-y lg:border-0 border-gray-200 my-4 lg:my-0">
+                  <SafeImage src={leadNews.image_url} alt={leadNews.title} className="w-full h-[250px] md:h-[350px] object-cover rounded-sm mb-3" />
                   <div className="flex items-center gap-2 mb-1">
-                     <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-                     <span className="text-red-600 font-bold text-sm font-sans">সরাসরি</span>
+                     <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+                     <span className="text-red-600 font-bold text-[15px] font-sans">সরাসরি</span>
                   </div>
-                  <h1 className="text-2xl md:text-4xl font-extrabold leading-tight text-gray-900 group-hover:text-red-700 transition mb-2">{leadNews.title}</h1>
-                  <p className="text-[15px] text-gray-700 leading-relaxed line-clamp-3">{leadNews.snippet}</p>
+                  <h1 className="text-3xl md:text-[40px] font-bold leading-tight text-gray-900 group-hover:text-blue-600 transition mb-3">{leadNews.title}</h1>
+                  <p className="text-[16px] text-gray-700 leading-relaxed font-sans line-clamp-3">{leadNews.snippet}</p>
+                  <p className="text-xs text-gray-500 font-sans mt-3">{formatTimeOnly(leadNews.created_at)}</p>
                 </a>
                 
-                {/* Right Column (News with images) */}
-                <div className="lg:col-span-3 lg:border-l border-gray-300 lg:pl-4 flex flex-col divide-y divide-gray-200">
+                {/* Right Column (Thumbnails right side) */}
+                <div className="lg:col-span-3 lg:border-l border-gray-300 lg:pl-5 flex flex-col divide-y divide-gray-200">
                   {rightSideNews.map(news => (
-                    <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 flex gap-3 items-start">
+                    <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 flex gap-4 items-start">
                       <div className="flex-1">
-                         <h3 className="text-[15px] font-bold text-gray-900 group-hover:text-red-700 leading-tight">{news.title}</h3>
+                         <h3 className="text-[16px] font-bold text-gray-900 group-hover:text-blue-600 leading-tight mb-2">{news.title}</h3>
+                         <p className="text-[11px] text-gray-500 font-sans">{formatTimeOnly(news.created_at)}</p>
                       </div>
-                      <SafeImage src={news.image_url} alt={news.title} className="w-20 h-16 rounded-sm shrink-0" />
+                      <SafeImage src={news.image_url} alt={news.title} className="w-[100px] h-[65px] object-cover shrink-0" />
                     </a>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* 4. Main Body: Left Content + Right Sidebar */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-              <div className="lg:col-span-9 flex flex-col gap-6">
+            {/* MAIN BODY GRID: 9 Col Left + 3 Col Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 border-b border-gray-300 pb-8 mb-8">
+              
+              {/* LEFT HUGE CONTENT AREA (9 Cols) */}
+              <div className="lg:col-span-9 lg:border-r border-gray-300 lg:pr-6 flex flex-col gap-8">
                 
-                {/* Bangladesh Section */}
+                {/* --- BANGLADESH SECTION --- */}
                 <div>
-                   <div className="border-t-[3px] border-black pt-1 mb-4 flex justify-between items-center">
-                      <h2 className="text-xl font-bold text-gray-900">বাংলাদেশ <span className="text-red-600 font-sans">❯</span></h2>
+                   <div className="border-t-[3px] border-black pt-1 mb-4">
+                      <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">বাংলাদেশ <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
                    </div>
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                      {nationalNews.slice(0,3).map(news => (
-                        <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col gap-2">
-                           <SafeImage src={news.image_url} alt={news.title} className="w-full h-36 rounded-sm" />
-                           <h3 className="text-[17px] font-bold group-hover:text-red-700 leading-snug">{news.title}</h3>
-                        </a>
-                      ))}
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Sub-lead style in category */}
+                      <a href={nationalNews[0]?.is_custom ? `/news/${nationalNews[0]?.id}` : nationalNews[0]?.source_url} target="_blank" className="group col-span-1 md:col-span-2 border-b md:border-b-0 border-gray-200 pb-4 md:pb-0 md:border-r pr-0 md:pr-6">
+                         <SafeImage src={nationalNews[0]?.image_url} alt={nationalNews[0]?.title} className="w-full h-[280px] object-cover mb-3" />
+                         <h3 className="text-[26px] font-bold text-gray-900 group-hover:text-blue-600 leading-tight mb-2">{nationalNews[0]?.title}</h3>
+                         <p className="text-[15px] text-gray-700 font-sans line-clamp-2">{nationalNews[0]?.snippet}</p>
+                      </a>
+                      
+                      {/* List Style in Category */}
+                      <div className="flex flex-col divide-y divide-gray-200 col-span-1">
+                        {nationalNews.slice(1, 5).map(news => (
+                          <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0">
+                             <h3 className="text-[16px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                             <p className="text-[11px] text-gray-500 font-sans mt-2">{formatTimeOnly(news.created_at)}</p>
+                          </a>
+                        ))}
+                      </div>
                    </div>
                 </div>
 
-                {/* Horizontal In-Article AdSense Block */}
-                <div className="w-full bg-gray-50 border border-gray-100 flex flex-col items-center pt-1 pb-2">
-                  <span className="text-[10px] text-gray-400 mb-1 font-sans">- বিজ্ঞাপন -</span>
-                  <div className="w-full overflow-hidden flex justify-center">
-                    <ins className="adsbygoogle"
-                         style={{ display: "block", width: "100%" }}
-                         data-ad-client="ca-pub-6625131155258287"
-                         data-ad-slot="7589682146"
-                         data-ad-format="auto"
-                         data-full-width-responsive="true"></ins>
-                    <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
-                  </div>
-                </div>
-
-                {/* Entertainment & Tech (2 Columns) */}
+                {/* --- INTERNATIONAL & SPORTS (2 cols inside 9 cols) --- */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-300 pt-5">
-                   <div>
+                   {/* International */}
+                   <div className="border-b md:border-b-0 md:border-r border-gray-300 md:pr-6 pb-6 md:pb-0">
                       <div className="border-t-[3px] border-black pt-1 mb-4">
-                         <h2 className="text-xl font-bold text-gray-900">বিনোদন <span className="text-red-600 font-sans">❯</span></h2>
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">বিশ্ব <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
                       </div>
                       <div className="flex flex-col divide-y divide-gray-200">
-                         {entertainmentNews[0] && (
-                            <a href={entertainmentNews[0].is_custom ? `/news/${entertainmentNews[0].id}` : entertainmentNews[0].source_url} target="_blank" className="group pb-3 block">
-                               <SafeImage src={entertainmentNews[0].image_url} alt={entertainmentNews[0].title} className="w-full h-[180px] object-cover rounded-sm mb-2" />
-                               <h3 className="text-xl font-bold text-gray-900 group-hover:text-red-700 leading-snug">{entertainmentNews[0].title}</h3>
+                         {worldNews[0] && (
+                            <a href={worldNews[0].is_custom ? `/news/${worldNews[0].id}` : worldNews[0].source_url} target="_blank" className="group pb-4 block">
+                               <SafeImage src={worldNews[0].image_url} alt={worldNews[0].title} className="w-full h-[180px] object-cover mb-3" />
+                               <h3 className="text-[20px] font-bold text-gray-900 group-hover:text-blue-600 leading-snug mb-2">{worldNews[0].title}</h3>
+                               <p className="text-[14px] text-gray-700 font-sans line-clamp-2">{worldNews[0].snippet}</p>
                             </a>
                          )}
-                         {entertainmentNews.slice(1, 4).map(news => (
-                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 flex gap-3 items-start">
-                               <div className="flex-1"><h3 className="text-[15px] font-bold text-gray-800 group-hover:text-red-700 leading-snug line-clamp-2">{news.title}</h3></div>
-                               <SafeImage src={news.image_url} alt={news.title} className="w-20 h-14 object-cover rounded-sm shrink-0" />
+                         {worldNews.slice(1, 4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 flex gap-4 items-start">
+                               <div className="flex-1">
+                                  <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug mb-1">{news.title}</h3>
+                               </div>
+                               <SafeImage src={news.image_url} alt={news.title} className="w-[90px] h-[60px] object-cover shrink-0" />
+                            </a>
+                         ))}
+                      </div>
+                   </div>
+                   
+                   {/* Sports */}
+                   <div>
+                      <div className="border-t-[3px] border-black pt-1 mb-4">
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">খেলা <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                      </div>
+                      <div className="flex flex-col divide-y divide-gray-200">
+                         {sportsNews[0] && (
+                            <a href={sportsNews[0].is_custom ? `/news/${sportsNews[0].id}` : sportsNews[0].source_url} target="_blank" className="group pb-4 block">
+                               <SafeImage src={sportsNews[0].image_url} alt={sportsNews[0].title} className="w-full h-[180px] object-cover mb-3" />
+                               <h3 className="text-[20px] font-bold text-gray-900 group-hover:text-blue-600 leading-snug mb-2">{sportsNews[0].title}</h3>
+                               <p className="text-[14px] text-gray-700 font-sans line-clamp-2">{sportsNews[0].snippet}</p>
+                            </a>
+                         )}
+                         {sportsNews.slice(1, 4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 flex gap-4 items-start">
+                               <div className="flex-1">
+                                  <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug mb-1">{news.title}</h3>
+                               </div>
+                               <SafeImage src={news.image_url} alt={news.title} className="w-[90px] h-[60px] object-cover shrink-0" />
+                            </a>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+
+                {/* --- ENTERTAINMENT & TECH (Grid) --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-300 pt-5">
+                   <div className="border-b md:border-b-0 md:border-r border-gray-300 md:pr-6 pb-6 md:pb-0">
+                      <div className="border-t-[3px] border-black pt-1 mb-4">
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">বিনোদন <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                         {entertainmentNews.slice(0,4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                               <SafeImage src={news.image_url} alt={news.title} className="w-full h-[100px] object-cover mb-2" />
+                               <h3 className="text-[15px] font-bold text-gray-900 group-hover:text-blue-600 leading-snug">{news.title}</h3>
                             </a>
                          ))}
                       </div>
@@ -222,40 +304,66 @@ export default async function Home({ searchParams }: { searchParams: { category?
                    
                    <div>
                       <div className="border-t-[3px] border-black pt-1 mb-4">
-                         <h2 className="text-xl font-bold text-gray-900">প্রযুক্তি <span className="text-red-600 font-sans">❯</span></h2>
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">প্রযুক্তি <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
                       </div>
                       <div className="flex flex-col divide-y divide-gray-200">
-                         {techNews[0] && (
-                            <a href={techNews[0].is_custom ? `/news/${techNews[0].id}` : techNews[0].source_url} target="_blank" className="group pb-3 block">
-                               <SafeImage src={techNews[0].image_url} alt={techNews[0].title} className="w-full h-[180px] object-cover rounded-sm mb-2" />
-                               <h3 className="text-xl font-bold text-gray-900 group-hover:text-red-700 leading-snug">{techNews[0].title}</h3>
-                            </a>
-                         )}
-                         {techNews.slice(1, 4).map(news => (
-                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 flex gap-3 items-start">
-                               <div className="flex-1"><h3 className="text-[15px] font-bold text-gray-800 group-hover:text-red-700 leading-snug line-clamp-2">{news.title}</h3></div>
-                               <SafeImage src={news.image_url} alt={news.title} className="w-20 h-14 object-cover rounded-sm shrink-0" />
+                         {techNews.slice(0, 4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 flex gap-4 items-center">
+                               <SafeImage src={news.image_url} alt={news.title} className="w-[120px] h-[75px] object-cover shrink-0" />
+                               <div className="flex-1">
+                                  <h3 className="text-[16px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                               </div>
                             </a>
                          ))}
                       </div>
                    </div>
                 </div>
 
-              </div>
+                {/* --- COMMERCE & EDUCATION --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-300 pt-5">
+                   <div className="border-b md:border-b-0 md:border-r border-gray-300 md:pr-6 pb-6 md:pb-0">
+                      <div className="border-t-[3px] border-black pt-1 mb-4">
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">বাণিজ্য <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                         {businessNews.slice(0,4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                               <SafeImage src={news.image_url} alt={news.title} className="w-full h-[100px] object-cover mb-2" />
+                               <h3 className="text-[15px] font-bold text-gray-900 group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                            </a>
+                         ))}
+                      </div>
+                   </div>
+                   
+                   <div>
+                      <div className="border-t-[3px] border-black pt-1 mb-4">
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">শিক্ষা <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                      </div>
+                      <div className="flex flex-col divide-y divide-gray-200">
+                         {eduNews.slice(0, 4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 block">
+                               <h3 className="text-[16px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                            </a>
+                         ))}
+                      </div>
+                   </div>
+                </div>
 
-              {/* Right Sidebar */}
-              <div className="lg:col-span-3 border-l border-gray-200 lg:pl-4 flex flex-col gap-6">
-                 {/* Sidebar Tabs */}
+              </div> {/* END OF LEFT 9 COLS */}
+
+              {/* RIGHT SIDEBAR (3 Cols) */}
+              <div className="lg:col-span-3 lg:pl-6 flex flex-col gap-6">
+                 {/* Pothito / Alochito Tabs */}
                  <div className="border border-gray-200 bg-white">
                     <ClientTabs latestList={allNews.slice(5, 12)} popularList={allNews.slice(15, 22)} />
                  </div>
                  
                  {/* Sidebar Square AdSense Block */}
-                 <div className="w-full bg-gray-50 border border-gray-100 flex flex-col items-center pt-1 pb-2">
-                    <span className="text-[10px] text-gray-400 mb-1 font-sans">- বিজ্ঞাপন -</span>
-                    <div className="w-full overflow-hidden flex justify-center">
+                 <div className="w-full bg-gray-50 flex flex-col items-center py-2 border-y border-gray-200">
+                    <div className="w-full overflow-hidden flex justify-center min-h-[250px]">
+                        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6625131155258287" crossOrigin="anonymous"></script>
                         <ins className="adsbygoogle"
-                             style={{ display: "block", width: "100%" }}
+                             style={{display:"block", width:"100%"}}
                              data-ad-client="ca-pub-6625131155258287"
                              data-ad-slot="6232073291"
                              data-ad-format="auto"
@@ -264,15 +372,32 @@ export default async function Home({ searchParams }: { searchParams: { category?
                     </div>
                  </div>
 
-                 {/* Sidebar Law Section */}
+                 {/* Sidebar Law & Court Section */}
                  <div>
                     <div className="border-t-[3px] border-black pt-1 mb-3">
-                       <h2 className="text-lg font-bold text-gray-900">আইন-আদালত <span className="text-red-600 font-sans">❯</span></h2>
+                       <h2 className="text-xl font-bold text-gray-900 font-sans flex items-center hover:text-blue-600 cursor-pointer">আইন-আদালত <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
                     </div>
                     <div className="flex flex-col divide-y divide-gray-200">
-                       {lawNews.slice(0, 4).map(news => (
-                         <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-2 flex flex-col gap-1">
-                           <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-red-700 leading-snug">{news.title}</h3>
+                       {lawNews.slice(0, 5).map(news => (
+                         <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 flex gap-3 items-center">
+                           <div className="flex-1">
+                              <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                           </div>
+                           <SafeImage src={news.image_url} alt={news.title} className="w-[80px] h-[55px] object-cover shrink-0" />
+                         </a>
+                       ))}
+                    </div>
+                 </div>
+
+                 {/* Sidebar Religion Section */}
+                 <div>
+                    <div className="border-t-[3px] border-black pt-1 mb-3">
+                       <h2 className="text-xl font-bold text-gray-900 font-sans flex items-center hover:text-blue-600 cursor-pointer">ধর্ম <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                    </div>
+                    <div className="flex flex-col divide-y divide-gray-200">
+                       {religionNews.slice(0, 4).map(news => (
+                         <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 block">
+                           <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">{news.title}</h3>
                          </a>
                        ))}
                     </div>
@@ -280,87 +405,12 @@ export default async function Home({ searchParams }: { searchParams: { category?
               </div>
             </div>
 
-            {/* 5. Full Width Sections (Sports, World, Education, Religion) */}
-            <div className="flex flex-col gap-8 mb-10">
-               
-               {/* Sports Section */}
-               <div className="border-t-[3px] border-black pt-2">
-                  <div className="mb-4 flex justify-between items-center">
-                     <h2 className="text-2xl font-bold text-gray-900">খেলা <span className="text-red-600 font-sans">❯</span></h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-5 divide-y md:divide-y-0 md:divide-x divide-gray-200">
-                     {sportsNews.slice(0,4).map((news, idx) => (
-                       <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex flex-col gap-2 py-4 md:py-0 ${idx !== 0 ? 'md:pl-5' : ''}`}>
-                          <SafeImage src={news.image_url} alt={news.title} className="w-full h-32 object-cover rounded-sm" />
-                          <h3 className="text-[16px] font-bold text-gray-900 group-hover:text-red-700 leading-snug">{news.title}</h3>
-                       </a>
-                     ))}
-                  </div>
-               </div>
-
-               {/* World Section */}
-               <div className="border-t-[3px] border-black pt-2 bg-slate-50 px-4 pb-4">
-                  <div className="mb-4 mt-2 flex justify-between items-center">
-                     <h2 className="text-2xl font-bold text-gray-900">আন্তর্জাতিক <span className="text-red-600 font-sans">❯</span></h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-                     {worldNews.slice(0,4).map(news => (
-                       <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group bg-white p-2 border border-gray-200 flex flex-col gap-2">
-                          <SafeImage src={news.image_url} alt={news.title} className="w-full h-28 object-cover rounded-sm" />
-                          <h3 className="text-[15px] font-bold text-gray-900 group-hover:text-red-700 leading-snug">{news.title}</h3>
-                       </a>
-                     ))}
-                  </div>
-               </div>
-
-               {/* Education & Religion (2 Columns split) */}
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="border-t-[3px] border-black pt-2">
-                     <h2 className="text-xl font-bold text-gray-900 mb-4">শিক্ষা <span className="text-red-600 font-sans">❯</span></h2>
-                     <div className="grid grid-cols-2 gap-4">
-                        {eduNews.slice(0,4).map(news => (
-                          <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col gap-2">
-                             <SafeImage src={news.image_url} alt={news.title} className="w-full h-24 object-cover rounded-sm" />
-                             <h3 className="text-[14px] font-bold text-gray-800 group-hover:text-red-700 leading-snug line-clamp-3">{news.title}</h3>
-                          </a>
-                        ))}
-                     </div>
-                  </div>
-                  <div className="border-t-[3px] border-black pt-2">
-                     <h2 className="text-xl font-bold text-gray-900 mb-4">ধর্ম <span className="text-red-600 font-sans">❯</span></h2>
-                     <div className="grid grid-cols-2 gap-4">
-                        {religionNews.slice(0,4).map(news => (
-                          <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col gap-2">
-                             <SafeImage src={news.image_url} alt={news.title} className="w-full h-24 object-cover rounded-sm" />
-                             <h3 className="text-[14px] font-bold text-gray-800 group-hover:text-red-700 leading-snug line-clamp-3">{news.title}</h3>
-                          </a>
-                        ))}
-                     </div>
-                  </div>
-               </div>
-
-            </div>
-
-            {/* Bottom Horizon AdSense Block */}
-            <div className="w-full bg-gray-50 border border-gray-100 flex flex-col items-center pt-1 pb-2 mt-4">
-              <span className="text-[10px] text-gray-400 mb-1 font-sans">- বিজ্ঞাপন -</span>
-              <div className="w-full overflow-hidden flex justify-center">
-                <ins className="adsbygoogle"
-                     style={{ display: "block", width: "100%" }}
-                     data-ad-client="ca-pub-6625131155258287"
-                     data-ad-slot="7589682146"
-                     data-ad-format="auto"
-                     data-full-width-responsive="true"></ins>
-                <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
-              </div>
-            </div>
-
           </>
         )}
       </main>
 
-      <footer className="bg-[#1a1a1a] text-gray-300 mt-8 border-t-4 border-red-700 font-sans">
-        <div className="max-w-[1200px] mx-auto px-4 py-8">
+      <footer className="bg-[#1a1a1a] text-gray-300 mt-8 border-t-[5px] border-red-700 font-sans">
+        <div className="max-w-[1200px] mx-auto px-4 py-8 md:py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
             <div>
               <h2 className="text-3xl font-extrabold text-white mb-4 font-serif">বঙ্গীয় <span className="text-red-600">টাইমস</span></h2>
@@ -377,8 +427,12 @@ export default async function Home({ searchParams }: { searchParams: { category?
               <p className="text-sm hover:text-white cursor-pointer transition">বিজ্ঞাপন: ads@bongiyotimes.com</p>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-6 pt-5 text-center text-xs text-gray-500">
+          <div className="border-t border-gray-800 mt-8 pt-6 text-center text-[13px] text-gray-500 flex flex-col md:flex-row justify-between items-center">
             <p>&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
+            <div className="flex gap-4 mt-3 md:mt-0">
+               <span className="hover:text-white cursor-pointer">শর্তাবলি</span>
+               <span className="hover:text-white cursor-pointer">গোপনীয়তা নীতি</span>
+            </div>
           </div>
         </div>
       </footer>
