@@ -45,15 +45,12 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const allNews = newsItems || [];
   
   const hasKeywords = (text: string, words: string[]) => words.some(w => text.includes(w));
-  const sportsWords = ['বিশ্বকাপ', 'ম্যাচ', 'ফুটবল', 'ক্রিকেট', 'রোনালদো', 'মেসি', 'ফিফা', 'উয়েফা', 'গোল', 'উইকেট', 'ইয়ামাল', 'স্পেন', 'ব্রাজিল', 'আর্জেন্টিনা', 'টি-টোয়েন্টি'];
-  const intlWords = ['রাশিয়া', 'ইউক্রেন', 'পুতিন', 'বাইডেন', 'ট্রাম্প', 'গাজা', 'ইসরায়েল', 'হামাস', 'যুক্তরাষ্ট্র', 'চীন', 'ফ্রান্স'];
-  const generalGarbage = ['এইচএসসি', 'পরীক্ষা', 'ফলাফল', 'নিহত', 'গ্রেপ্তার', 'আদালত'];
 
   // Data mapping for blocks
   const headerNews = allNews.slice(0, 3);
   const leadNews = allNews[3];
-  const subLeadGridNews = allNews.slice(4, 8); // 4 items for the new hero grid
-  const leftSideNews = allNews.slice(8, 11); // Adjusted index
+  const subLeadGridNews = allNews.slice(4, 8);
+  const leftSideNews = allNews.slice(8, 11);
   
   // Custom categories matching exact menu names
   const getCategoryNews = (catName: string, fallbackStartIndex: number, count: number) => {
@@ -63,15 +60,16 @@ export default async function Home({ searchParams }: { searchParams: { category?
   };
 
   const bdNews = getCategoryNews('বাংলাদেশ', 10, 4);
-  const lifestyleNews = getCategoryNews('জীবনযাপন', 15, 4);
-  const entertainmentNews = getCategoryNews('বিনোদন', 20, 3); 
-  const politicsNews = getCategoryNews('রাজনীতি', 25, 3); 
-  const eduNews = getCategoryNews('শিক্ষা', 30, 2);
-  const jobsNews = getCategoryNews('চাকরি', 35, 2);
-  const techNews = getCategoryNews('প্রযুক্তি', 40, 2);
-  const businessNews = getCategoryNews('বাণিজ্য', 45, 2); 
+  const opinionNews = getCategoryNews('মতামত', 15, 5); // New Opinion Category
+  const lifestyleNews = getCategoryNews('জীবনযাপন', 20, 4);
+  const entertainmentNews = getCategoryNews('বিনোদন', 25, 3); 
+  const politicsNews = getCategoryNews('রাজনীতি', 30, 3); 
+  const eduNews = getCategoryNews('শিক্ষা', 35, 2);
+  const jobsNews = getCategoryNews('চাকরি', 40, 2);
+  const techNews = getCategoryNews('প্রযুক্তি', 45, 2);
+  const businessNews = getCategoryNews('বাণিজ্য', 50, 2); 
 
-  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি"];
+  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি"];
 
   return (
     <div className="min-h-screen bg-white text-[#333] tracking-tight">
@@ -132,7 +130,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
       <main className="max-w-[1200px] mx-auto px-4 mt-6 pb-10">
         
         {(activeCategory || searchQuery) ? (
-            /* Category / Search Results View - 1 Col on Mobile, 2 Col on Small, 3 Col on Medium */
+            /* Category / Search Results View */
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="col-span-1 md:col-span-3">
                  <div className="border-b-[3px] border-black mb-4 pb-1">
@@ -257,6 +255,51 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   </div>
                </div>
             </div>
+
+            {/* NEW LAYOUT: মতামত (Opinion Category) */}
+            {opinionNews.length > 0 && (
+               <div className="mb-8 border-b border-gray-300 pb-8">
+                  <div className="border-t-[3px] border-black pt-2 mb-6">
+                     <a href="/?category=মতামত" className="text-[22px] font-bold hover:text-blue-600">মতামত <span className="text-red-600 ml-1">❯</span></a>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-6">
+                     
+                     {/* Left Featured Opinion Box */}
+                     {opinionNews[0] && (
+                     <div className="md:col-span-5 lg:col-span-4">
+                        <a href={opinionNews[0].is_custom ? `/news/${opinionNews[0].id}` : opinionNews[0].source_url} target="_blank" className="group flex flex-col h-full border border-gray-300 p-4 sm:p-5 hover:shadow-sm transition">
+                           <h3 className="text-[20px] font-bold leading-snug mb-3">
+                              <span className="bg-[#11233f] text-[#fcd105] px-2 py-1 mr-2 text-[15px] inline-block mb-1">মতামত •</span>
+                              <span className="group-hover:text-blue-600">{opinionNews[0].title}</span>
+                           </h3>
+                           <p className="text-[15px] text-gray-600 flex-1 line-clamp-4 mt-1">
+                              {opinionNews[0].title} প্রসঙ্গে আরও বিস্তারিত পড়তে লিংকে ক্লিক করুন।
+                           </p>
+                           <p className="text-[14px] text-gray-800 mt-4 font-bold">{opinionNews[0].source_name || 'নিবন্ধকার'}</p>
+                        </a>
+                     </div>
+                     )}
+
+                     {/* Right Opinions List */}
+                     <div className="md:col-span-7 lg:col-span-8 flex flex-col justify-between divide-y divide-gray-200">
+                        {opinionNews.slice(1, 5).map((news, idx) => (
+                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-4 sm:gap-5 items-center ${idx === 0 ? 'pb-4' : 'py-4'} last:pb-0`}>
+                              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#e6e6e6] flex items-center justify-center shrink-0">
+                                 {/* Circular Avatar Placeholder SVG */}
+                                 <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                              </div>
+                              <div className="flex-1">
+                                 <h3 className="text-[17px] sm:text-[18px] font-bold group-hover:text-blue-600 leading-snug">
+                                    <span className="text-red-600 mr-1">মতামত •</span>{news.title}
+                                 </h3>
+                                 <p className="text-[13px] text-gray-500 mt-1">লেখা: {news.source_name || 'নিবন্ধকার'}</p>
+                              </div>
+                           </a>
+                        ))}
+                     </div>
+                  </div>
+               </div>
+            )}
 
             {/* NEW LAYOUT 2: জীবনযাপন */}
             <div className="mb-8 border-b border-gray-300 pb-8">
@@ -402,7 +445,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   {businessNews[0] && (
                      <a href={businessNews[0].is_custom ? `/news/${businessNews[0].id}` : businessNews[0].source_url} target="_blank" className="group block mb-5 border-b border-gray-200 pb-4">
                         <SafeImage src={businessNews[0].image_url} alt={businessNews[0].title} className="w-full h-[200px] sm:h-[130px] object-cover mb-3 rounded-sm" />
-                        <h3 className="text-[18px] font-bold group-hover:text-blue-600 leading-snug text-blue-600">{businessNews[0].title}</h3>
+                        <h3 className="text-[18px] font-bold group-hover:text-blue-600 leading-snug">{businessNews[0].title}</h3>
                         <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(businessNews[0].created_at)}</p>
                      </a>
                   )}
