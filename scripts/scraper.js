@@ -9,6 +9,31 @@ async function runBot() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
+  // =========================================================================
+  // নতুন ফিচার: ৬ মাসের পুরোনো অটো-স্ক্র্যাপ করা খবর ডিলিট করা
+  // =========================================================================
+  try {
+    console.log("🧹 ৬ মাসের পুরোনো কপি করা খবর খোঁজা হচ্ছে...");
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    
+    // is_custom null মানে হলো এটি আপনার আপলোড করা নয়, বরং বটের আনা খবর
+    const { error: deleteError } = await supabase
+      .from('news')
+      .delete()
+      .lt('created_at', sixMonthsAgo.toISOString())
+      .is('is_custom', null); 
+
+    if (deleteError) {
+      console.error("❌ পুরোনো খবর ডিলিট করতে সমস্যা:", deleteError.message);
+    } else {
+      console.log("✅ ডাটাবেস ক্লিনআপ সম্পন্ন! আপনার নিজের খবরগুলো ১০০% সুরক্ষিত আছে।");
+    }
+  } catch (err) {
+    console.error("❌ ক্লিনআপ সিস্টেমে এরর:", err.message);
+  }
+  // =========================================================================
+
   const allSources = [
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/sports', domain: 'prothomalo.com', defaultCategory: 'খেলাধুলা' },
@@ -79,7 +104,6 @@ async function runBot() {
     return array;
   }
 
-  // সংখ্যা বাড়িয়ে ২৫টি সোর্স করা হয়েছে
   const sourcesToScrape = shuffleArray([...allSources]).slice(0, 25);
 
   const headers = {
@@ -115,7 +139,6 @@ async function runBot() {
         }
       });
 
-      // প্রতি সোর্স থেকে ৫টি করে খবর আনবে
       const topLinks = links.slice(0, 5); 
       
       for (let link of topLinks) {
@@ -126,7 +149,6 @@ async function runBot() {
         let title = article$('meta[property="og:title"]').attr('content') || article$('title').text();
         let snippet = article$('meta[property="og:description"]').attr('content') || article$('meta[name="description"]').attr('content') || "বিস্তারিত পড়তে মূল খবরে ক্লিক করুন...";
         
-        // ইমেজ URL ফিক্স (চ্যানেল আই সহ অন্যান্য পোর্টালের জন্য)
         let image_url = article$('meta[property="og:image"]').attr('content') || article$('meta[name="twitter:image"]').attr('content');
         if (image_url && image_url.startsWith('/')) {
             image_url = `https://${source.domain}${image_url}`;
