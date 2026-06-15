@@ -1,8 +1,8 @@
 name: Auto News Scraper
 on:
   schedule:
-    - cron: '0 */2 * * *' # প্রতি ২ ঘণ্টা পরপর চলবে
-  workflow_dispatch: # আপনি চাইলে ম্যানুয়ালিও চালাতে পারবেন
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
 jobs:
   scrape-and-save:
     runs-on: ubuntu-latest
@@ -13,7 +13,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           
       - name: Install Packages
         run: npm install cheerio @supabase/supabase-js
