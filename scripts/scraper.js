@@ -1,195 +1,441 @@
-const cheerio = require('cheerio');
-const { createClient } = require('@supabase/supabase-js');
+import React from 'react';
+import { createClient } from '@supabase/supabase-js';
+import ClientTabs from './components/ClientTabs';
+import SafeImage from './components/SafeImage';
 
-async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে...");
+export const revalidate = 0;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-
-  // ৬ মাসের পুরোনো অটো-স্ক্র্যাপ খবর ডিলিট
-  try {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    await supabase.from('news').delete().lt('created_at', sixMonthsAgo.toISOString()).is('is_custom', null); 
-  } catch (err) {
-    console.error("Cleanup error:", err.message);
-  }
-
-  const allSources = [
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/national', domain: 'kalerkantho.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Samakal', url: 'https://samakal.com/bangladesh', domain: 'samakal.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/national', domain: 'bd-pratidin.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Nayadiganta', url: 'https://www.dailynayadiganta.com/national', domain: 'dailynayadiganta.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Inqilab', url: 'https://dailyinqilab.com/national', domain: 'dailyinqilab.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/national', domain: 'dhakapost.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Jagonews24', url: 'https://www.jagonews24.com/national', domain: 'jagonews24.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'BDNews24', url: 'https://bangla.bdnews24.com/samagrabangladesh', domain: 'bdnews24.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Jamuna TV', url: 'https://www.jamuna.tv/all-bangladesh', domain: 'jamuna.tv', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/world', domain: 'prothomalo.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/international', domain: 'jugantor.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/world-news', domain: 'ittefaq.com.bd', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/world', domain: 'kalerkantho.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Samakal', url: 'https://samakal.com/international', domain: 'samakal.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/international', domain: 'bd-pratidin.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/international', domain: 'dhakapost.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Jagonews24', url: 'https://www.jagonews24.com/international', domain: 'jagonews24.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/sports', domain: 'prothomalo.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/sports', domain: 'jugantor.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/sports', domain: 'ittefaq.com.bd', defaultCategory: 'খেলাধুলা' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/sport', domain: 'kalerkantho.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Samakal', url: 'https://samakal.com/sports', domain: 'samakal.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/sports', domain: 'bd-pratidin.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/sports', domain: 'dhakapost.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Jagonews24', url: 'https://www.jagonews24.com/sports', domain: 'jagonews24.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'TBS News', url: 'https://www.tbsnews.net/bangla/sports', domain: 'tbsnews.net', defaultCategory: 'খেলাধুলা' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/entertainment', domain: 'prothomalo.com', defaultCategory: 'বিনোদন' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/entertainment', domain: 'jugantor.com', defaultCategory: 'বিনোদন' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/entertainment', domain: 'ittefaq.com.bd', defaultCategory: 'বিনোদন' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/entertainment', domain: 'kalerkantho.com', defaultCategory: 'বিনোদন' },
-    { name: 'Samakal', url: 'https://samakal.com/entertainment', domain: 'samakal.com', defaultCategory: 'বিনোদন' },
-    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/entertainment', domain: 'dhakapost.com', defaultCategory: 'বিনোদন' },
-    { name: 'Jagonews24', url: 'https://www.jagonews24.com/entertainment', domain: 'jagonews24.com', defaultCategory: 'বিনোদন' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/business', domain: 'prothomalo.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/economics', domain: 'jugantor.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/business', domain: 'ittefaq.com.bd', defaultCategory: 'বাণিজ্য' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/business', domain: 'kalerkantho.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Samakal', url: 'https://samakal.com/economics', domain: 'samakal.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/economy', domain: 'dhakapost.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Jagonews24', url: 'https://www.jagonews24.com/economy', domain: 'jagonews24.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'TBS News', url: 'https://www.tbsnews.net/bangla/economy', domain: 'tbsnews.net', defaultCategory: 'বাণিজ্য' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/law-and-justice', domain: 'jugantor.com', defaultCategory: 'আইন-আদালত' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/law-and-court', domain: 'ittefaq.com.bd', defaultCategory: 'আইন-আদালত' },
-    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/law-courts', domain: 'dhakapost.com', defaultCategory: 'আইন-আদালত' },
-    { name: 'Jagonews24', url: 'https://www.jagonews24.com/law-courts', domain: 'jagonews24.com', defaultCategory: 'আইন-আদালত' },
-    { name: 'Bangla Tribune', url: 'https://www.banglatribune.com/law-and-crime', domain: 'banglatribune.com', defaultCategory: 'আইন-আদালত' },
-    { name: 'Somoy TV', url: 'https://www.somoynews.tv/categories/আইন-ও-আদালত', domain: 'somoynews.tv', defaultCategory: 'আইন-আদালত' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/education', domain: 'prothomalo.com', defaultCategory: 'শিক্ষা' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/campus', domain: 'jugantor.com', defaultCategory: 'শিক্ষা' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/education', domain: 'ittefaq.com.bd', defaultCategory: 'শিক্ষা' },
-    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/education', domain: 'dhakapost.com', defaultCategory: 'শিক্ষা' },
-    { name: 'Jagonews24', url: 'https://www.jagonews24.com/campus', domain: 'jagonews24.com', defaultCategory: 'শিক্ষা' },
-    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/education', domain: 'bd-pratidin.com', defaultCategory: 'শিক্ষা' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/technology', domain: 'prothomalo.com', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/tech', domain: 'jugantor.com', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/science-and-technology', domain: 'ittefaq.com.bd', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/info-tech', domain: 'kalerkantho.com', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/technology', domain: 'dhakapost.com', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Jagonews24', url: 'https://www.jagonews24.com/technology', domain: 'jagonews24.com', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/religion', domain: 'prothomalo.com', defaultCategory: 'ধর্ম' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/islam-and-life', domain: 'jugantor.com', defaultCategory: 'ধর্ম' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/islam', domain: 'ittefaq.com.bd', defaultCategory: 'ধর্ম' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/Islamic-lifestylie', domain: 'kalerkantho.com', defaultCategory: 'ধর্ম' },
-    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/religion', domain: 'dhakapost.com', defaultCategory: 'ধর্ম' },
-    { name: 'Jagonews24', url: 'https://www.jagonews24.com/religion', domain: 'jagonews24.com', defaultCategory: 'ধর্ম' },
-    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/islam', domain: 'bd-pratidin.com', defaultCategory: 'ধর্ম' }
-  ];
-
-  function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-  }
-
-  const sourcesToScrape = shuffleArray([...allSources]).slice(0, 30);
-
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-  };
-
-  // স্ট্রিক্ট ইউআরএল ব্ল্যাকলিস্ট (ক্যাটাগরি মিক্সিং বন্ধ করতে)
-  function isStrictlyValid(url, expectedCategory) {
-    const lowerUrl = url.toLowerCase();
-    const generalBadWords = ['tag', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo', 'gallery'];
-    if (generalBadWords.some(word => lowerUrl.includes(word))) return false;
-    if (!/\d/.test(lowerUrl)) return false; // নিউজের লিংকে সাধারণত নাম্বার থাকে
-
-    const categoryBlacklist = {
-      'বাংলাদেশ': ['world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education'],
-      'আন্তর্জাতিক': ['bangladesh', 'national', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education'],
-      'খেলাধুলা': ['bangladesh', 'national', 'world', 'international', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education'],
-      'বিনোদন': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education'],
-      'বাণিজ্য': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'islam', 'religion', 'campus', 'education'],
-      'আইন-আদালত': ['sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education'],
-      'শিক্ষা': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion'],
-      'প্রযুক্তি': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'business', 'economy', 'islam', 'religion', 'campus', 'education'],
-      'ধর্ম': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'campus', 'education']
-    };
-
-    const blockedWords = categoryBlacklist[expectedCategory] || [];
-    if (blockedWords.some(word => lowerUrl.includes(`/${word}`))) return false;
-
-    return true;
-  }
-
-  for (let source of sourcesToScrape) {
-    console.log(`\n👉 স্ক্র্যাপ হচ্ছে: ${source.name} (${source.defaultCategory})`);
-    try {
-      const response = await fetch(source.url, { headers });
-      if (!response.ok) continue;
-      
-      const html = await response.text();
-      const $ = cheerio.load(html);
-      let links = [];
-      
-      $('a').each((i, el) => {
-        let href = $(el).attr('href');
-        if (href && href.length > 40 && isStrictlyValid(href, source.defaultCategory)) {
-          if (href.startsWith('/')) href = `https://www.${source.domain}${href}`;
-          if (href.includes(source.domain) && !links.includes(href)) {
-            links.push(href);
-          }
-        }
-      });
-
-      const topLinks = links.slice(0, 5); 
-      
-      for (let link of topLinks) {
-        const articleRes = await fetch(link, { headers });
-        const articleHtml = await articleRes.text();
-        const article$ = cheerio.load(articleHtml);
-
-        let title = article$('meta[property="og:title"]').attr('content') || article$('title').text();
-        let snippet = article$('meta[property="og:description"]').attr('content') || article$('meta[name="description"]').attr('content') || "বিস্তারিত পড়তে মূল খবরে ক্লিক করুন...";
-        
-        let image_url = article$('meta[property="og:image"]').attr('content') || article$('meta[name="twitter:image"]').attr('content');
-        if (image_url && image_url.startsWith('/')) {
-            image_url = `https://${source.domain}${image_url}`;
-        }
-        
-        if (title && image_url) {
-          const wordCount = title.trim().split(/\s+/).length;
-          if (!title.includes('404') && wordCount > 4) {
-            const { data: existing } = await supabase.from('news').select('id').eq('title', title);
-            
-            if (existing.length === 0) {
-              await supabase.from('news').insert([{
-                title: title,
-                snippet: snippet.substring(0, 150) + "...",
-                image_url: image_url,
-                source_url: link,
-                source_name: source.name,
-                category: source.defaultCategory
-              }]);
-              console.log(`✅ সেভ হয়েছে [${source.defaultCategory}]: ${title.substring(0, 35)}...`);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.error(`❌ ${source.name} ক্র্যাশ করেছে:`, err.message);
-    }
-  }
-  console.log("\n🎉 বটের কাজ সফলভাবে শেষ!");
+function formatDateTime(dateString: string) {
+  const date = new Date(dateString);
+  const d = date.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
+  const t = date.toLocaleTimeString('bn-BD', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${d} | ${t}`;
 }
 
-runBot();
+// প্রথম আলোর মতো শুধু সময় দেখানোর ফাংশন (যেমন: ২ ঘণ্টা আগে - আপাতত স্ট্যাটিক টাইম ফরম্যাট)
+function formatTimeOnly(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('bn-BD', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+export default async function Home({ searchParams }: { searchParams: { category?: string, tab?: string, page?: string, q?: string } }) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+  );
+
+  const activeCategory = searchParams.category || '';
+  const searchQuery = searchParams.q || '';
+  const currentPage = parseInt(searchParams.page || '1');
+  const limitPerPage = 20; 
+  const startRow = (currentPage - 1) * limitPerPage;
+  const endRow = startRow + limitPerPage - 1;
+
+  let query = supabase.from('news').select('*', { count: 'exact' }).order('created_at', { ascending: false });
+  
+  if (searchQuery) {
+    query = query.ilike('title', `%${searchQuery}%`).range(startRow, endRow);
+  } else if (activeCategory) {
+    query = query.eq('category', activeCategory).range(startRow, endRow);
+  } else {
+    query = query.limit(150); 
+  }
+
+  const { data: newsItems, count } = await query;
+  const totalPages = count ? Math.ceil(count / limitPerPage) : 1;
+  const allNews = newsItems || [];
+
+  const leadNews = allNews[0];
+  const leftSideNews = allNews.slice(1, 4);
+  const rightSideNews = allNews.slice(4, 8);
+  
+  const nationalNews = allNews.filter(n => n.category === 'বাংলাদেশ' || n.category === 'জাতীয়' || n.category === 'সারাদেশ').slice(0, 6);
+  const worldNews = allNews.filter(n => n.category === 'আন্তর্জাতিক' || n.category === 'বিশ্ব').slice(0, 6);
+  const entertainmentNews = allNews.filter(n => n.category === 'বিনোদন').slice(0, 5);
+  const techNews = allNews.filter(n => n.category === 'প্রযুক্তি').slice(0, 5);
+  const businessNews = allNews.filter(n => n.category === 'বাণিজ্য').slice(0, 5);
+  const lawNews = allNews.filter(n => n.category === 'আইন-আদালত').slice(0, 6);
+  const religionNews = allNews.filter(n => n.category === 'ধর্ম').slice(0, 4);
+  const sportsNews = allNews.filter(n => n.category === 'খেলাধুলা').slice(0, 6);
+  const eduNews = allNews.filter(n => n.category === 'শিক্ষা' || n.title.includes('শিক্ষা')).slice(0, 4);
+
+  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "বিশ্ব", "বাণিজ্য", "মতামত", "খেলা", "বিনোদন", "চাকরি", "জীবনযাপন", "ভিডিও", "আইন-আদালত", "শিক্ষা", "প্রযুক্তি", "ধর্ম"];
+
+  return (
+    <div className="min-h-screen bg-white text-black font-serif">
+      
+      {/* 1. Exact Prothom Alo Header */}
+      <header className="bg-white pt-3 md:pt-5 pb-0">
+        <div className="max-w-[1200px] mx-auto px-4 flex flex-col md:flex-row justify-between items-center md:items-end pb-3">
+          
+          <a href="/" className="flex flex-col shrink-0 mb-4 md:mb-0">
+             {/* Prothom Alo style big logo representation */}
+            <h1 className="text-5xl md:text-6xl font-extrabold text-black tracking-tighter" style={{ fontFamily: 'serif' }}>বঙ্গীয় <span className="text-red-600">টাইমস</span></h1>
+          </a>
+
+          <div className="w-full md:w-auto flex flex-col items-center md:items-end gap-2">
+             {/* Right side tools */}
+             <div className="text-[15px] text-gray-700 flex flex-wrap justify-center md:justify-end items-center gap-4 font-sans font-medium">
+                <span className="cursor-pointer hover:text-blue-600 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> 
+                  খুঁজুন
+                </span>
+                <span className="cursor-pointer hover:text-blue-600 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
+                  ই-পেপার
+                </span>
+                <span className="bg-red-50 text-red-700 px-3 py-1 cursor-pointer font-bold border border-red-100">Eng</span>
+                <span className="cursor-pointer hover:text-blue-600 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                  Login
+                </span>
+             </div>
+             {/* Date String exact location */}
+             <div className="text-gray-500 text-sm font-sans mt-1">
+                ঢাকা | {new Date().toLocaleDateString('bn-BD', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+             </div>
+          </div>
+        </div>
+        
+        {/* Exact Nav Bar */}
+        <div className="border-y border-gray-300 shadow-sm sticky top-0 z-50 bg-white">
+          <div className="max-w-[1200px] mx-auto px-4 overflow-x-auto scrollbar-hide">
+            <nav className="flex items-center min-w-max py-2.5 text-[15px] font-bold text-gray-800 gap-5 md:gap-6 font-sans">
+              <a href="/" className="hover:text-blue-600 transition">প্রচ্ছদ</a>
+              {menuCategories.map((cat, index) => (
+                <a key={index} href={`/?category=${cat}`} className={`hover:text-blue-600 transition ${activeCategory === cat ? 'text-blue-600' : ''}`}>{cat}</a>
+              ))}
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* HEADER ADSENSE */}
+      <div className="max-w-[1200px] mx-auto px-4 my-4 flex justify-center">
+        <div className="w-full md:w-[728px] overflow-hidden flex justify-center bg-gray-50 items-center min-h-[90px]">
+          <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6625131155258287" crossOrigin="anonymous"></script>
+          <ins className="adsbygoogle"
+               style={{display:"block", width:"100%"}}
+               data-ad-client="ca-pub-6625131155258287"
+               data-ad-slot="7589682146"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
+        </div>
+      </div>
+
+      <main className="max-w-[1200px] mx-auto px-4 pb-10">
+        {(activeCategory || searchQuery) ? (
+           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
+              <div className="col-span-1 md:col-span-3">
+                 <div className="border-b-[3px] border-black mb-4 pb-1">
+                    <h2 className="text-xl md:text-2xl font-bold text-blue-800 font-sans">
+                       {searchQuery ? `"${searchQuery}" এর সার্চ রেজাল্ট` : `${activeCategory} এর সব খবর`}
+                    </h2>
+                 </div>
+                 {allNews.length === 0 ? (
+                    <div className="text-center py-20 text-gray-500 font-bold text-lg font-sans">কোনো খবর পাওয়া যায়নি।</div>
+                 ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                       {allNews.map(news => (
+                          <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col gap-2 pb-4 border-b border-gray-200">
+                             <SafeImage src={news.image_url} alt={news.title} className="w-full h-40 object-cover rounded-sm" />
+                             <h3 className="text-lg font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                             <p className="text-[12px] text-gray-500 font-sans mt-auto pt-1">{formatTimeOnly(news.created_at)}</p>
+                          </a>
+                       ))}
+                    </div>
+                 )}
+              </div>
+              <div className="hidden md:block col-span-1 border-l border-gray-200 pl-4">
+                 {/* Sidebar Vertical AdSense */}
+                 <div className="w-full bg-gray-50 overflow-hidden flex justify-center sticky top-20 min-h-[600px]">
+                    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6625131155258287" crossOrigin="anonymous"></script>
+                    <ins className="adsbygoogle"
+                         style={{display:"block", width:"100%"}}
+                         data-ad-client="ca-pub-6625131155258287"
+                         data-ad-slot="4963518807"
+                         data-ad-format="auto"
+                         data-full-width-responsive="true"></ins>
+                    <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
+                 </div>
+              </div>
+           </div>
+        ) : (
+          <>
+            {/* 3. HERO SECTION - EXACT PA LAYOUT (No gaps, borders between cols) */}
+            {leadNews && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 border-b border-gray-300 pb-5 mb-6">
+                
+                {/* Left Column (Text only items, tight divide-y) */}
+                <div className="lg:col-span-3 lg:border-r border-gray-300 lg:pr-5 flex flex-col divide-y divide-gray-200">
+                  {leftSideNews.map(news => (
+                    <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 block">
+                      <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 leading-tight mb-2">{news.title}</h3>
+                      <p className="text-xs text-gray-500 font-sans">{formatTimeOnly(news.created_at)}</p>
+                    </a>
+                  ))}
+                </div>
+                
+                {/* Center Column (Big Lead News) */}
+                <a href={leadNews.is_custom ? `/news/${leadNews.id}` : leadNews.source_url} target="_blank" className="lg:col-span-6 group block px-0 lg:px-5 py-4 lg:py-0 border-y lg:border-0 border-gray-200 my-4 lg:my-0">
+                  <SafeImage src={leadNews.image_url} alt={leadNews.title} className="w-full h-[250px] md:h-[350px] object-cover rounded-sm mb-3" />
+                  <div className="flex items-center gap-2 mb-1">
+                     <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+                     <span className="text-red-600 font-bold text-[15px] font-sans">সরাসরি</span>
+                  </div>
+                  <h1 className="text-3xl md:text-[40px] font-bold leading-tight text-gray-900 group-hover:text-blue-600 transition mb-3">{leadNews.title}</h1>
+                  <p className="text-[16px] text-gray-700 leading-relaxed font-sans line-clamp-3">{leadNews.snippet}</p>
+                  <p className="text-xs text-gray-500 font-sans mt-3">{formatTimeOnly(leadNews.created_at)}</p>
+                </a>
+                
+                {/* Right Column (Thumbnails right side) */}
+                <div className="lg:col-span-3 lg:border-l border-gray-300 lg:pl-5 flex flex-col divide-y divide-gray-200">
+                  {rightSideNews.map(news => (
+                    <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 flex gap-4 items-start">
+                      <div className="flex-1">
+                         <h3 className="text-[16px] font-bold text-gray-900 group-hover:text-blue-600 leading-tight mb-2">{news.title}</h3>
+                         <p className="text-[11px] text-gray-500 font-sans">{formatTimeOnly(news.created_at)}</p>
+                      </div>
+                      <SafeImage src={news.image_url} alt={news.title} className="w-[100px] h-[65px] object-cover shrink-0" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* MAIN BODY GRID: 9 Col Left + 3 Col Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 border-b border-gray-300 pb-8 mb-8">
+              
+              {/* LEFT HUGE CONTENT AREA (9 Cols) */}
+              <div className="lg:col-span-9 lg:border-r border-gray-300 lg:pr-6 flex flex-col gap-8">
+                
+                {/* --- BANGLADESH SECTION --- */}
+                <div>
+                   <div className="border-t-[3px] border-black pt-1 mb-4">
+                      <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">বাংলাদেশ <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                   </div>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Sub-lead style in category */}
+                      <a href={nationalNews[0]?.is_custom ? `/news/${nationalNews[0]?.id}` : nationalNews[0]?.source_url} target="_blank" className="group col-span-1 md:col-span-2 border-b md:border-b-0 border-gray-200 pb-4 md:pb-0 md:border-r pr-0 md:pr-6">
+                         <SafeImage src={nationalNews[0]?.image_url} alt={nationalNews[0]?.title} className="w-full h-[280px] object-cover mb-3" />
+                         <h3 className="text-[26px] font-bold text-gray-900 group-hover:text-blue-600 leading-tight mb-2">{nationalNews[0]?.title}</h3>
+                         <p className="text-[15px] text-gray-700 font-sans line-clamp-2">{nationalNews[0]?.snippet}</p>
+                      </a>
+                      
+                      {/* List Style in Category */}
+                      <div className="flex flex-col divide-y divide-gray-200 col-span-1">
+                        {nationalNews.slice(1, 5).map(news => (
+                          <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0">
+                             <h3 className="text-[16px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                             <p className="text-[11px] text-gray-500 font-sans mt-2">{formatTimeOnly(news.created_at)}</p>
+                          </a>
+                        ))}
+                      </div>
+                   </div>
+                </div>
+
+                {/* --- INTERNATIONAL & SPORTS (2 cols inside 9 cols) --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-300 pt-5">
+                   {/* International */}
+                   <div className="border-b md:border-b-0 md:border-r border-gray-300 md:pr-6 pb-6 md:pb-0">
+                      <div className="border-t-[3px] border-black pt-1 mb-4">
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">বিশ্ব <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                      </div>
+                      <div className="flex flex-col divide-y divide-gray-200">
+                         {worldNews[0] && (
+                            <a href={worldNews[0].is_custom ? `/news/${worldNews[0].id}` : worldNews[0].source_url} target="_blank" className="group pb-4 block">
+                               <SafeImage src={worldNews[0].image_url} alt={worldNews[0].title} className="w-full h-[180px] object-cover mb-3" />
+                               <h3 className="text-[20px] font-bold text-gray-900 group-hover:text-blue-600 leading-snug mb-2">{worldNews[0].title}</h3>
+                               <p className="text-[14px] text-gray-700 font-sans line-clamp-2">{worldNews[0].snippet}</p>
+                            </a>
+                         )}
+                         {worldNews.slice(1, 4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 flex gap-4 items-start">
+                               <div className="flex-1">
+                                  <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug mb-1">{news.title}</h3>
+                               </div>
+                               <SafeImage src={news.image_url} alt={news.title} className="w-[90px] h-[60px] object-cover shrink-0" />
+                            </a>
+                         ))}
+                      </div>
+                   </div>
+                   
+                   {/* Sports */}
+                   <div>
+                      <div className="border-t-[3px] border-black pt-1 mb-4">
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">খেলা <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                      </div>
+                      <div className="flex flex-col divide-y divide-gray-200">
+                         {sportsNews[0] && (
+                            <a href={sportsNews[0].is_custom ? `/news/${sportsNews[0].id}` : sportsNews[0].source_url} target="_blank" className="group pb-4 block">
+                               <SafeImage src={sportsNews[0].image_url} alt={sportsNews[0].title} className="w-full h-[180px] object-cover mb-3" />
+                               <h3 className="text-[20px] font-bold text-gray-900 group-hover:text-blue-600 leading-snug mb-2">{sportsNews[0].title}</h3>
+                               <p className="text-[14px] text-gray-700 font-sans line-clamp-2">{sportsNews[0].snippet}</p>
+                            </a>
+                         )}
+                         {sportsNews.slice(1, 4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 flex gap-4 items-start">
+                               <div className="flex-1">
+                                  <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug mb-1">{news.title}</h3>
+                               </div>
+                               <SafeImage src={news.image_url} alt={news.title} className="w-[90px] h-[60px] object-cover shrink-0" />
+                            </a>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+
+                {/* --- ENTERTAINMENT & TECH (Grid) --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-300 pt-5">
+                   <div className="border-b md:border-b-0 md:border-r border-gray-300 md:pr-6 pb-6 md:pb-0">
+                      <div className="border-t-[3px] border-black pt-1 mb-4">
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">বিনোদন <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                         {entertainmentNews.slice(0,4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                               <SafeImage src={news.image_url} alt={news.title} className="w-full h-[100px] object-cover mb-2" />
+                               <h3 className="text-[15px] font-bold text-gray-900 group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                            </a>
+                         ))}
+                      </div>
+                   </div>
+                   
+                   <div>
+                      <div className="border-t-[3px] border-black pt-1 mb-4">
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">প্রযুক্তি <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                      </div>
+                      <div className="flex flex-col divide-y divide-gray-200">
+                         {techNews.slice(0, 4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 flex gap-4 items-center">
+                               <SafeImage src={news.image_url} alt={news.title} className="w-[120px] h-[75px] object-cover shrink-0" />
+                               <div className="flex-1">
+                                  <h3 className="text-[16px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                               </div>
+                            </a>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+
+                {/* --- COMMERCE & EDUCATION --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-300 pt-5">
+                   <div className="border-b md:border-b-0 md:border-r border-gray-300 md:pr-6 pb-6 md:pb-0">
+                      <div className="border-t-[3px] border-black pt-1 mb-4">
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">বাণিজ্য <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                         {businessNews.slice(0,4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                               <SafeImage src={news.image_url} alt={news.title} className="w-full h-[100px] object-cover mb-2" />
+                               <h3 className="text-[15px] font-bold text-gray-900 group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                            </a>
+                         ))}
+                      </div>
+                   </div>
+                   
+                   <div>
+                      <div className="border-t-[3px] border-black pt-1 mb-4">
+                         <h2 className="text-[22px] font-bold text-gray-900 flex items-center font-sans hover:text-blue-600 cursor-pointer w-max">শিক্ষা <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                      </div>
+                      <div className="flex flex-col divide-y divide-gray-200">
+                         {eduNews.slice(0, 4).map(news => (
+                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 block">
+                               <h3 className="text-[16px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                            </a>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+
+              </div> {/* END OF LEFT 9 COLS */}
+
+              {/* RIGHT SIDEBAR (3 Cols) */}
+              <div className="lg:col-span-3 lg:pl-6 flex flex-col gap-6">
+                 {/* Pothito / Alochito Tabs */}
+                 <div className="border border-gray-200 bg-white">
+                    <ClientTabs latestList={allNews.slice(5, 12)} popularList={allNews.slice(15, 22)} />
+                 </div>
+                 
+                 {/* Sidebar Square AdSense Block */}
+                 <div className="w-full bg-gray-50 flex flex-col items-center py-2 border-y border-gray-200">
+                    <div className="w-full overflow-hidden flex justify-center min-h-[250px]">
+                        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6625131155258287" crossOrigin="anonymous"></script>
+                        <ins className="adsbygoogle"
+                             style={{display:"block", width:"100%"}}
+                             data-ad-client="ca-pub-6625131155258287"
+                             data-ad-slot="6232073291"
+                             data-ad-format="auto"
+                             data-full-width-responsive="true"></ins>
+                        <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
+                    </div>
+                 </div>
+
+                 {/* Sidebar Law & Court Section */}
+                 <div>
+                    <div className="border-t-[3px] border-black pt-1 mb-3">
+                       <h2 className="text-xl font-bold text-gray-900 font-sans flex items-center hover:text-blue-600 cursor-pointer">আইন-আদালত <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                    </div>
+                    <div className="flex flex-col divide-y divide-gray-200">
+                       {lawNews.slice(0, 5).map(news => (
+                         <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 flex gap-3 items-center">
+                           <div className="flex-1">
+                              <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                           </div>
+                           <SafeImage src={news.image_url} alt={news.title} className="w-[80px] h-[55px] object-cover shrink-0" />
+                         </a>
+                       ))}
+                    </div>
+                 </div>
+
+                 {/* Sidebar Religion Section */}
+                 <div>
+                    <div className="border-t-[3px] border-black pt-1 mb-3">
+                       <h2 className="text-xl font-bold text-gray-900 font-sans flex items-center hover:text-blue-600 cursor-pointer">ধর্ম <span className="text-red-500 ml-2 font-bold text-lg">❯</span></h2>
+                    </div>
+                    <div className="flex flex-col divide-y divide-gray-200">
+                       {religionNews.slice(0, 4).map(news => (
+                         <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group py-3 first:pt-0 block">
+                           <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                         </a>
+                       ))}
+                    </div>
+                 </div>
+              </div>
+            </div>
+
+          </>
+        )}
+      </main>
+
+      <footer className="bg-[#1a1a1a] text-gray-300 mt-8 border-t-[5px] border-red-700 font-sans">
+        <div className="max-w-[1200px] mx-auto px-4 py-8 md:py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+            <div>
+              <h2 className="text-3xl font-extrabold text-white mb-4 font-serif">বঙ্গীয় <span className="text-red-600">টাইমস</span></h2>
+              <p className="text-sm leading-relaxed text-gray-400">সত্য, সাহস ও বস্তুনিষ্ঠ সাংবাদিকতার এক অবিচল কণ্ঠস্বর। বাংলাদেশ ও সারা বিশ্বের সর্বশেষ সংবাদ সবার আগে পৌঁছে দিতে আমরা অঙ্গীকারবদ্ধ।</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white mb-4 border-b border-gray-700 pb-2 inline-block">সম্পাদকীয় ও প্রকাশনা</h3>
+              <p className="text-sm mb-2"><span className="text-gray-500">সম্পাদক ও প্রকাশক:</span> <br/><span className="text-base font-bold text-white">মো: আজাদুর রহমান</span></p>
+              <p className="text-sm mt-3"><span className="text-gray-500">প্রধান কার্যালয়:</span> <br/>ঢাকা, বাংলাদেশ</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white mb-4 border-b border-gray-700 pb-2 inline-block">যোগাযোগ</h3>
+              <p className="text-sm mb-2 hover:text-white cursor-pointer transition">ইমেইল: news@bongiyotimes.com</p>
+              <p className="text-sm hover:text-white cursor-pointer transition">বিজ্ঞাপন: ads@bongiyotimes.com</p>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-6 text-center text-[13px] text-gray-500 flex flex-col md:flex-row justify-between items-center">
+            <p>&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
+            <div className="flex gap-4 mt-3 md:mt-0">
+               <span className="hover:text-white cursor-pointer">শর্তাবলি</span>
+               <span className="hover:text-white cursor-pointer">গোপনীয়তা নীতি</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
