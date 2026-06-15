@@ -29,10 +29,10 @@ export default function AdminDashboard() {
     setIsUploading(true);
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'YOUR_UPLOAD_PRESET'); // ক্লাউডিনারি প্রিসেট
+    formData.append('upload_preset', 'bongiyo_times'); // ক্লাউডিনারি প্রিসেট
 
     try {
-      const res = await fetch('https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload', {
+      const res = await fetch('https://api.cloudinary.com/v1_1/dfgfvfvmk/image/upload', {
         method: 'POST',
         body: formData,
       });
