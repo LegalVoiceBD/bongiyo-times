@@ -73,7 +73,7 @@ export default function AdminDashboard() {
     
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'ml_default'); 
+    formData.append('upload_preset', 'bongiyo_unsigned'); 
 
     try {
       const res = await fetch('https://api.cloudinary.com/v1_1/dfgfvfvmk/image/upload', {
