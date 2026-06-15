@@ -15,6 +15,7 @@ async function runBot() {
     { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/national', domain: 'bd-pratidin.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/special/recent', domain: 'kalerkantho.com', defaultCategory: 'সর্বশেষ' },
     { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/national', domain: 'kalerkantho.com', defaultCategory: 'বাংলাদেশ' },
+     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/collection/latest', domain: 'prothomalo.com', defaultCategory: 'সর্বশেষ' },
     { name: 'Jugantor', url: 'https://www.jugantor.com/all-latest-news', domain: 'jugantor.com', defaultCategory: 'সর্বশেষ' },
     { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক' }
