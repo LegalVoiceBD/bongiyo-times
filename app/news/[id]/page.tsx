@@ -14,10 +14,8 @@ export default async function NewsDetail({ params }: { params: { id: string } })
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
   );
 
-  // খবরটি আনা হচ্ছে
   const { data: news } = await supabase.from('news').select('*').eq('id', params.id).single();
 
-  // সম্পর্কিত অন্যান্য খবর (একই ক্যাটাগরির)
   let relatedNews: any[] = [];
   if (news) {
      const { data } = await supabase.from('news').select('*').eq('category', news.category).neq('id', news.id).order('created_at', { ascending: false }).limit(6);
@@ -31,7 +29,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
   const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "মতামত"];
 
   return (
-    <div className="min-h-screen bg-white text-black font-sans">
+    <div className="min-h-screen bg-white text-black">
       
       {/* Professional Header */}
       <header className="bg-white border-b border-gray-200">
@@ -39,12 +37,22 @@ export default async function NewsDetail({ params }: { params: { id: string } })
           <a href="/" className="flex flex-col items-center md:items-start shrink-0">
             <h1 className="text-4xl md:text-5xl font-extrabold text-red-700 tracking-tighter">বঙ্গীয় <span className="text-black">টাইমস</span></h1>
           </a>
-          <nav className="flex items-center flex-wrap justify-center gap-3 md:gap-6 text-sm md:text-base font-bold text-gray-700">
+          
+          <form method="GET" action="/" className="w-full md:w-[350px] flex items-center border border-gray-300 rounded-sm overflow-hidden shadow-sm">
+             <input type="text" name="q" placeholder="খবর খুঁজুন..." className="w-full px-4 py-2 text-sm outline-none" required />
+             <button type="submit" className="bg-red-700 text-white px-4 py-2 font-bold hover:bg-red-800 transition">সার্চ</button>
+          </form>
+
+        </div>
+        <div className="border-t border-gray-200 shadow-sm sticky top-0 z-50 bg-white">
+          <div className="max-w-[1200px] mx-auto px-4 overflow-x-auto scrollbar-hide">
+            <nav className="flex items-center min-w-max py-2 md:py-3 text-base font-bold text-gray-800 gap-5">
               <a href="/" className="hover:text-red-600 transition">প্রচ্ছদ</a>
-              {menuCategories.map((cat, idx) => (
-                <a key={idx} href={`/?category=${cat}`} className="hover:text-red-600 transition">{cat}</a>
+              {menuCategories.map((cat, index) => (
+                <a key={index} href={`/?category=${cat}`} className="hover:text-red-600 transition">{cat}</a>
               ))}
-          </nav>
+            </nav>
+          </div>
         </div>
       </header>
 
@@ -54,10 +62,9 @@ export default async function NewsDetail({ params }: { params: { id: string } })
          <a href={`/?category=${news.category}`} className="hover:text-red-600 text-red-700">{news.category}</a>
       </div>
 
-      {/* Main Content Layout (Left 8 Cols, Right 4 Cols) */}
+      {/* Main Content Layout */}
       <main className="max-w-[1200px] mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-10">
          
-         {/* Read Area (Left Side) */}
          <article className="lg:col-span-8">
             <h1 className="text-3xl md:text-5xl font-extrabold leading-tight text-gray-900 mb-6">{news.title}</h1>
             
@@ -68,7 +75,6 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                   <span>প্রকাশিত: {formatDateTime(news.created_at)}</span>
                </div>
                
-               {/* Dummy Social Share */}
                <div className="flex items-center gap-3">
                   <span className="text-sm text-gray-500 font-bold">শেয়ার:</span>
                   <button className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs hover:bg-blue-700">fb</button>
@@ -79,26 +85,22 @@ export default async function NewsDetail({ params }: { params: { id: string } })
             
             <img src={news.image_url} alt={news.title} className="w-full h-auto max-h-[500px] object-cover rounded-sm mb-8 shadow-sm" />
             
-            {/* The Actual News Content */}
-            <div className="text-lg md:text-xl leading-relaxed text-gray-800 whitespace-pre-wrap font-serif">
+            {/* কালপুরুষ ফন্ট জোরপূর্বক অ্যাপ্লাই করার জন্য কোনো কাস্টম সেরিফ ফন্ট ব্যবহার করা হয়নি */}
+            <div className="text-lg md:text-xl leading-relaxed text-gray-800 whitespace-pre-wrap">
                {news.content || news.snippet}
             </div>
 
-            {/* Tags area */}
             <div className="mt-10 pt-6 border-t border-gray-200 flex gap-3 items-center">
                <span className="font-bold text-gray-500">বিষয়:</span>
                <a href={`/?category=${news.category}`} className="bg-gray-100 text-gray-700 px-4 py-1 rounded-full text-sm font-bold hover:bg-gray-200">{news.category}</a>
             </div>
          </article>
 
-         {/* Sidebar (Right Side) */}
          <aside className="lg:col-span-4">
-            {/* Ad Banner */}
             <div className="w-full h-[250px] bg-gray-100 border border-gray-200 flex flex-col items-center justify-center rounded-sm mb-10 text-gray-400 font-bold">
                বিজ্ঞাপন স্পেস (৩০০ x ২৫০)
             </div>
 
-            {/* Related News */}
             <div className="bg-white border border-gray-200 shadow-sm rounded-sm p-4">
                <h3 className="text-xl font-bold border-l-4 border-red-700 pl-3 mb-6 text-gray-900">সম্পর্কিত খবর</h3>
                <div className="flex flex-col gap-4">
