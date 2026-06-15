@@ -1,0 +1,25 @@
+name: Auto News Scraper
+on:
+  schedule:
+    - cron: '0 */2 * * *' # প্রতি ২ ঘণ্টা পরপর চলবে
+  workflow_dispatch: # আপনি চাইলে ম্যানুয়ালিও চালাতে পারবেন
+jobs:
+  scrape-and-save:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install Packages
+        run: npm install cheerio @supabase/supabase-js
+        
+      - name: Run Scraper Bot
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: node scripts/scraper.js
