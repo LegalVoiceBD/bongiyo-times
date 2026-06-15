@@ -1,7 +1,7 @@
 name: Auto News Scraper
 on:
   schedule:
-    - cron: '0 */2 * * *'
+    - cron: '*/30 * * * *' # প্রতি ৩০ মিনিট পরপর চলবে
   workflow_dispatch:
 jobs:
   scrape-and-save:
