@@ -87,9 +87,14 @@ export default async function Home({ searchParams }: { searchParams: { category?
           </a>
           
           {/* Header AdSense Block (728x90) */}
-          <div className="w-full md:w-[728px] h-[90px] bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 text-sm overflow-hidden">
-             {/* Google AdSense Code Here */}
-             <span>Header Ad (728x90)</span>
+          <div className="w-full md:w-[728px] overflow-hidden">
+            <ins className="adsbygoogle"
+                 style={{ display: "block" }}
+                 data-ad-client="ca-pub-6625131155258287"
+                 data-ad-slot="7589682146"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+            <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
           </div>
         </div>
         
@@ -140,10 +145,15 @@ export default async function Home({ searchParams }: { searchParams: { category?
                  )}
               </div>
               <div className="hidden md:block col-span-1">
-                 {/* Sidebar AdSense Block (300x600) */}
-                 <div className="w-[300px] h-[600px] bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 text-sm overflow-hidden sticky top-20">
-                    {/* Google AdSense Code Here */}
-                    <span>Sidebar Ad (300x600)</span>
+                 {/* Sidebar Vertical AdSense Block (300x600) */}
+                 <div className="w-full overflow-hidden sticky top-20">
+                    <ins className="adsbygoogle"
+                         style={{ display: "block" }}
+                         data-ad-client="ca-pub-6625131155258287"
+                         data-ad-slot="4963518807"
+                         data-ad-format="auto"
+                         data-full-width-responsive="true"></ins>
+                    <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
                  </div>
               </div>
            </div>
@@ -209,9 +219,15 @@ export default async function Home({ searchParams }: { searchParams: { category?
                    </div>
                 </div>
 
-                {/* Horizontal In-Article AdSense Block (e.g. 728x90) */}
-                <div className="w-full h-[90px] bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 text-sm my-4">
-                   <span>Horizontal Ad (In-Article)</span>
+                {/* Horizontal In-Article AdSense Block */}
+                <div className="w-full overflow-hidden my-4">
+                  <ins className="adsbygoogle"
+                       style={{ display: "block" }}
+                       data-ad-client="ca-pub-6625131155258287"
+                       data-ad-slot="7589682146"
+                       data-ad-format="auto"
+                       data-full-width-responsive="true"></ins>
+                  <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-200 pt-6">
@@ -245,9 +261,15 @@ export default async function Home({ searchParams }: { searchParams: { category?
                  <div className="border border-gray-200 bg-white shadow-sm rounded-sm">
                     <ClientTabs latestList={allNews.slice(5, 12)} popularList={allNews.slice(15, 22)} />
                  </div>
-                 {/* Sidebar Square AdSense Block (300x250) */}
-                 <div className="mt-8 w-full h-[250px] bg-gray-50 border border-gray-200 flex flex-col justify-center items-center rounded-sm text-gray-400">
-                    <span>Square Ad (300x250)</span>
+                 {/* Sidebar Square AdSense Block */}
+                 <div className="mt-8 w-full overflow-hidden">
+                    <ins className="adsbygoogle"
+                         style={{ display: "block" }}
+                         data-ad-client="ca-pub-6625131155258287"
+                         data-ad-slot="6232073291"
+                         data-ad-format="auto"
+                         data-full-width-responsive="true"></ins>
+                    <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
                  </div>
               </div>
             </div>
@@ -350,7 +372,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                )}
             </div>
 
-            {/* Sports Mega Block (Dark Theme) */}
+            {/* Sports Mega Block */}
             {sportsNews.length > 0 && (
                <div className="mb-10 bg-[#0a2342] p-6 rounded-sm shadow-sm text-white">
                   <div className="border-b border-blue-500 mb-6 flex justify-between items-end pb-2">
@@ -392,7 +414,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
             )}
 
-            {/* 6. NEW: Education Block (Light Rose Theme / Full Width Style) */}
+            {/* Education Block */}
             {eduNews.length > 0 && (
                <div className="mb-10 bg-[#fdfaf6] p-6 rounded-sm border-l-[6px] border-orange-500 shadow-sm">
                   <div className="mb-6 flex justify-between items-center border-b border-orange-200 pb-3">
@@ -410,7 +432,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
             )}
 
-            {/* 7. NEW: World/International Block (Light Slate Theme / 3 Column Style) */}
+            {/* World/International Block */}
             {worldNews.length > 0 && (
                <div className="mb-10 bg-slate-50 p-6 rounded-sm border-t-4 border-slate-700 shadow-sm">
                   <div className="border-b-[3px] border-slate-300 mb-6 flex justify-between items-center pb-2">
@@ -429,8 +451,14 @@ export default async function Home({ searchParams }: { searchParams: { category?
             )}
 
             {/* Bottom Horizon AdSense Block */}
-            <div className="w-full h-[90px] bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 text-sm mt-4">
-               <span>Footer Ad (728x90)</span>
+            <div className="w-full overflow-hidden mt-4">
+              <ins className="adsbygoogle"
+                   style={{ display: "block" }}
+                   data-ad-client="ca-pub-6625131155258287"
+                   data-ad-slot="7589682146"
+                   data-ad-format="auto"
+                   data-full-width-responsive="true"></ins>
+              <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }}></script>
             </div>
 
           </>
