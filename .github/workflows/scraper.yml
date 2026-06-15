@@ -3,6 +3,8 @@ on:
   schedule:
     - cron: '0,30 * * * *' # প্রতি ঘণ্টার ০০ এবং ৩০ মিনিটে চলবে
   workflow_dispatch:
+  repository_dispatch:     # এই নতুন লাইনটি যুক্ত হলো
+    types: [run-scraper]   # এই নতুন লাইনটি যুক্ত হলো
 jobs:
   scrape-and-save:
     runs-on: ubuntu-latest
