@@ -9,7 +9,6 @@ async function runBot() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
-  // আপনার দেওয়া সব লিংকের মেগা লিস্ট
   const allSources = [
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/sports', domain: 'prothomalo.com', defaultCategory: 'খেলাধুলা' },
@@ -72,7 +71,6 @@ async function runBot() {
     { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক' }
   ];
 
-  // গিটহাব যেন ক্র্যাশ না করে, তাই পুরো লিস্ট থেকে র‍্যান্ডমলি ১৫টি লিংক বেছে নেওয়ার ফাংশন
   function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -81,8 +79,8 @@ async function runBot() {
     return array;
   }
 
-  // প্রতিবার ভিন্ন ১৫টি লিংক স্ক্র্যাপ হবে (সারাদিনে পুরো লিস্ট কভার হয়ে যাবে)
-  const sourcesToScrape = shuffleArray([...allSources]).slice(0, 15);
+  // সংখ্যা বাড়িয়ে ২৫টি সোর্স করা হয়েছে
+  const sourcesToScrape = shuffleArray([...allSources]).slice(0, 25);
 
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
@@ -117,7 +115,8 @@ async function runBot() {
         }
       });
 
-      const topLinks = links.slice(0, 3); 
+      // প্রতি সোর্স থেকে ৫টি করে খবর আনবে
+      const topLinks = links.slice(0, 5); 
       
       for (let link of topLinks) {
         const articleRes = await fetch(link, { headers });
@@ -126,7 +125,12 @@ async function runBot() {
 
         let title = article$('meta[property="og:title"]').attr('content') || article$('title').text();
         let snippet = article$('meta[property="og:description"]').attr('content') || article$('meta[name="description"]').attr('content') || "বিস্তারিত পড়তে মূল খবরে ক্লিক করুন...";
-        let image_url = article$('meta[property="og:image"]').attr('content');
+        
+        // ইমেজ URL ফিক্স (চ্যানেল আই সহ অন্যান্য পোর্টালের জন্য)
+        let image_url = article$('meta[property="og:image"]').attr('content') || article$('meta[name="twitter:image"]').attr('content');
+        if (image_url && image_url.startsWith('/')) {
+            image_url = `https://${source.domain}${image_url}`;
+        }
         
         if (title && image_url) {
           const wordCount = title.trim().split(/\s+/).length;
