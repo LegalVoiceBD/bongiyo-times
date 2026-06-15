@@ -80,19 +80,18 @@ export default async function Home({ searchParams }: { searchParams: { category?
         __html: `
         @import url('https://fonts.maateen.me/kalpurush/font.css');
         body { font-family: 'Kalpurush', Arial, sans-serif !important; }
-        .border-split { border-right: 1px solid #e5e7eb; }
-        .border-split:last-child { border-right: none; }
       `}} />
 
       <header className="bg-white">
         {/* Top Header Section (Logo + 3 News) */}
-        <div className="max-w-[1200px] mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
           <a href="/" className="shrink-0 flex items-center">
              <h1 className="text-4xl font-bold text-black flex items-center gap-1">
                 বঙ্গীয় <span className="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-xl mt-1 shadow-sm">টা</span> ইমস
              </h1>
           </a>
           
+          {/* Header News is hidden on small mobile screens to keep it clean, visible on large screens */}
           <div className="hidden lg:flex divide-x divide-gray-300">
              {headerNews.map((news, index) => (
                 <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={index} className="flex gap-3 px-4 w-[250px] group">
@@ -107,24 +106,24 @@ export default async function Home({ searchParams }: { searchParams: { category?
         </div>
 
         {/* Navigation Bar */}
-        <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white">
+        <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
           <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12">
             <nav className="flex items-center gap-5 overflow-x-auto scrollbar-hide text-[16px] font-bold text-black flex-1">
               {menuCategories.map((cat, index) => (
-                <a key={index} href={`/?category=${cat}`} className={`hover:text-blue-600 whitespace-nowrap ${activeCategory === cat ? 'text-blue-600 border-b-[3px] border-blue-600 h-12 flex items-center' : 'h-12 flex items-center'}`}>
+                <a key={index} href={`/?category=${cat}`} className={`hover:text-blue-600 whitespace-nowrap ${activeCategory === cat ? 'text-blue-600 border-b-[3px] border-blue-600 h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}>
                    {cat}
                 </a>
               ))}
             </nav>
             
-            {/* Right Side Nav Items (Search Fixed, Login link updated) */}
+            {/* Right Side Nav Items */}
             <div className="hidden md:flex items-center gap-4 border-l border-gray-300 pl-4 h-full text-[15px] font-bold">
                <form action="/" method="GET" className="flex items-center gap-2">
                   <input type="text" name="q" defaultValue={searchQuery} placeholder="খবর খুঁজুন..." className="border border-gray-300 px-2 py-1 text-sm rounded outline-none focus:border-blue-500 w-32 font-normal"/>
                   <button type="submit" className="hover:text-blue-600 flex items-center gap-1 cursor-pointer"><span className="text-lg">🔍</span> খুঁজুন</button>
                </form>
                <div className="border-l border-gray-300 h-6 mx-1"></div>
-               <a href="https://www.bongiyotimes.com/bongiyo-secret-panel" className="hover:text-blue-600 flex items-center gap-1"><span className="text-lg">👤</span> Login</a>
+               <a href="https://www.bongiyotimes.com/bongiyo-secret-panel" className="hover:text-blue-600 flex items-center gap-1 transition-colors"><span className="text-lg">👤</span> Login</a>
             </div>
           </div>
         </div>
@@ -134,7 +133,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
       <main className="max-w-[1200px] mx-auto px-4 mt-6 pb-10">
         
         {(activeCategory || searchQuery) ? (
-            /* Category / Search Results View */
+            /* Category / Search Results View - 1 Col on Mobile, 2 Col on Small, 3 Col on Medium */
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="col-span-1 md:col-span-3">
                  <div className="border-b-[3px] border-black mb-4 pb-1">
@@ -146,6 +145,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                     <div className="text-center py-20 text-gray-500 font-bold text-lg">কোনো খবর পাওয়া যায়নি।</div>
                  ) : (
                     <>
+                      {/* Grid forced to 1 column on mobile, 2 columns on tablet(sm) */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                          {allNews.map(news => (
                             <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-4">
@@ -153,7 +153,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                   <h3 className="text-[18px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
                                   <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
                                </div>
-                               <SafeImage src={news.image_url} alt={news.title} className="w-[120px] h-[80px] object-cover" />
+                               <SafeImage src={news.image_url} alt={news.title} className="w-[100px] h-[75px] sm:w-[120px] sm:h-[80px] object-cover rounded-sm" />
                             </a>
                          ))}
                       </div>
@@ -176,37 +176,43 @@ export default async function Home({ searchParams }: { searchParams: { category?
         ) : (
           /* Homepage View */
           <>
-            {/* Top Row - 3 Columns Layout */}
+            {/* Top Row - Mobile Friendly Stacking */}
             {leadNews && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 border-b border-gray-300 pb-6 mb-8">
-                <div className="lg:col-span-3 flex flex-col divide-y divide-gray-200 pr-4 lg:border-r border-gray-300">
+                
+                {/* Left News List - Vertical on all devices */}
+                <div className="lg:col-span-3 flex flex-col divide-y divide-gray-200 lg:pr-4 border-b lg:border-b-0 pb-6 lg:pb-0 lg:border-r border-gray-300">
                   {leftSideNews.map((news, idx) => (
                     <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group block ${idx !== 0 ? 'pt-3' : 'pb-3'}`}>
                       {idx === 0 && <p className="text-red-600 font-bold text-[15px] mb-1">{news.category} •</p>}
-                      {idx === 0 && <SafeImage src={news.image_url} alt={news.title} className="w-full h-[140px] object-cover mb-2" />}
-                      <h3 className={`font-bold text-[#1a1a1a] group-hover:text-blue-600 leading-snug ${idx === 0 ? 'text-[20px]' : 'text-[17px]'}`}>{news.title}</h3>
+                      {idx === 0 && <SafeImage src={news.image_url} alt={news.title} className="w-full h-[200px] sm:h-[140px] object-cover mb-2 rounded-sm" />}
+                      <h3 className={`font-bold text-[#1a1a1a] group-hover:text-blue-600 leading-snug ${idx === 0 ? 'text-[22px] sm:text-[20px]' : 'text-[18px] sm:text-[17px]'}`}>{news.title}</h3>
                       <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
                     </a>
                   ))}
                 </div>
 
-                <div className="lg:col-span-6 pr-4 lg:border-r border-gray-300">
+                {/* Center Lead News */}
+                <div className="lg:col-span-6 lg:pr-4 border-b lg:border-b-0 pb-6 lg:pb-0 lg:border-r border-gray-300">
                   <a href={leadNews.is_custom ? `/news/${leadNews.id}` : leadNews.source_url} target="_blank" className="group block border-b border-gray-300 pb-4 mb-4">
-                    <SafeImage src={leadNews.image_url} alt={leadNews.title} className="w-full h-[320px] object-cover mb-3" />
-                    <h1 className="text-[28px] font-bold leading-tight text-[#1a1a1a] group-hover:text-blue-600">{leadNews.title}</h1>
+                    <SafeImage src={leadNews.image_url} alt={leadNews.title} className="w-full h-[220px] sm:h-[320px] object-cover mb-3 rounded-sm" />
+                    <h1 className="text-[26px] sm:text-[28px] font-bold leading-tight text-[#1a1a1a] group-hover:text-blue-600">{leadNews.title}</h1>
                     <p className="text-[15px] text-gray-600 mt-2 line-clamp-2">বিস্তারিত জানতে ক্লিক করুন। {leadNews.source_name} থেকে সংগৃহীত।</p>
                     <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(leadNews.created_at)}</p>
                   </a>
-                  <div className="grid grid-cols-2 gap-4 divide-x divide-gray-300">
+                  
+                  {/* SubLeadNews - 1 Col on Mobile, 2 Col on Tablet/Desktop */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-300">
                     {subLeadNews.map((news, idx) => (
-                      <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group block ${idx !== 0 ? 'pl-4' : ''}`}>
-                         <h3 className="text-[17px] font-bold text-[#1a1a1a] group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                      <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group block ${idx !== 0 ? 'pt-4 sm:pt-0 sm:pl-4' : ''}`}>
+                         <h3 className="text-[18px] sm:text-[17px] font-bold text-[#1a1a1a] group-hover:text-blue-600 leading-snug">{news.title}</h3>
                          <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
                       </a>
                     ))}
                   </div>
                 </div>
 
+                {/* Right Area - Ad & Tabs */}
                 <div className="lg:col-span-3">
                    <div className="w-full h-[250px] bg-gray-100 border border-gray-200 flex flex-col justify-center items-center text-gray-400 mb-6">
                       <span className="text-xs">বিজ্ঞাপন</span>
@@ -220,28 +226,29 @@ export default async function Home({ searchParams }: { searchParams: { category?
             {/* NEW LAYOUT 1: বাংলাদেশ */}
             <div className="mb-8 border-b border-gray-300 pb-8">
                <div className="border-t-[3px] border-black pt-2 mb-6">
-                  <a href="/?category=বাংলাদেশ" className="text-[20px] font-bold hover:text-blue-600">বাংলাদেশ <span className="text-red-600 ml-1">❯</span></a>
+                  <a href="/?category=বাংলাদেশ" className="text-[22px] font-bold hover:text-blue-600">বাংলাদেশ <span className="text-red-600 ml-1">❯</span></a>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {/* 1 Col Mobile, 2 Col Tablet+ */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6">
                   {/* Left Big Lead */}
                   {bdNews[0] && (
                      <a href={bdNews[0].is_custom ? `/news/${bdNews[0].id}` : bdNews[0].source_url} target="_blank" className="group block">
-                        <SafeImage src={bdNews[0].image_url} alt={bdNews[0].title} className="w-full h-[300px] object-cover mb-3" />
-                        <h3 className="text-[24px] font-bold group-hover:text-blue-600 leading-snug">{bdNews[0].title}</h3>
-                        <p className="text-[14px] text-gray-600 mt-2 line-clamp-3">প্রতীকী ছবি হিসেবে খবরটির বিস্তারিত জানতে লিংকে ক্লিক করে সম্পূর্ণ সংবাদটি পড়ুন।</p>
+                        <SafeImage src={bdNews[0].image_url} alt={bdNews[0].title} className="w-full h-[220px] md:h-[300px] object-cover mb-3 rounded-sm" />
+                        <h3 className="text-[22px] sm:text-[24px] font-bold group-hover:text-blue-600 leading-snug">{bdNews[0].title}</h3>
+                        <p className="text-[15px] text-gray-600 mt-2 line-clamp-3">প্রতীকী ছবি হিসেবে খবরটির বিস্তারিত জানতে লিংকে ক্লিক করে সম্পূর্ণ সংবাদটি পড়ুন।</p>
                         <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(bdNews[0].created_at)}</p>
                      </a>
                   )}
-                  {/* Right List */}
+                  {/* Right List - Ensure gap-y handles spacing instead of paddings */}
                   <div className="flex flex-col gap-5 divide-y divide-gray-200">
                      {bdNews.slice(1, 4).map((news, idx) => (
-                        <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-4 ${idx !== 0 ? 'pt-5' : ''}`}>
+                        <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 sm:gap-4 ${idx !== 0 ? 'pt-5' : ''}`}>
                            <div className="flex-1">
-                              <h3 className="text-[18px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                              <h3 className="text-[17px] sm:text-[18px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
                               <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
                            </div>
-                           <SafeImage src={news.image_url} alt={news.title} className="w-[140px] h-[90px] object-cover" />
+                           <SafeImage src={news.image_url} alt={news.title} className="w-[110px] h-[80px] sm:w-[140px] sm:h-[90px] object-cover rounded-sm" />
                         </a>
                      ))}
                   </div>
@@ -250,15 +257,16 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
             {/* NEW LAYOUT 2: জীবনযাপন */}
             <div className="mb-8 border-b border-gray-300 pb-8">
-               <div className="border-t-[3px] border-black pt-2 mb-4">
-                  <a href="/?category=জীবনযাপন" className="text-[20px] font-bold hover:text-blue-600">জীবনযাপন <span className="text-red-600 ml-1">❯</span></a>
+               <div className="border-t-[3px] border-black pt-2 mb-6">
+                  <a href="/?category=জীবনযাপন" className="text-[22px] font-bold hover:text-blue-600">জীবনযাপন <span className="text-red-600 ml-1">❯</span></a>
                </div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 divide-x divide-gray-200">
+               {/* 1 Col Mobile, 2 Col Tablet, 4 Col Desktop. No complex borders to keep mobile completely clean */}
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
                   {lifestyleNews.map((news, idx) => (
-                     <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group block ${idx !== 0 ? 'pl-6' : ''}`}>
-                        <SafeImage src={news.image_url} alt={news.title} className="w-full h-[160px] object-cover mb-3" />
+                     <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                        <SafeImage src={news.image_url} alt={news.title} className="w-full h-[200px] lg:h-[160px] object-cover mb-3 rounded-sm" />
                         <h3 className="text-[18px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
-                        <p className="text-[14px] text-gray-600 mt-2 line-clamp-3">আপনার দৈনন্দিন জীবনের নানা বিষয়ে বিস্তারিত জানতে এই সংবাদটি পড়ুন। বিস্তারিত ভেতরে দেওয়া আছে।</p>
+                        <p className="text-[15px] text-gray-600 mt-2 line-clamp-3">আপনার দৈনন্দিন জীবনের নানা বিষয়ে বিস্তারিত জানতে এই সংবাদটি পড়ুন। বিস্তারিত ভেতরে দেওয়া আছে।</p>
                         <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
                      </a>
                   ))}
@@ -266,28 +274,31 @@ export default async function Home({ searchParams }: { searchParams: { category?
             </div>
 
             {/* NEW LAYOUT 3: বিনোদন & রাজনীতি */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 border-b border-gray-300 pb-8">
+            {/* 1 Col Mobile, 2 Col Tablet+ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 mb-8 border-b border-gray-300 pb-8">
+               
                {/* Left Box - বিনোদন */}
-               <div className="bg-[#eef5fa] p-4 border-t-[4px] border-[#5293c4]">
-                  <div className="mb-4 border-b border-[#c8dceb] pb-2">
+               <div className="bg-[#eef5fa] p-4 sm:p-5 border-t-[4px] border-[#5293c4] rounded-sm">
+                  <div className="mb-5 border-b border-[#c8dceb] pb-2">
                      <a href="/?category=বিনোদন" className="text-[22px] font-extrabold text-[#5293c4] hover:text-blue-600 tracking-tight">বিনোদন <span className="text-red-500 ml-1">❯</span></a>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* 1 Col on Mobile (stacked), 2 Col on sm (side-by-side) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                      {entertainmentNews[0] && (
-                        <a href={entertainmentNews[0].is_custom ? `/news/${entertainmentNews[0].id}` : entertainmentNews[0].source_url} target="_blank" className="group block col-span-1 border-r border-[#c8dceb] pr-4">
-                           <SafeImage src={entertainmentNews[0].image_url} alt={entertainmentNews[0].title} className="w-full h-[140px] object-cover mb-2" />
-                           <h3 className="text-[17px] font-bold group-hover:text-blue-600 leading-snug">{entertainmentNews[0].title}</h3>
+                        <a href={entertainmentNews[0].is_custom ? `/news/${entertainmentNews[0].id}` : entertainmentNews[0].source_url} target="_blank" className="group block col-span-1 border-b sm:border-b-0 sm:border-r border-[#c8dceb] pb-5 sm:pb-0 sm:pr-4">
+                           <SafeImage src={entertainmentNews[0].image_url} alt={entertainmentNews[0].title} className="w-full h-[180px] sm:h-[140px] object-cover mb-3 sm:mb-2 rounded-sm" />
+                           <h3 className="text-[18px] sm:text-[17px] font-bold group-hover:text-blue-600 leading-snug">{entertainmentNews[0].title}</h3>
                            <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(entertainmentNews[0].created_at)}</p>
                         </a>
                      )}
                      <div className="flex flex-col gap-4 divide-y divide-[#c8dceb]">
                         {entertainmentNews.slice(1, 3).map((news, idx) => (
-                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-2 ${idx !== 0 ? 'pt-4' : ''}`}>
+                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                               <div className="flex-1">
-                                 <h3 className="text-[15px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                                 <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
                                  <p className="text-[12px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
                               </div>
-                              <SafeImage src={news.image_url} alt={news.title} className="w-[60px] h-[60px] object-cover" />
+                              <SafeImage src={news.image_url} alt={news.title} className="w-[70px] h-[60px] object-cover rounded-sm" />
                            </a>
                         ))}
                      </div>
@@ -295,26 +306,27 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
 
                {/* Right Box - রাজনীতি */}
-               <div className="bg-[#fcfaf5] p-4 border-t-[4px] border-[#d4b072]">
-                  <div className="mb-4 border-b border-[#e8dfce] pb-2">
+               <div className="bg-[#fcfaf5] p-4 sm:p-5 border-t-[4px] border-[#d4b072] rounded-sm">
+                  <div className="mb-5 border-b border-[#e8dfce] pb-2">
                      <a href="/?category=রাজনীতি" className="text-[22px] font-extrabold text-[#e05e3b] hover:text-[#d4b072] tracking-tight">রাজনীতি <span className="text-[#d4b072] ml-1">❯</span></a>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* 1 Col on Mobile (stacked), 2 Col on sm (side-by-side) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                      {politicsNews[0] && (
-                        <a href={politicsNews[0].is_custom ? `/news/${politicsNews[0].id}` : politicsNews[0].source_url} target="_blank" className="group block col-span-1 border-r border-[#e8dfce] pr-4">
-                           <SafeImage src={politicsNews[0].image_url} alt={politicsNews[0].title} className="w-full h-[140px] object-cover mb-2" />
-                           <h3 className="text-[17px] font-bold group-hover:text-[#e05e3b] leading-snug">{politicsNews[0].title}</h3>
+                        <a href={politicsNews[0].is_custom ? `/news/${politicsNews[0].id}` : politicsNews[0].source_url} target="_blank" className="group block col-span-1 border-b sm:border-b-0 sm:border-r border-[#e8dfce] pb-5 sm:pb-0 sm:pr-4">
+                           <SafeImage src={politicsNews[0].image_url} alt={politicsNews[0].title} className="w-full h-[180px] sm:h-[140px] object-cover mb-3 sm:mb-2 rounded-sm" />
+                           <h3 className="text-[18px] sm:text-[17px] font-bold group-hover:text-[#e05e3b] leading-snug">{politicsNews[0].title}</h3>
                            <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(politicsNews[0].created_at)}</p>
                         </a>
                      )}
                      <div className="flex flex-col gap-4 divide-y divide-[#e8dfce]">
                         {politicsNews.slice(1, 3).map((news, idx) => (
-                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-2 ${idx !== 0 ? 'pt-4' : ''}`}>
+                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                               <div className="flex-1">
-                                 <h3 className="text-[15px] font-bold group-hover:text-[#e05e3b] leading-snug">{news.title}</h3>
+                                 <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-[#e05e3b] leading-snug">{news.title}</h3>
                                  <p className="text-[12px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
                               </div>
-                              <SafeImage src={news.image_url} alt={news.title} className="w-[60px] h-[60px] object-cover" />
+                              <SafeImage src={news.image_url} alt={news.title} className="w-[70px] h-[60px] object-cover rounded-sm" />
                            </a>
                         ))}
                      </div>
@@ -323,80 +335,81 @@ export default async function Home({ searchParams }: { searchParams: { category?
             </div>
 
             {/* NEW LAYOUT 4: শিক্ষা, চাকরি, প্রযুক্তি, বাণিজ্য */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 border-b border-gray-300 pb-8 divide-x divide-gray-200">
+            {/* 1 Col Mobile, 2 Col Tablet, 4 Col Desktop */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 lg:divide-x divide-gray-200 mb-8 border-b border-gray-300 pb-8">
                
                {/* শিক্ষা */}
-               <div className="px-2">
-                  <div className="border-t-[3px] border-black pt-2 mb-4">
-                     <a href="/?category=শিক্ষা" className="text-[20px] font-bold hover:text-blue-600">শিক্ষা <span className="text-red-600 ml-1">❯</span></a>
+               <div className="lg:pr-4">
+                  <div className="border-t-[3px] border-black pt-2 mb-5">
+                     <a href="/?category=শিক্ষা" className="text-[22px] font-bold hover:text-blue-600">শিক্ষা <span className="text-red-600 ml-1">❯</span></a>
                   </div>
                   {eduNews[0] && (
-                     <a href={eduNews[0].is_custom ? `/news/${eduNews[0].id}` : eduNews[0].source_url} target="_blank" className="group block mb-4 border-b border-gray-200 pb-3">
-                        <SafeImage src={eduNews[0].image_url} alt={eduNews[0].title} className="w-full h-[130px] object-cover mb-3" />
+                     <a href={eduNews[0].is_custom ? `/news/${eduNews[0].id}` : eduNews[0].source_url} target="_blank" className="group block mb-5 border-b border-gray-200 pb-4">
+                        <SafeImage src={eduNews[0].image_url} alt={eduNews[0].title} className="w-full h-[200px] sm:h-[130px] object-cover mb-3 rounded-sm" />
                         <h3 className="text-[18px] font-bold group-hover:text-blue-600 leading-snug">{eduNews[0].title}</h3>
                         <p className="text-[14px] text-gray-600 mt-2 line-clamp-2">শিক্ষাবিষয়ক সর্বশেষ আপডেট জানতে ক্লিক করুন।</p>
                      </a>
                   )}
                   {eduNews[1] && (
                      <a href={eduNews[1].is_custom ? `/news/${eduNews[1].id}` : eduNews[1].source_url} target="_blank" className="group block">
-                        <h3 className="text-[15px] font-bold group-hover:text-blue-600 leading-snug">{eduNews[1].title}</h3>
+                        <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-blue-600 leading-snug">{eduNews[1].title}</h3>
                      </a>
                   )}
                </div>
 
                {/* চাকরি */}
-               <div className="pl-6 pr-2">
-                  <div className="border-t-[3px] border-black pt-2 mb-4">
-                     <a href="/?category=চাকরি" className="text-[20px] font-bold hover:text-blue-600">চাকরি <span className="text-red-600 ml-1">❯</span></a>
+               <div className="lg:px-4">
+                  <div className="border-t-[3px] border-black pt-2 mb-5">
+                     <a href="/?category=চাকরি" className="text-[22px] font-bold hover:text-blue-600">চাকরি <span className="text-red-600 ml-1">❯</span></a>
                   </div>
                   {jobsNews[0] && (
-                     <a href={jobsNews[0].is_custom ? `/news/${jobsNews[0].id}` : jobsNews[0].source_url} target="_blank" className="group block mb-4 border-b border-gray-200 pb-3">
-                        <SafeImage src={jobsNews[0].image_url} alt={jobsNews[0].title} className="w-full h-[130px] object-cover mb-3" />
+                     <a href={jobsNews[0].is_custom ? `/news/${jobsNews[0].id}` : jobsNews[0].source_url} target="_blank" className="group block mb-5 border-b border-gray-200 pb-4">
+                        <SafeImage src={jobsNews[0].image_url} alt={jobsNews[0].title} className="w-full h-[200px] sm:h-[130px] object-cover mb-3 rounded-sm" />
                         <h3 className="text-[18px] font-bold group-hover:text-blue-600 leading-snug">{jobsNews[0].title}</h3>
                         <p className="text-[14px] text-gray-600 mt-2 line-clamp-2">ক্যারিয়ার ও চাকরির নতুন খবর জানতে ক্লিক করুন।</p>
                      </a>
                   )}
                   {jobsNews[1] && (
                      <a href={jobsNews[1].is_custom ? `/news/${jobsNews[1].id}` : jobsNews[1].source_url} target="_blank" className="group block">
-                        <h3 className="text-[15px] font-bold group-hover:text-blue-600 leading-snug">{jobsNews[1].title}</h3>
+                        <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-blue-600 leading-snug">{jobsNews[1].title}</h3>
                      </a>
                   )}
                </div>
 
                {/* প্রযুক্তি */}
-               <div className="pl-6 pr-2">
-                  <div className="border-t-[3px] border-black pt-2 mb-4">
-                     <a href="/?category=প্রযুক্তি" className="text-[20px] font-bold hover:text-blue-600">প্রযুক্তি <span className="text-red-600 ml-1">❯</span></a>
+               <div className="lg:px-4">
+                  <div className="border-t-[3px] border-black pt-2 mb-5">
+                     <a href="/?category=প্রযুক্তি" className="text-[22px] font-bold hover:text-blue-600">প্রযুক্তি <span className="text-red-600 ml-1">❯</span></a>
                   </div>
                   {techNews[0] && (
-                     <a href={techNews[0].is_custom ? `/news/${techNews[0].id}` : techNews[0].source_url} target="_blank" className="group block mb-4 border-b border-gray-200 pb-3">
-                        <SafeImage src={techNews[0].image_url} alt={techNews[0].title} className="w-full h-[130px] object-cover mb-3" />
+                     <a href={techNews[0].is_custom ? `/news/${techNews[0].id}` : techNews[0].source_url} target="_blank" className="group block mb-5 border-b border-gray-200 pb-4">
+                        <SafeImage src={techNews[0].image_url} alt={techNews[0].title} className="w-full h-[200px] sm:h-[130px] object-cover mb-3 rounded-sm" />
                         <h3 className="text-[18px] font-bold group-hover:text-blue-600 leading-snug">{techNews[0].title}</h3>
                         <p className="text-[14px] text-gray-600 mt-2 line-clamp-2">প্রযুক্তি বিশ্বের নতুন সব আপডেট ও চমকপ্রদ খবর।</p>
                      </a>
                   )}
                   {techNews[1] && (
                      <a href={techNews[1].is_custom ? `/news/${techNews[1].id}` : techNews[1].source_url} target="_blank" className="group block">
-                        <h3 className="text-[15px] font-bold group-hover:text-blue-600 leading-snug">{techNews[1].title}</h3>
+                        <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-blue-600 leading-snug">{techNews[1].title}</h3>
                      </a>
                   )}
                </div>
 
                {/* বাণিজ্য */}
-               <div className="pl-6">
-                  <div className="border-t-[3px] border-black pt-2 mb-4">
-                     <a href="/?category=বাণিজ্য" className="text-[20px] font-bold hover:text-blue-600">বাণিজ্য <span className="text-red-600 ml-1">❯</span></a>
+               <div className="lg:pl-4">
+                  <div className="border-t-[3px] border-black pt-2 mb-5">
+                     <a href="/?category=বাণিজ্য" className="text-[22px] font-bold hover:text-blue-600">বাণিজ্য <span className="text-red-600 ml-1">❯</span></a>
                   </div>
                   {businessNews[0] && (
-                     <a href={businessNews[0].is_custom ? `/news/${businessNews[0].id}` : businessNews[0].source_url} target="_blank" className="group block mb-4 border-b border-gray-200 pb-3">
-                        <SafeImage src={businessNews[0].image_url} alt={businessNews[0].title} className="w-full h-[130px] object-cover mb-3" />
+                     <a href={businessNews[0].is_custom ? `/news/${businessNews[0].id}` : businessNews[0].source_url} target="_blank" className="group block mb-5 border-b border-gray-200 pb-4">
+                        <SafeImage src={businessNews[0].image_url} alt={businessNews[0].title} className="w-full h-[200px] sm:h-[130px] object-cover mb-3 rounded-sm" />
                         <h3 className="text-[18px] font-bold group-hover:text-blue-600 leading-snug text-blue-600">{businessNews[0].title}</h3>
                         <p className="text-[14px] text-gray-600 mt-2 line-clamp-2">অর্থনীতি ও বাণিজ্য সম্পর্কিত সর্বশেষ খবর।</p>
                      </a>
                   )}
                   {businessNews[1] && (
                      <a href={businessNews[1].is_custom ? `/news/${businessNews[1].id}` : businessNews[1].source_url} target="_blank" className="group block">
-                        <h3 className="text-[15px] font-bold group-hover:text-blue-600 leading-snug">{businessNews[1].title}</h3>
+                        <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-blue-600 leading-snug">{businessNews[1].title}</h3>
                      </a>
                   )}
                </div>
