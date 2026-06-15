@@ -19,7 +19,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
   const activeCategory = searchParams.category || '';
   const currentPage = parseInt(searchParams.page || '1');
-  const limitPerPage = 20; // প্রতি পেজে ২০টি খবর দেখাবে
+  const limitPerPage = 20; 
   const startRow = (currentPage - 1) * limitPerPage;
   const endRow = startRow + limitPerPage - 1;
 
@@ -28,14 +28,13 @@ export default async function Home({ searchParams }: { searchParams: { category?
   if (activeCategory) {
     query = query.eq('category', activeCategory).range(startRow, endRow);
   } else {
-    query = query.limit(150); // হোমপেজের জন্য
+    query = query.limit(150); 
   }
 
   const { data: newsItems, count } = await query;
   const totalPages = count ? Math.ceil(count / limitPerPage) : 1;
   const allNews = newsItems || [];
   
-  // স্মার্ট কিওয়ার্ড গার্ড
   const hasKeywords = (text: string, words: string[]) => words.some(w => text.includes(w));
   const sportsWords = ['বিশ্বকাপ', 'ম্যাচ', 'ফুটবল', 'ক্রিকেট', 'রোনালদো', 'মেসি', 'ফিফা', 'উয়েফা', 'গোল', 'উইকেট', 'ইয়ামাল', 'স্পেন', 'ব্রাজিল', 'আর্জেন্টিনা', 'টি-টোয়েন্টি'];
   const intlWords = ['রাশিয়া', 'ইউক্রেন', 'পুতিন', 'বাইডেন', 'ট্রাম্প', 'গাজা', 'ইসরায়েল', 'হামাস', 'যুক্তরাষ্ট্র', 'চীন', 'ফ্রান্স'];
@@ -72,7 +71,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
   return (
     <div className="min-h-screen bg-white text-black">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="border-b border-gray-100 py-1.5 text-xs md:text-sm text-gray-600 bg-gray-50">
           <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center">
@@ -108,7 +106,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-[1200px] mx-auto px-4 mt-4 md:mt-6 pb-10">
         {activeCategory ? (
            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -130,8 +127,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                             </a>
                          ))}
                       </div>
-                      
-                      {/* Pagination UI */}
                       {totalPages > 1 && (
                          <div className="flex justify-center items-center gap-2 mt-10">
                             {currentPage > 1 && <a href={`/?category=${activeCategory}&page=${currentPage - 1}`} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 font-bold rounded hover:bg-red-50 hover:text-red-700 transition">« আগের পাতা</a>}
@@ -234,7 +229,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                    </div>
                 </div>
               </div>
-
               <div className="lg:col-span-4">
                  <div className="border border-gray-200 bg-white shadow-sm rounded-sm">
                     <ClientTabs latestList={allNews.slice(5, 12)} popularList={allNews.slice(15, 22)} />
@@ -262,7 +256,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      )}
                      <div className="flex flex-col justify-between gap-4">
                         {entertainmentNews.slice(1, 5).map(news => (
-                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-4 items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                           <a href={entertainmentNews[0].is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-4 items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0">
                               <div className="flex-1">
                                  <h3 className="text-[16px] font-bold text-gray-800 group-hover:text-red-700 leading-snug line-clamp-2">{news.title}</h3>
                               </div>
@@ -272,7 +266,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      </div>
                   </div>
                </div>
-
                <div className="lg:col-span-4">
                   <div className="border-b-[3px] border-black mb-4 flex justify-between items-center pb-1">
                      <h2 className="text-xl font-bold text-gray-900">প্রযুক্তি <span className="text-red-600 text-[18px]">❯</span></h2>
@@ -342,17 +335,33 @@ export default async function Home({ searchParams }: { searchParams: { category?
                  </div>
                )}
             </div>
+
+            {/* 5. Religion */}
+            {religionNews.length > 0 && (
+               <div className="mb-10 border border-gray-200 bg-gray-50 p-4 rounded-sm">
+                  <div className="border-b border-gray-300 mb-4 pb-2">
+                     <h2 className="text-xl font-bold text-gray-900 border-l-[5px] border-green-600 pl-2">ধর্ম</h2>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                     {religionNews.map(news => (
+                       <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block bg-white p-2 rounded shadow-sm hover:shadow-md transition">
+                          <SafeImage src={news.image_url} alt={news.title} className="w-full h-28 object-cover rounded-sm mb-2" />
+                          <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-green-700 leading-snug line-clamp-3">{news.title}</h3>
+                       </a>
+                     ))}
+                  </div>
+               </div>
+            )}
           </>
         )}
       </main>
 
-      {/* Footer */}
       <footer className="bg-[#1a1a1a] text-gray-300 mt-12 border-t-4 border-red-700">
         <div className="max-w-[1200px] mx-auto px-4 py-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
             <div>
               <h2 className="text-3xl font-extrabold text-white mb-4">বঙ্গীয় <span className="text-red-600">টাইমস</span></h2>
-              <p className="text-sm leading-relaxed text-gray-400">সত্য, সাহস ও বস্তুনিষ্ঠ সাংবাদিকতার এক অবিচল কণ্ঠস্বর।</p>
+              <p className="text-sm leading-relaxed text-gray-400">সত্য, সাহস ও বস্তুনিষ্ঠ সাংবাদিকতার এক অবিচল কণ্ঠস্বর। বাংলাদেশ ও সারা বিশ্বের সর্বশেষ সংবাদ সবার আগে পৌঁছে দিতে আমরা অঙ্গীকারবদ্ধ।</p>
             </div>
             <div>
               <h3 className="text-lg font-bold text-white mb-4 border-b border-gray-700 pb-2 inline-block">সম্পাদকীয় ও প্রকাশনা</h3>
