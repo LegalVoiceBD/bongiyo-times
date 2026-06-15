@@ -19,7 +19,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
   const activeCategory = searchParams.category || '';
 
-  let query = supabase.from('news').select('*').order('created_at', { ascending: false }).limit(150);
+  let query = supabase.from('news').select('*').order('created_at', { ascending: false }).limit(200);
   if (activeCategory) {
     query = query.eq('category', activeCategory);
   }
@@ -27,20 +27,40 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
   const allNews = newsItems || [];
   
+  // -------------------------------------------------------------
+  // স্মার্ট কিওয়ার্ড গার্ড (ভুল ক্যাটাগরির খবর আটকানোর স্বয়ংক্রিয় সিস্টেম)
+  // -------------------------------------------------------------
+  const hasKeywords = (text: string, words: string[]) => words.some(w => text.includes(w));
+  
+  const sportsWords = ['বিশ্বকাপ', 'ম্যাচ', 'ফুটবল', 'ক্রিকেট', 'রোনালদো', 'মেসি', 'ফিফা', 'উয়েফা', 'কোপা', 'গোল', 'উইকেট', 'ইয়ামাল', 'স্পেন', 'ব্রাজিল', 'আর্জেন্টিনা', 'টি-টোয়েন্টি', 'স্টেডিয়াম'];
+  const intlWords = ['রাশিয়া', 'ইউক্রেন', 'পুতিন', 'বাইডেন', 'ট্রাম্প', 'গাজা', 'ইসরায়েল', 'হামাস', 'ড্রোন', 'নেতানিয়াহু', 'হোয়াইট হাউস', 'যুক্তরাষ্ট্র', 'চীন', 'ফ্রান্স', 'যুক্তরাজ্য'];
+  const generalGarbage = ['এইচএসসি', 'পরীক্ষা', 'ফলাফল', 'নিহত', 'গ্রেপ্তার', 'আদালত'];
+
   // হিরো সেকশন
   const leadNews = allNews[0];
   const leftSideNews = allNews.slice(1, 3);
   const rightSideNews = allNews.slice(3, 5);
   
-  // ক্যাটাগরি ফিল্টারিং
-  const nationalNews = allNews.filter(n => n.category === 'বাংলাদেশ' || n.category === 'জাতীয়' || n.category === 'সারাদেশ').slice(0, 5);
+  // ক্যাটাগরি ফিল্টারিং উইথ স্মার্ট গার্ড
+  const nationalNews = allNews.filter(n => 
+    (n.category === 'বাংলাদেশ' || n.category === 'জাতীয়' || n.category === 'সারাদেশ') 
+    && !hasKeywords(n.title, sportsWords) 
+    && !hasKeywords(n.title, intlWords)
+  ).slice(0, 5);
+  
   const worldNews = allNews.filter(n => n.category === 'আন্তর্জাতিক' || n.category === 'বিশ্ব').slice(0, 4);
   const sportsNews = allNews.filter(n => n.category === 'খেলাধুলা').slice(0, 4);
   const entertainmentNews = allNews.filter(n => n.category === 'বিনোদন').slice(0, 5);
   const techNews = allNews.filter(n => n.category === 'প্রযুক্তি').slice(0, 4);
   const businessNews = allNews.filter(n => n.category === 'বাণিজ্য').slice(0, 5);
   const lawNews = allNews.filter(n => n.category === 'আইন-আদালত').slice(0, 5);
-  const religionNews = allNews.filter(n => n.category === 'ধর্ম').slice(0, 4);
+  
+  const religionNews = allNews.filter(n => 
+    n.category === 'ধর্ম' 
+    && !hasKeywords(n.title, sportsWords) 
+    && !hasKeywords(n.title, intlWords) 
+    && !hasKeywords(n.title, generalGarbage)
+  ).slice(0, 4);
 
   const opinionNews = [
     { id: 1, title: 'প্রধানমন্ত্রীর প্রতি এক উদ্বিগ্ন নাগরিকের খোলা চিঠি', author: 'ড. সালেহ উদ্দিন', image_url: 'https://images.unsplash.com/photo-1556761175-5973dc0f32b7?q=80&w=200' },
@@ -61,7 +81,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   return (
     <div className="min-h-screen bg-white text-black">
       
-      {/* ----------------- Header Section (Unchanged) ----------------- */}
+      {/* ----------------- Header Section ----------------- */}
       <header className="bg-white border-b border-gray-200">
         <div className="border-b border-gray-100 py-1.5 text-xs md:text-sm text-gray-600 bg-gray-50">
           <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center">
@@ -136,7 +156,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
            </div>
         ) : (
           <>
-            {/* 1. Hero Section (Unchanged) */}
+            {/* 1. Hero Section */}
             {leadNews && (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10 border-b border-gray-300 pb-6 md:pb-8">
                 <div className="hidden lg:flex flex-col gap-6 border-r border-gray-200 pr-4">
@@ -177,7 +197,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
               </div>
             )}
 
-            {/* 2. Primary Body (Unchanged) */}
+            {/* 2. Primary Body */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10 border-b border-gray-200 pb-10">
               <div className="lg:col-span-8 flex flex-col gap-8">
                 
@@ -234,7 +254,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                 </div>
               </div>
 
-              {/* Right Sidebar (Tabs & Ads) */}
+              {/* Right Sidebar */}
               <div className="lg:col-span-4">
                  <div className="border border-gray-200 bg-white shadow-sm rounded-sm">
                     <ClientTabs latestList={allNews.slice(5, 12)} popularList={allNews.slice(15, 22)} />
@@ -247,9 +267,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
               </div>
             </div>
 
-            {/* 3. NEW: Entertainment & Tech Block (Prothom Alo Grid Style) */}
+            {/* 3. Entertainment Block */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10 border-b border-gray-200 pb-10">
-               {/* Entertainment (8 Cols) */}
                <div className="lg:col-span-8">
                   <div className="border-b-[3px] border-black mb-4 flex justify-between items-center pb-1">
                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">বিনোদন <span className="text-red-600 text-[18px]">❯</span></h2>
@@ -276,7 +295,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   </div>
                </div>
 
-               {/* Tech (4 Cols) */}
+               {/* Tech */}
                <div className="lg:col-span-4">
                   <div className="border-b-[3px] border-black mb-4 flex justify-between items-center pb-1">
                      <h2 className="text-xl font-bold text-gray-900">প্রযুক্তি <span className="text-red-600 text-[18px]">❯</span></h2>
@@ -297,9 +316,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
             </div>
 
-            {/* 4. NEW: Business & Law Block (Barta24 Thick Red Border Style) */}
+            {/* 4. Business & Law Block */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-               {/* Business */}
                {businessNews.length > 0 && (
                  <div>
                     <div className="mb-6 flex justify-between items-center">
@@ -324,7 +342,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                  </div>
                )}
                
-               {/* Law */}
                {lawNews.length > 0 && (
                  <div>
                     <div className="mb-6 flex justify-between items-center">
@@ -350,7 +367,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                )}
             </div>
 
-            {/* 5. NEW: Religion Block (Full Width 4 Cols) */}
+            {/* 5. Religion Block */}
             {religionNews.length > 0 && (
                <div className="mb-10 border border-gray-200 bg-gray-50 p-4 rounded-sm">
                   <div className="border-b border-gray-300 mb-4 pb-2">
@@ -371,7 +388,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
         )}
       </main>
 
-      {/* ----------------- Footer (Unchanged) ----------------- */}
+      {/* ----------------- Footer ----------------- */}
       <footer className="bg-[#1a1a1a] text-gray-300 mt-12 border-t-4 border-red-700">
         <div className="max-w-[1200px] mx-auto px-4 py-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
