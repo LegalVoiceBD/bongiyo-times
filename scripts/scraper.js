@@ -2,74 +2,62 @@ const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 
 async function runBot() {
-  console.log("🚀 মেগা বট কাজ শুরু করেছে...");
+  console.log("🚀 ক্যাটাগরি-নির্ভর স্মার্ট বট কাজ শুরু করেছে...");
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
-  // শীর্ষ ৩০টি জাতীয় গণমাধ্যমের লিস্ট
+  // আপনার দেওয়া নির্দিষ্ট লিংকগুলো এখানে যুক্ত করা হয়েছে (সাথে হার্ডকোডেড ক্যাটাগরি)
   const sources = [
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/collection/latest', domain: 'prothomalo.com' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/all-latest-news', domain: 'jugantor.com' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online', domain: 'kalerkantho.com' },
-    { name: 'Somoy TV', url: 'https://www.somoynews.tv/latest', domain: 'somoynews.tv' },
-    { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com' },
-    { name: 'BDNews24', url: 'https://bangla.bdnews24.com/', domain: 'bdnews24.com' },
-    { name: 'Daily Star Bangla', url: 'https://bangla.thedailystar.net/', domain: 'thedailystar.net' },
-    { name: 'Samakal', url: 'https://samakal.com/latest-news', domain: 'samakal.com' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/latest-news', domain: 'ittefaq.com.bd' },
-    { name: 'Jamuna TV', url: 'https://www.jamuna.tv/news', domain: 'jamuna.tv' },
-    { name: 'Channel i', url: 'https://www.channelionline.com/latest-news/', domain: 'channelionline.com' },
-    { name: 'NTV Online', url: 'https://www.ntvbd.com/latest-news', domain: 'ntvbd.com' },
-    { name: 'Bangla Tribune', url: 'https://www.banglatribune.com/latest-news', domain: 'banglatribune.com' },
-    { name: 'Jagonews24', url: 'https://www.jagonews24.com/latest-news', domain: 'jagonews24.com' },
-    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/latest-news', domain: 'dhakapost.com' },
-    { name: 'Bhorer Kagoj', url: 'https://www.bhorerkagoj.com/latest-news', domain: 'bhorerkagoj.com' },
-    { name: 'Amader Shomoy', url: 'https://www.dainikamadershomoy.com/latest-news', domain: 'dainikamadershomoy.com' },
-    { name: 'Desh Rupantor', url: 'https://www.deshrupantor.com/latest-news', domain: 'deshrupantor.com' },
-    { name: 'Inqilab', url: 'https://www.dailyinqilab.com/latest-news', domain: 'dailyinqilab.com' },
-    { name: 'Nayadiganta', url: 'https://www.dailynayadiganta.com/latest-news', domain: 'dailynayadiganta.com' },
-    { name: 'RTV Online', url: 'https://www.rtvonline.com/latest', domain: 'rtvonline.com' },
-    { name: 'Independent TV', url: 'https://www.independent24.com/latest', domain: 'independent24.com' },
-    { name: 'DBC News', url: 'https://dbcnews.tv/latest', domain: 'dbcnews.tv' },
-    { name: 'Ekattor TV', url: 'https://ekattor.tv/latest-news', domain: 'ekattor.tv' },
-    { name: 'Banglanews24', url: 'https://www.banglanews24.com/', domain: 'banglanews24.com' },
-    { name: 'Manab Zamin', url: 'https://mzamin.com/latest-news.php', domain: 'mzamin.com' },
-    { name: ' বণিক বার্তা', url: 'https://bonikbarta.net/latest-news', domain: 'bonikbarta.net' },
-    { name: 'Dhaka Tribune', url: 'https://www.dhakatribune.com/latest-news', domain: 'dhakatribune.com' },
-    { name: 'Daily Sun', url: 'https://www.daily-sun.com/latest', domain: 'daily-sun.com' },
-    { name: 'Anandabazar', url: 'https://www.anandabazar.com/', domain: 'anandabazar.com' }
+    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/online/todaynews', domain: 'bd-pratidin.com', defaultCategory: 'সর্বশেষ' },
+    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/national', domain: 'bd-pratidin.com', defaultCategory: 'বাংলাদেশ' },
+    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/special/recent', domain: 'kalerkantho.com', defaultCategory: 'সর্বশেষ' },
+    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/national', domain: 'kalerkantho.com', defaultCategory: 'বাংলাদেশ' },
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/collection/latest', domain: 'prothomalo.com', defaultCategory: 'সর্বশেষ' },
+    { name: 'Jugantor', url: 'https://www.jugantor.com/all-latest-news', domain: 'jugantor.com', defaultCategory: 'সর্বশেষ' },
+    { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক' }
   ];
 
   const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
   };
 
+  // লিংক থেকে ক্যাটাগরি বোঝার ম্যাজিক ফাংশন (যদি defaultCategory না দেওয়া থাকে)
   function getCategoryFromUrl(url) {
     const lowerUrl = url.toLowerCase();
     if (lowerUrl.includes('sports') || lowerUrl.includes('khela')) return 'খেলাধুলা';
     if (lowerUrl.includes('entertainment') || lowerUrl.includes('binodon')) return 'বিনোদন';
-    if (lowerUrl.includes('bangladesh') || lowerUrl.includes('national')) return 'বাংলাদেশ';
-    if (lowerUrl.includes('international') || lowerUrl.includes('world')) return 'আন্তর্জাতিক';
-    if (lowerUrl.includes('politics')) return 'রাজনীতি';
     if (lowerUrl.includes('business') || lowerUrl.includes('economy')) return 'বাণিজ্য';
-    if (lowerUrl.includes('technology') || lowerUrl.includes('tech') || lowerUrl.includes('it')) return 'প্রযুক্তি';
     return 'সর্বশেষ';
   }
 
+  function isRealArticle(url) {
+    const lowerUrl = url.toLowerCase();
+    const badWords = ['tag', 'category', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo', 'gallery'];
+    if (badWords.some(word => lowerUrl.includes(word))) return false;
+    if (!/\d/.test(lowerUrl)) return false; 
+    return true;
+  }
+
   for (let source of sources) {
-    console.log(`\n👉 খবর খোঁজা হচ্ছে: ${source.name}`);
+    console.log(`\n👉 স্ক্র্যাপ হচ্ছে: ${source.name} (${source.defaultCategory})`);
     try {
       const response = await fetch(source.url, { headers });
+      if (!response.ok) {
+        console.log(`⚠️ সাইট ব্লক করেছে (Status: ${response.status})`);
+        continue;
+      }
+      
       const html = await response.text();
       const $ = cheerio.load(html);
       let links = [];
       
       $('a').each((i, el) => {
         let href = $(el).attr('href');
-        if (href && href.length > 45 && !href.includes('tag') && !href.includes('category') && !href.includes('author') && !href.includes('video')) {
+        if (href && href.length > 40 && isRealArticle(href)) {
           if (href.startsWith('/')) href = `https://www.${source.domain}${href}`;
           if (href.includes(source.domain) && !links.includes(href)) {
             links.push(href);
@@ -77,7 +65,7 @@ async function runBot() {
         }
       });
 
-      const topLinks = links.slice(0, 3); // লোড ব্যালেন্স করার জন্য ৩টি করে নেওয়া হলো (মোট ৯০টি নিউজ প্রতিবার)
+      const topLinks = links.slice(0, 3); // প্রতি পেজ থেকে ৩টি করে টাটকা নিউজ
       
       for (let link of topLinks) {
         const articleRes = await fetch(link, { headers });
@@ -88,28 +76,34 @@ async function runBot() {
         let snippet = article$('meta[property="og:description"]').attr('content') || article$('meta[name="description"]').attr('content') || "বিস্তারিত পড়তে মূল খবরে ক্লিক করুন...";
         let image_url = article$('meta[property="og:image"]').attr('content');
         
-        if (title && image_url && !title.includes('আজকের খবর') && !title.includes('ব্রেকিং নিউজ')) {
-          const newsCategory = getCategoryFromUrl(link);
-          const { data: existing } = await supabase.from('news').select('id').eq('title', title);
+        if (title && image_url) {
+          const wordCount = title.trim().split(/\s+/).length;
           
-          if (existing.length === 0) {
-            await supabase.from('news').insert([{
-              title: title,
-              snippet: snippet.substring(0, 150) + "...",
-              image_url: image_url,
-              source_url: link,
-              source_name: source.name,
-              category: newsCategory
-            }]);
-            console.log(`✅ সেভ হয়েছে: ${title.substring(0, 40)}...`);
+          if (!title.includes('404') && wordCount > 4) {
+            
+            // যদি সোর্সে ক্যাটাগরি বলা থাকে সেটা নেবে, না হলে লিংক থেকে বুঝার চেষ্টা করবে
+            const newsCategory = source.defaultCategory || getCategoryFromUrl(link);
+            const { data: existing } = await supabase.from('news').select('id').eq('title', title);
+            
+            if (existing.length === 0) {
+              await supabase.from('news').insert([{
+                title: title,
+                snippet: snippet.substring(0, 150) + "...",
+                image_url: image_url,
+                source_url: link,
+                source_name: source.name,
+                category: newsCategory
+              }]);
+              console.log(`✅ সেভ হয়েছে [${newsCategory}]: ${title.substring(0, 35)}...`);
+            }
           }
         }
       }
     } catch (err) {
-      console.error(`❌ ${source.name} থেকে খবর আনতে সমস্যা:`, err.message);
+      console.error(`❌ ${source.name} ক্র্যাশ করেছে:`, err.message);
     }
   }
-  console.log("\n🎉 মেগা বটের কাজ শেষ!");
+  console.log("\n🎉 বটের কাজ সফলভাবে শেষ!");
 }
 
 runBot();
