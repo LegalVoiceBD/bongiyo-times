@@ -11,9 +11,9 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState('add'); // 'add' or 'manage'
+  const [activeTab, setActiveTab] = useState('add'); // 'add', 'manage', 'settings'
   
-  // Form States
+  // New News States
   const [title, setTitle] = useState('');
   const [snippet, setSnippet] = useState('');
   const [content, setContent] = useState('');
@@ -23,7 +23,10 @@ export default function AdminDashboard() {
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Manage News States
+  // Settings States
+  const [newPassword, setNewPassword] = useState('');
+  const [passMessage, setPassMessage] = useState('');
+
   const [myNews, setMyNews] = useState<any[]>([]);
 
   const allCategories = ["সর্বশেষ", "বাংলাদেশ", "জাতীয়", "রাজনীতি", "সারাদেশ", "আন্তর্জাতিক", "বিশ্ব", "খেলাধুলা", "শিক্ষা", "বাণিজ্য", "বিনোদন", "মতামত", "আইন-আদালত", "প্রযুক্তি", "ধর্ম"];
@@ -35,12 +38,12 @@ export default function AdminDashboard() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data, error } = await supabase.from('editors').select('*').eq('email', email).eq('password', password).single();
+    const { data } = await supabase.from('editors').select('*').eq('email', email).eq('password', password).single();
     if (data) {
       localStorage.setItem('bongiyo_admin', JSON.stringify(data));
       setUser(data);
     } else {
-      alert('ভুল ইমেইল বা পাসওয়ার্ড!');
+      alert('ভুল ইমেইল বা পাসওয়ার্ড! দয়া করে আবার চেষ্টা করুন।');
     }
   };
 
@@ -66,7 +69,7 @@ export default function AdminDashboard() {
     setIsUploading(true);
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'YOUR_UPLOAD_PRESET'); // এখানে ক্লাউডিনারি প্রিসেট দিন
+    formData.append('upload_preset', 'YOUR_UPLOAD_PRESET'); // ক্লাউডিনারি প্রিসেট
 
     try {
       const res = await fetch('https://api.cloudinary.com/v1_1/dfgfvfvmk/image/upload', {
@@ -82,8 +85,6 @@ export default function AdminDashboard() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('পাবলিশ হচ্ছে...');
-
-    // খবর সেভ করা এবং ID ফেরত নেওয়া
     const { data, error } = await supabase.from('news').insert([{
       title, snippet, content, category, source_name: sourceName, image_url: imageUrl, source_url: '#', is_custom: true
     }]).select();
@@ -91,21 +92,38 @@ export default function AdminDashboard() {
     if (error) {
       setMessage('এরর: ' + error.message);
     } else if (data && data.length > 0) {
-      // সেভ হওয়ার পর আসল লিংক আপডেট করা
       await supabase.from('news').update({ source_url: `/news/${data[0].id}` }).eq('id', data[0].id);
       setMessage('✅ সফলভাবে পাবলিশ হয়েছে!');
       setTitle(''); setSnippet(''); setContent(''); setImageUrl('');
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+       setPassMessage('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
+       return;
+    }
+    const { error } = await supabase.from('editors').update({ password: newPassword }).eq('id', user.id);
+    if (!error) {
+       setPassMessage('✅ পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!');
+       setNewPassword('');
+    } else {
+       setPassMessage('সমস্যা হয়েছে: ' + error.message);
+    }
+  };
+
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow-md w-96 border-t-4 border-red-700">
-          <h2 className="text-2xl font-bold text-center mb-6 text-red-700">অ্যাডমিন লগইন</h2>
-          <input type="email" placeholder="ইমেইল" value={email} onChange={e=>setEmail(e.target.value)} className="w-full border p-2 mb-4 rounded" required />
-          <input type="password" placeholder="পাসওয়ার্ড" value={password} onChange={e=>setPassword(e.target.value)} className="w-full border p-2 mb-6 rounded" required />
-          <button className="w-full bg-red-700 text-white font-bold py-2 rounded">লগইন</button>
+      <div className="min-h-screen flex items-center justify-center bg-[#f4f7f6]">
+        <form onSubmit={handleLogin} className="bg-white p-10 rounded-lg shadow-2xl w-full max-w-md border-t-4 border-red-700">
+          <div className="text-center mb-8">
+             <h2 className="text-4xl font-extrabold text-red-700">বঙ্গীয় <span className="text-black">টাইমস</span></h2>
+             <p className="text-gray-500 font-bold mt-2">অ্যাডমিন প্যানেল</p>
+          </div>
+          <input type="email" placeholder="অ্যাডমিন ইমেইল" value={email} onChange={e=>setEmail(e.target.value)} className="w-full border p-3 mb-4 rounded font-bold focus:outline-none focus:ring-2 focus:ring-red-200" required />
+          <input type="password" placeholder="পাসওয়ার্ড" value={password} onChange={e=>setPassword(e.target.value)} className="w-full border p-3 mb-8 rounded font-bold focus:outline-none focus:ring-2 focus:ring-red-200" required />
+          <button className="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded shadow transition">লগইন করুন</button>
         </form>
       </div>
     );
@@ -117,57 +135,73 @@ export default function AdminDashboard() {
         <div className="flex justify-between items-center mb-6 border-b pb-4">
            <div>
               <h1 className="text-3xl font-extrabold text-red-700">কন্ট্রোল প্যানেল</h1>
-              <p className="text-sm text-gray-500 font-bold mt-1">স্বাগতম, {user.email}</p>
+              <p className="text-sm text-gray-500 font-bold mt-1">লগইন আছেন: {user.email}</p>
            </div>
-           <button onClick={() => { localStorage.removeItem('bongiyo_admin'); window.location.reload(); }} className="bg-gray-200 px-4 py-2 rounded text-sm font-bold text-gray-700 hover:bg-gray-300">লগআউট</button>
+           <button onClick={() => { localStorage.removeItem('bongiyo_admin'); window.location.reload(); }} className="bg-gray-200 px-4 py-2 rounded text-sm font-bold text-gray-700 hover:bg-red-50 hover:text-red-700">লগআউট</button>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-4 mb-6">
-           <button onClick={() => setActiveTab('add')} className={`px-6 py-2 font-bold rounded ${activeTab==='add' ? 'bg-red-700 text-white' : 'bg-gray-200 text-gray-700'}`}>নতুন খবর</button>
-           <button onClick={() => setActiveTab('manage')} className={`px-6 py-2 font-bold rounded ${activeTab==='manage' ? 'bg-red-700 text-white' : 'bg-gray-200 text-gray-700'}`}>আমার খবর ম্যানেজ</button>
+           <button onClick={() => setActiveTab('add')} className={`px-6 py-2 font-bold rounded transition ${activeTab==='add' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>নতুন খবর</button>
+           <button onClick={() => setActiveTab('manage')} className={`px-6 py-2 font-bold rounded transition ${activeTab==='manage' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>খবর ম্যানেজ</button>
+           <button onClick={() => setActiveTab('settings')} className={`px-6 py-2 font-bold rounded transition ${activeTab==='settings' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>সিকিউরিটি</button>
         </div>
 
-        {activeTab === 'add' ? (
+        {/* Content based on Tab */}
+        {activeTab === 'add' && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <input required type="text" placeholder="শিরোনাম" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border p-3 rounded font-bold" />
-            <textarea required placeholder="হোমপেজের জন্য স্নিপেট (ছোট সারাংশ)" value={snippet} onChange={(e) => setSnippet(e.target.value)} className="w-full border p-3 rounded h-16" />
-            <textarea required placeholder="খবরের পুরো বিস্তারিত (এখানে প্যারাগ্রাফ করে লিখুন)" value={content} onChange={(e) => setContent(e.target.value)} className="w-full border p-3 rounded h-40" />
-            
+            <input required type="text" placeholder="শিরোনাম" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border p-3 rounded font-bold focus:outline-none focus:ring-2 focus:ring-red-200" />
+            <textarea required placeholder="হোমপেজের জন্য স্নিপেট (ছোট সারাংশ)" value={snippet} onChange={(e) => setSnippet(e.target.value)} className="w-full border p-3 rounded h-16 focus:outline-none focus:ring-2 focus:ring-red-200" />
+            <textarea required placeholder="খবরের পুরো বিস্তারিত (এখানে প্যারাগ্রাফ করে লিখুন)" value={content} onChange={(e) => setContent(e.target.value)} className="w-full border p-3 rounded h-40 focus:outline-none focus:ring-2 focus:ring-red-200" />
             <div className="grid grid-cols-2 gap-4">
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="border p-3 rounded font-bold">
                 {allCategories.map((cat, idx) => <option key={idx}>{cat}</option>)}
               </select>
-              <input required type="text" placeholder="সূত্র/লেখক" value={sourceName} onChange={(e) => setSourceName(e.target.value)} className="border p-3 rounded" />
+              <input required type="text" placeholder="সূত্র/লেখক" value={sourceName} onChange={(e) => setSourceName(e.target.value)} className="border p-3 rounded font-bold" />
             </div>
-
-            <div className="border p-4 rounded bg-gray-50">
+            <div className="border p-4 rounded bg-gray-50 text-center">
                <label className="block font-bold mb-2">ছবি আপলোড</label>
-               <input type="file" onChange={handleImageUpload} className="mb-2" />
-               <input type="text" placeholder="অথবা সরাসরি লিংক দিন" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full border p-2 rounded text-sm" />
-               {isUploading && <span className="text-blue-500 text-sm ml-2">আপলোড হচ্ছে...</span>}
+               <input type="file" onChange={handleImageUpload} className="mb-2 text-sm" />
+               <input type="text" placeholder="অথবা সরাসরি লিংক দিন" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full border p-2 rounded text-sm mt-2" />
+               {isUploading && <span className="text-blue-500 text-sm font-bold block mt-2 animate-pulse">আপলোড হচ্ছে...</span>}
             </div>
-
             {message && <div className="p-3 bg-blue-50 text-blue-800 font-bold text-center rounded">{message}</div>}
-            <button type="submit" disabled={isUploading || !imageUrl} className="w-full bg-red-700 text-white font-bold text-lg py-3 rounded hover:bg-red-800">পাবলিশ করুন</button>
+            <button type="submit" disabled={isUploading || !imageUrl || !title} className="w-full bg-red-700 text-white font-bold text-lg py-3 rounded hover:bg-red-800 shadow">পাবলিশ করুন</button>
           </form>
-        ) : (
+        )}
+
+        {activeTab === 'manage' && (
           <div className="space-y-4">
-             {myNews.length === 0 ? <p className="text-center text-gray-500 py-10">আপনার কোনো পাবলিশ করা খবর নেই।</p> : null}
+             {myNews.length === 0 ? <p className="text-center text-gray-500 py-10 font-bold">আপনার কোনো পাবলিশ করা খবর নেই।</p> : null}
              {myNews.map(news => (
-                <div key={news.id} className="flex justify-between items-center border p-4 rounded bg-gray-50">
+                <div key={news.id} className="flex flex-col md:flex-row justify-between md:items-center border p-4 rounded bg-gray-50 gap-4 hover:shadow-sm">
                    <div>
                       <h3 className="font-bold text-lg text-gray-800">{news.title}</h3>
-                      <p className="text-sm text-gray-500">{new Date(news.created_at).toLocaleDateString()} | ক্যাটাগরি: {news.category}</p>
+                      <p className="text-sm text-gray-500 mt-1">{new Date(news.created_at).toLocaleDateString()} | ক্যাটাগরি: {news.category}</p>
                    </div>
-                   <div className="flex gap-2">
-                      <a href={news.source_url} target="_blank" className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-bold">দেখুন</a>
-                      <button onClick={() => handleDelete(news.id)} className="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">ডিলিট</button>
+                   <div className="flex gap-2 shrink-0">
+                      <a href={news.source_url} target="_blank" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold shadow">দেখুন</a>
+                      <button onClick={() => handleDelete(news.id)} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-bold shadow">ডিলিট</button>
                    </div>
                 </div>
              ))}
           </div>
         )}
+
+        {activeTab === 'settings' && (
+          <div className="bg-gray-50 p-6 border rounded shadow-inner max-w-lg mx-auto mt-4">
+             <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">পাসওয়ার্ড পরিবর্তন করুন</h2>
+             <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
+                <div>
+                   <label className="block font-bold text-sm text-gray-600 mb-1">নতুন পাসওয়ার্ড</label>
+                   <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="নতুন শক্তিশালী পাসওয়ার্ড দিন" className="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-red-200" required />
+                </div>
+                {passMessage && <div className={`p-2 text-center text-sm font-bold rounded ${passMessage.includes('✅') ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>{passMessage}</div>}
+                <button type="submit" className="bg-gray-800 text-white font-bold py-2 rounded hover:bg-black transition">সেভ করুন</button>
+             </form>
+          </div>
+        )}
+
       </div>
     </div>
   );
