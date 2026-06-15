@@ -9,15 +9,12 @@ async function runBot() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
-  // =========================================================================
-  // নতুন ফিচার: ৬ মাসের পুরোনো অটো-স্ক্র্যাপ করা খবর ডিলিট করা
-  // =========================================================================
+  // ৬ মাসের পুরোনো কপি করা খবর ডিলিট করা
   try {
     console.log("🧹 ৬ মাসের পুরোনো কপি করা খবর খোঁজা হচ্ছে...");
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     
-    // is_custom null মানে হলো এটি আপনার আপলোড করা নয়, বরং বটের আনা খবর
     const { error: deleteError } = await supabase
       .from('news')
       .delete()
@@ -27,73 +24,101 @@ async function runBot() {
     if (deleteError) {
       console.error("❌ পুরোনো খবর ডিলিট করতে সমস্যা:", deleteError.message);
     } else {
-      console.log("✅ ডাটাবেস ক্লিনআপ সম্পন্ন! আপনার নিজের খবরগুলো ১০০% সুরক্ষিত আছে।");
+      console.log("✅ ডাটাবেস ক্লিনআপ সম্পন্ন! আপনার নিজের খবরগুলো সুরক্ষিত আছে।");
     }
   } catch (err) {
     console.error("❌ ক্লিনআপ সিস্টেমে এরর:", err.message);
   }
-  // =========================================================================
 
+  // ৭০টিরও বেশি স্ট্রিক্ট ক্যাটাগরির লিংক
   const allSources = [
+    // বাংলাদেশ
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/sports', domain: 'prothomalo.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/world', domain: 'prothomalo.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/entertainment', domain: 'prothomalo.com', defaultCategory: 'বিনোদন' },
-    { name: 'Manab Zamin', url: 'https://www.mzamin.com/category/অনলাইন', domain: 'mzamin.com', defaultCategory: 'সর্বশেষ' },
-    { name: 'Manab Zamin', url: 'https://www.mzamin.com/category/বাংলারজমিন', domain: 'mzamin.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Samakal', url: 'https://samakal.com/latest/news', domain: 'samakal.com', defaultCategory: 'সর্বশেষ' },
-    { name: 'Samakal', url: 'https://samakal.com/bangladesh', domain: 'samakal.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Samakal', url: 'https://samakal.com/economics', domain: 'samakal.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Samakal', url: 'https://samakal.com/sports', domain: 'samakal.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Samakal', url: 'https://samakal.com/international', domain: 'samakal.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Samakal', url: 'https://samakal.com/entertainment', domain: 'samakal.com', defaultCategory: 'বিনোদন' },
-    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/economy', domain: 'bd-pratidin.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/entertainment', domain: 'bd-pratidin.com', defaultCategory: 'বিনোদন' },
-    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/islam', domain: 'bd-pratidin.com', defaultCategory: 'ধর্ম' },
-    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/national', domain: 'bd-pratidin.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Inqilab', url: 'https://dailyinqilab.com/national', domain: 'dailyinqilab.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Inqilab', url: 'https://dailyinqilab.com/international', domain: 'dailyinqilab.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/sport', domain: 'kalerkantho.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/national', domain: 'kalerkantho.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/Islamic-lifestylie', domain: 'kalerkantho.com', defaultCategory: 'ধর্ম' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/world', domain: 'kalerkantho.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/business', domain: 'kalerkantho.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/latest-news', domain: 'ittefaq.com.bd', defaultCategory: 'সর্বশেষ' },
+    { name: 'Jugantor', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/law-and-court', domain: 'ittefaq.com.bd', defaultCategory: 'আইন-আদালত' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/world-news', domain: 'ittefaq.com.bd', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/sports', domain: 'ittefaq.com.bd', defaultCategory: 'খেলাধুলা' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/entertainment', domain: 'ittefaq.com.bd', defaultCategory: 'বিনোদন' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/business', domain: 'ittefaq.com.bd', defaultCategory: 'বাণিজ্য' },
-    { name: 'Sangram', url: 'https://dailysangram.com/latest/', domain: 'dailysangram.com', defaultCategory: 'সর্বশেষ' },
-    { name: 'Sangram', url: 'https://dailysangram.com/bangladesh/', domain: 'dailysangram.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Manobkantha', url: 'https://manobkantha.com.bd/articlelist/4/national', domain: 'manobkantha.com.bd', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Manobkantha', url: 'https://manobkantha.com.bd/articlelist/8/entertainment', domain: 'manobkantha.com.bd', defaultCategory: 'বিনোদন' },
-    { name: 'Manobkantha', url: 'https://manobkantha.com.bd/articlelist/9/sports', domain: 'manobkantha.com.bd', defaultCategory: 'খেলাধুলা' },
-    { name: 'Manobkantha', url: 'https://manobkantha.com.bd/articlelist/14/religion', domain: 'manobkantha.com.bd', defaultCategory: 'ধর্ম' },
-    { name: 'Kalbela', url: 'https://www.kalbela.com/national', domain: 'kalbela.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Kalbela', url: 'https://www.kalbela.com/sports', domain: 'kalbela.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Kalbela', url: 'https://www.kalbela.com/business-news', domain: 'kalbela.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'TBS News', url: 'https://www.tbsnews.net/bangla/', domain: 'tbsnews.net', defaultCategory: 'সর্বশেষ' },
-    { name: 'TBS News', url: 'https://www.tbsnews.net/bangla/sports', domain: 'tbsnews.net', defaultCategory: 'খেলাধুলা' },
-    { name: 'TBS News', url: 'https://www.tbsnews.net/bangla/entertainment', domain: 'tbsnews.net', defaultCategory: 'বিনোদন' },
+    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/national', domain: 'kalerkantho.com', defaultCategory: 'বাংলাদেশ' },
+    { name: 'Samakal', url: 'https://samakal.com/bangladesh', domain: 'samakal.com', defaultCategory: 'বাংলাদেশ' },
+    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/national', domain: 'bd-pratidin.com', defaultCategory: 'বাংলাদেশ' },
+    { name: 'Nayadiganta', url: 'https://www.dailynayadiganta.com/national', domain: 'dailynayadiganta.com', defaultCategory: 'বাংলাদেশ' },
+    { name: 'Inqilab', url: 'https://dailyinqilab.com/national', domain: 'dailyinqilab.com', defaultCategory: 'বাংলাদেশ' },
+    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/national', domain: 'dhakapost.com', defaultCategory: 'বাংলাদেশ' },
+    { name: 'Jagonews24', url: 'https://www.jagonews24.com/national', domain: 'jagonews24.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'BDNews24', url: 'https://bangla.bdnews24.com/samagrabangladesh', domain: 'bdnews24.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Jagonews24', url: 'https://www.jagonews24.com/latest-news', domain: 'jagonews24.com', defaultCategory: 'সর্বশেষ' },
-    { name: 'Amader Shomoy', url: 'https://dainikamadershomoy.com/latest/all', domain: 'dainikamadershomoy.com', defaultCategory: 'সর্বশেষ' },
-    { name: 'Bangla Tribune', url: 'https://www.banglatribune.com/আজকের-খবর', domain: 'banglatribune.com', defaultCategory: 'সর্বশেষ' },
-    { name: 'Bangla Tribune', url: 'https://www.banglatribune.com/law-and-crime', domain: 'banglatribune.com', defaultCategory: 'আইন-আদালত' },
-    { name: 'Somoy TV', url: 'https://www.somoynews.tv/categories/বাংলাদেশ', domain: 'somoynews.tv', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Somoy TV', url: 'https://www.somoynews.tv/categories/খেলা', domain: 'somoynews.tv', defaultCategory: 'খেলাধুলা' },
-    { name: 'Somoy TV', url: 'https://www.somoynews.tv/categories/বিনোদন-ও-লাইফস্টাইল', domain: 'somoynews.tv', defaultCategory: 'বিনোদন' },
     { name: 'Jamuna TV', url: 'https://www.jamuna.tv/all-bangladesh', domain: 'jamuna.tv', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Jamuna TV', url: 'https://www.jamuna.tv/sports', domain: 'jamuna.tv', defaultCategory: 'খেলাধুলা' },
-    { name: 'Channel i', url: 'https://www.channelionline.com/category/bangladesh/', domain: 'channelionline.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Channel i', url: 'https://www.channelionline.com/sports/', domain: 'channelionline.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Ekattor TV', url: 'https://ekattor.tv/latest-news', domain: 'ekattor.tv', defaultCategory: 'সর্বশেষ' },
-    { name: 'Channel 24', url: 'https://www.channel24bd.tv/latest', domain: 'channel24bd.tv', defaultCategory: 'সর্বশেষ' },
-    { name: 'ATN News', url: 'https://www.atnnewstv.com/national', domain: 'atnnewstv.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Anandabazar', url: 'https://www.anandabazar.com/world', domain: 'anandabazar.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক' }
+
+    // আন্তর্জাতিক
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/world', domain: 'prothomalo.com', defaultCategory: 'আন্তর্জাতিক' },
+    { name: 'Jugantor', url: 'https://www.jugantor.com/international', domain: 'jugantor.com', defaultCategory: 'আন্তর্জাতিক' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/world-news', domain: 'ittefaq.com.bd', defaultCategory: 'আন্তর্জাতিক' },
+    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/world', domain: 'kalerkantho.com', defaultCategory: 'আন্তর্জাতিক' },
+    { name: 'Samakal', url: 'https://samakal.com/international', domain: 'samakal.com', defaultCategory: 'আন্তর্জাতিক' },
+    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/international', domain: 'bd-pratidin.com', defaultCategory: 'আন্তর্জাতিক' },
+    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/international', domain: 'dhakapost.com', defaultCategory: 'আন্তর্জাতিক' },
+    { name: 'Jagonews24', url: 'https://www.jagonews24.com/international', domain: 'jagonews24.com', defaultCategory: 'আন্তর্জাতিক' },
+    { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক' },
+
+    // খেলাধুলা
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/sports', domain: 'prothomalo.com', defaultCategory: 'খেলাধুলা' },
+    { name: 'Jugantor', url: 'https://www.jugantor.com/sports', domain: 'jugantor.com', defaultCategory: 'খেলাধুলা' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/sports', domain: 'ittefaq.com.bd', defaultCategory: 'খেলাধুলা' },
+    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/sport', domain: 'kalerkantho.com', defaultCategory: 'খেলাধুলা' },
+    { name: 'Samakal', url: 'https://samakal.com/sports', domain: 'samakal.com', defaultCategory: 'খেলাধুলা' },
+    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/sports', domain: 'bd-pratidin.com', defaultCategory: 'খেলাধুলা' },
+    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/sports', domain: 'dhakapost.com', defaultCategory: 'খেলাধুলা' },
+    { name: 'Jagonews24', url: 'https://www.jagonews24.com/sports', domain: 'jagonews24.com', defaultCategory: 'খেলাধুলা' },
+    { name: 'TBS News', url: 'https://www.tbsnews.net/bangla/sports', domain: 'tbsnews.net', defaultCategory: 'খেলাধুলা' },
+
+    // বিনোদন
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/entertainment', domain: 'prothomalo.com', defaultCategory: 'বিনোদন' },
+    { name: 'Jugantor', url: 'https://www.jugantor.com/entertainment', domain: 'jugantor.com', defaultCategory: 'বিনোদন' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/entertainment', domain: 'ittefaq.com.bd', defaultCategory: 'বিনোদন' },
+    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/entertainment', domain: 'kalerkantho.com', defaultCategory: 'বিনোদন' },
+    { name: 'Samakal', url: 'https://samakal.com/entertainment', domain: 'samakal.com', defaultCategory: 'বিনোদন' },
+    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/entertainment', domain: 'dhakapost.com', defaultCategory: 'বিনোদন' },
+    { name: 'Jagonews24', url: 'https://www.jagonews24.com/entertainment', domain: 'jagonews24.com', defaultCategory: 'বিনোদন' },
+
+    // বাণিজ্য
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/business', domain: 'prothomalo.com', defaultCategory: 'বাণিজ্য' },
+    { name: 'Jugantor', url: 'https://www.jugantor.com/economics', domain: 'jugantor.com', defaultCategory: 'বাণিজ্য' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/business', domain: 'ittefaq.com.bd', defaultCategory: 'বাণিজ্য' },
+    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/business', domain: 'kalerkantho.com', defaultCategory: 'বাণিজ্য' },
+    { name: 'Samakal', url: 'https://samakal.com/economics', domain: 'samakal.com', defaultCategory: 'বাণিজ্য' },
+    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/economy', domain: 'dhakapost.com', defaultCategory: 'বাণিজ্য' },
+    { name: 'Jagonews24', url: 'https://www.jagonews24.com/economy', domain: 'jagonews24.com', defaultCategory: 'বাণিজ্য' },
+    { name: 'TBS News', url: 'https://www.tbsnews.net/bangla/economy', domain: 'tbsnews.net', defaultCategory: 'বাণিজ্য' },
+
+    // আইন-আদালত
+    { name: 'Jugantor', url: 'https://www.jugantor.com/law-and-justice', domain: 'jugantor.com', defaultCategory: 'আইন-আদালত' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/law-and-court', domain: 'ittefaq.com.bd', defaultCategory: 'আইন-আদালত' },
+    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/law-courts', domain: 'dhakapost.com', defaultCategory: 'আইন-আদালত' },
+    { name: 'Jagonews24', url: 'https://www.jagonews24.com/law-courts', domain: 'jagonews24.com', defaultCategory: 'আইন-আদালত' },
+    { name: 'Bangla Tribune', url: 'https://www.banglatribune.com/law-and-crime', domain: 'banglatribune.com', defaultCategory: 'আইন-আদালত' },
+    { name: 'Somoy TV', url: 'https://www.somoynews.tv/categories/আইন-ও-আদালত', domain: 'somoynews.tv', defaultCategory: 'আইন-আদালত' },
+
+    // শিক্ষা
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/education', domain: 'prothomalo.com', defaultCategory: 'শিক্ষা' },
+    { name: 'Jugantor', url: 'https://www.jugantor.com/campus', domain: 'jugantor.com', defaultCategory: 'শিক্ষা' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/education', domain: 'ittefaq.com.bd', defaultCategory: 'শিক্ষা' },
+    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/education', domain: 'dhakapost.com', defaultCategory: 'শিক্ষা' },
+    { name: 'Jagonews24', url: 'https://www.jagonews24.com/campus', domain: 'jagonews24.com', defaultCategory: 'শিক্ষা' },
+    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/education', domain: 'bd-pratidin.com', defaultCategory: 'শিক্ষা' },
+
+    // প্রযুক্তি
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/technology', domain: 'prothomalo.com', defaultCategory: 'প্রযুক্তি' },
+    { name: 'Jugantor', url: 'https://www.jugantor.com/tech', domain: 'jugantor.com', defaultCategory: 'প্রযুক্তি' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/science-and-technology', domain: 'ittefaq.com.bd', defaultCategory: 'প্রযুক্তি' },
+    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/info-tech', domain: 'kalerkantho.com', defaultCategory: 'প্রযুক্তি' },
+    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/technology', domain: 'dhakapost.com', defaultCategory: 'প্রযুক্তি' },
+    { name: 'Jagonews24', url: 'https://www.jagonews24.com/technology', domain: 'jagonews24.com', defaultCategory: 'প্রযুক্তি' },
+
+    // ধর্ম
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/religion', domain: 'prothomalo.com', defaultCategory: 'ধর্ম' },
+    { name: 'Jugantor', url: 'https://www.jugantor.com/islam-and-life', domain: 'jugantor.com', defaultCategory: 'ধর্ম' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/islam', domain: 'ittefaq.com.bd', defaultCategory: 'ধর্ম' },
+    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/Islamic-lifestylie', domain: 'kalerkantho.com', defaultCategory: 'ধর্ম' },
+    { name: 'Dhaka Post', url: 'https://www.dhakapost.com/religion', domain: 'dhakapost.com', defaultCategory: 'ধর্ম' },
+    { name: 'Jagonews24', url: 'https://www.jagonews24.com/religion', domain: 'jagonews24.com', defaultCategory: 'ধর্ম' },
+    { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/islam', domain: 'bd-pratidin.com', defaultCategory: 'ধর্ম' }
   ];
 
   function shuffleArray(array) {
@@ -104,18 +129,35 @@ async function runBot() {
     return array;
   }
 
-  const sourcesToScrape = shuffleArray([...allSources]).slice(0, 25);
+  const sourcesToScrape = shuffleArray([...allSources]).slice(0, 30); // 한 বারে ৩০টি সাইটে যাবে
 
   const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
   };
 
-  function isRealArticle(url) {
+  // স্ট্রিক্ট ফিল্টারিং (ক্যাটাগরি মিক্সিং বন্ধ করার জন্য)
+  function isStrictlyValid(url, expectedCategory) {
     const lowerUrl = url.toLowerCase();
-    const badWords = ['tag', 'category', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo', 'gallery'];
+    const badWords = ['tag', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo', 'gallery'];
     if (badWords.some(word => lowerUrl.includes(word))) return false;
     if (!/\d/.test(lowerUrl)) return false; 
+
+    const strictPaths = {
+      'বাংলাদেশ': ['/sports', '/sport', '/entertainment', '/world', '/tech', '/business'],
+      'আন্তর্জাতিক': ['/sports', '/sport', '/entertainment', '/bangladesh', '/tech', '/business'],
+      'খেলাধুলা': ['/national', '/bangladesh', '/world', '/entertainment', '/tech', '/business'],
+      'বিনোদন': ['/national', '/bangladesh', '/world', '/sports', '/tech', '/business'],
+      'বাণিজ্য': ['/national', '/bangladesh', '/world', '/sports', '/tech', '/entertainment'],
+      'আইন-আদালত': ['/sports', '/sport', '/entertainment', '/tech'],
+      'শিক্ষা': ['/sports', '/sport', '/entertainment', '/tech', '/world'],
+      'প্রযুক্তি': ['/sports', '/sport', '/entertainment', '/world', '/national'],
+      'ধর্ম': ['/sports', '/sport', '/entertainment', '/world', '/national', '/tech']
+    };
+
+    const blockedPaths = strictPaths[expectedCategory] || [];
+    if (blockedPaths.some(path => lowerUrl.includes(path))) return false;
+
     return true;
   }
 
@@ -131,7 +173,7 @@ async function runBot() {
       
       $('a').each((i, el) => {
         let href = $(el).attr('href');
-        if (href && href.length > 40 && isRealArticle(href)) {
+        if (href && href.length > 40 && isStrictlyValid(href, source.defaultCategory)) {
           if (href.startsWith('/')) href = `https://www.${source.domain}${href}`;
           if (href.includes(source.domain) && !links.includes(href)) {
             links.push(href);
