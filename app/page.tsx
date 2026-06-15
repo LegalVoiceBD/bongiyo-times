@@ -19,7 +19,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
   const activeCategory = searchParams.category || '';
 
-  // আরও বেশি খবর আনা হচ্ছে যাতে সব ক্যাটাগরি ভরে যায়
   let query = supabase.from('news').select('*').order('created_at', { ascending: false }).limit(150);
   if (activeCategory) {
     query = query.eq('category', activeCategory);
@@ -39,8 +38,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const sportsNews = allNews.filter(n => n.category === 'খেলাধুলা').slice(0, 4);
   const entertainmentNews = allNews.filter(n => n.category === 'বিনোদন').slice(0, 5);
   const techNews = allNews.filter(n => n.category === 'প্রযুক্তি').slice(0, 4);
-  const businessNews = allNews.filter(n => n.category === 'বাণিজ্য').slice(0, 4);
-  const lawNews = allNews.filter(n => n.category === 'আইন-আদালত').slice(0, 4);
+  const businessNews = allNews.filter(n => n.category === 'বাণিজ্য').slice(0, 5);
+  const lawNews = allNews.filter(n => n.category === 'আইন-আদালত').slice(0, 5);
   const religionNews = allNews.filter(n => n.category === 'ধর্ম').slice(0, 4);
 
   const opinionNews = [
@@ -62,7 +61,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   return (
     <div className="min-h-screen bg-white text-black">
       
-      {/* ----------------- Header Section ----------------- */}
+      {/* ----------------- Header Section (Unchanged) ----------------- */}
       <header className="bg-white border-b border-gray-200">
         <div className="border-b border-gray-100 py-1.5 text-xs md:text-sm text-gray-600 bg-gray-50">
           <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center">
@@ -137,7 +136,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
            </div>
         ) : (
           <>
-            {/* 1. Hero Section */}
+            {/* 1. Hero Section (Unchanged) */}
             {leadNews && (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10 border-b border-gray-300 pb-6 md:pb-8">
                 <div className="hidden lg:flex flex-col gap-6 border-r border-gray-200 pr-4">
@@ -178,15 +177,15 @@ export default async function Home({ searchParams }: { searchParams: { category?
               </div>
             )}
 
-            {/* 2. Primary 3-Column Body */}
+            {/* 2. Primary Body (Unchanged) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10 border-b border-gray-200 pb-10">
               <div className="lg:col-span-8 flex flex-col gap-8">
                 
                 {/* National */}
                 <div>
-                   <div className="border-b-2 border-black mb-4 flex justify-between items-end pb-1">
-                      <h2 className="text-xl font-bold flex items-center gap-2"><span className="text-red-700">■</span> বাংলাদেশ</h2>
-                      <a href="/?category=বাংলাদেশ" className="text-sm font-bold hover:text-red-600">সব খবর »</a>
+                   <div className="border-b-[3px] border-black mb-4 flex justify-between items-center pb-1">
+                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">বাংলাদেশ <span className="text-red-600 text-[18px]">❯</span></h2>
+                      <a href="/?category=বাংলাদেশ" className="text-sm font-bold text-gray-500 hover:text-red-600">সব খবর »</a>
                    </div>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {nationalNews[0] && (
@@ -198,7 +197,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                       <div className="flex flex-col gap-4">
                         {nationalNews.slice(1).map(news => (
                           <a href={news.source_url} target="_blank" key={news.id} className="group flex gap-3 border-b border-gray-100 pb-3">
-                             <h3 className="text-[15px] font-bold group-hover:text-red-700 leading-snug flex-1">{news.title}</h3>
+                             <h3 className="text-[16px] font-bold group-hover:text-red-700 leading-snug flex-1">{news.title}</h3>
                           </a>
                         ))}
                       </div>
@@ -221,14 +220,14 @@ export default async function Home({ searchParams }: { searchParams: { category?
                    </div>
                    {/* Sports */}
                    <div>
-                      <div className="border-b-2 border-black mb-4 flex justify-between items-end pb-1">
-                         <h2 className="text-lg font-bold">খেলাধুলা</h2>
-                         <a href="/?category=খেলাধুলা" className="text-sm font-bold hover:text-red-600">সব খবর »</a>
+                      <div className="border-b-[3px] border-black mb-4 flex justify-between items-center pb-1">
+                         <h2 className="text-xl font-bold text-gray-900">খেলাধুলা <span className="text-red-600 text-[18px]">❯</span></h2>
+                         <a href="/?category=খেলাধুলা" className="text-sm font-bold text-gray-500 hover:text-red-600">সব খবর »</a>
                       </div>
                       {sportsNews.map((news, idx) => (
                         <a href={news.source_url} target="_blank" key={news.id} className={`flex gap-3 group items-center ${idx !== 0 ? 'border-t border-gray-100 pt-3 mt-3' : ''}`}>
                           <SafeImage src={news.image_url} alt={news.title} className="w-20 h-16 rounded-sm shrink-0" />
-                          <h3 className="text-sm font-bold text-gray-800 group-hover:text-red-700 leading-snug line-clamp-2">{news.title}</h3>
+                          <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-red-700 leading-snug line-clamp-2">{news.title}</h3>
                         </a>
                       ))}
                    </div>
@@ -248,113 +247,131 @@ export default async function Home({ searchParams }: { searchParams: { category?
               </div>
             </div>
 
-            {/* 3. Entertainment Mega Block (Purple Theme) */}
-            {entertainmentNews.length > 0 && (
-              <div className="mb-10">
-                <div className="border-b-2 border-purple-600 mb-6 flex justify-between items-end pb-1">
-                   <h2 className="text-2xl font-bold text-purple-700">বিনোদন</h2>
-                   <a href="/?category=বিনোদন" className="text-sm font-bold text-purple-600 hover:text-purple-800">সব খবর »</a>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   {entertainmentNews[0] && (
-                     <a href={entertainmentNews[0].source_url} target="_blank" className="group block relative rounded-sm overflow-hidden shadow-sm">
-                        <SafeImage src={entertainmentNews[0].image_url} alt={entertainmentNews[0].title} className="w-full h-[250px] md:h-[300px] group-hover:scale-105 transition duration-500" />
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent p-4 pt-10">
-                           <h3 className="text-2xl font-bold text-white group-hover:text-purple-300 leading-tight">{entertainmentNews[0].title}</h3>
-                        </div>
-                     </a>
-                   )}
-                   <div className="grid grid-cols-2 gap-4">
-                      {entertainmentNews.slice(1, 5).map(news => (
-                        <a href={news.source_url} target="_blank" key={news.id} className="group flex flex-col gap-2">
-                           <SafeImage src={news.image_url} alt={news.title} className="w-full h-24 object-cover rounded-sm" />
-                           <h3 className="text-sm font-bold text-gray-800 group-hover:text-purple-700 leading-snug line-clamp-3">{news.title}</h3>
+            {/* 3. NEW: Entertainment & Tech Block (Prothom Alo Grid Style) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10 border-b border-gray-200 pb-10">
+               {/* Entertainment (8 Cols) */}
+               <div className="lg:col-span-8">
+                  <div className="border-b-[3px] border-black mb-4 flex justify-between items-center pb-1">
+                     <h2 className="text-xl md:text-2xl font-bold text-gray-900">বিনোদন <span className="text-red-600 text-[18px]">❯</span></h2>
+                     <a href="/?category=বিনোদন" className="text-sm font-bold text-gray-500 hover:text-red-600">সব খবর »</a>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     {entertainmentNews[0] && (
+                        <a href={entertainmentNews[0].source_url} target="_blank" className="group block">
+                           <SafeImage src={entertainmentNews[0].image_url} alt={entertainmentNews[0].title} className="w-full h-[220px] object-cover rounded-sm mb-3" />
+                           <h3 className="text-2xl font-bold text-gray-900 group-hover:text-red-700 leading-snug">{entertainmentNews[0].title}</h3>
                         </a>
-                      ))}
-                   </div>
-                </div>
-              </div>
-            )}
+                     )}
+                     <div className="flex flex-col justify-between gap-4">
+                        {entertainmentNews.slice(1, 5).map(news => (
+                           <a href={news.source_url} target="_blank" key={news.id} className="group flex gap-4 items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                              <div className="flex-1">
+                                 <h3 className="text-[16px] font-bold text-gray-800 group-hover:text-red-700 leading-snug line-clamp-2">{news.title}</h3>
+                                 <p className="text-[11px] text-gray-400 mt-1">{formatDateTime(news.created_at)}</p>
+                              </div>
+                              <SafeImage src={news.image_url} alt={news.title} className="w-24 h-16 object-cover rounded-sm shrink-0" />
+                           </a>
+                        ))}
+                     </div>
+                  </div>
+               </div>
 
-            {/* 4. Tech & Business Section (Grid View) */}
+               {/* Tech (4 Cols) */}
+               <div className="lg:col-span-4">
+                  <div className="border-b-[3px] border-black mb-4 flex justify-between items-center pb-1">
+                     <h2 className="text-xl font-bold text-gray-900">প্রযুক্তি <span className="text-red-600 text-[18px]">❯</span></h2>
+                  </div>
+                  {techNews[0] && (
+                     <a href={techNews[0].source_url} target="_blank" className="group block mb-4 border-b border-gray-100 pb-4">
+                        <SafeImage src={techNews[0].image_url} alt={techNews[0].title} className="w-full h-40 object-cover rounded-sm mb-2" />
+                        <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-red-700 leading-snug">{techNews[0].title}</h3>
+                     </a>
+                  )}
+                  <div className="flex flex-col gap-3">
+                     {techNews.slice(1, 4).map(news => (
+                        <a href={news.source_url} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-3 last:border-0">
+                           <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-red-700 leading-snug">{news.title}</h3>
+                        </a>
+                     ))}
+                  </div>
+               </div>
+            </div>
+
+            {/* 4. NEW: Business & Law Block (Barta24 Thick Red Border Style) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-               {/* Tech */}
-               {techNews.length > 0 && (
-                 <div>
-                    <div className="border-b-2 border-blue-600 mb-4 flex justify-between items-end pb-1">
-                       <h2 className="text-xl font-bold text-blue-700">প্রযুক্তি</h2>
-                       <a href="/?category=প্রযুক্তি" className="text-sm font-bold text-blue-600 hover:text-blue-800">সব খবর »</a>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                       {techNews.map(news => (
-                         <a href={news.source_url} target="_blank" key={news.id} className="group bg-gray-50 p-2 rounded-sm border border-gray-100 hover:shadow-md transition">
-                            <SafeImage src={news.image_url} alt={news.title} className="w-full h-28 object-cover rounded-sm mb-2" />
-                            <h3 className="text-sm font-bold text-gray-800 group-hover:text-blue-600 leading-snug line-clamp-3">{news.title}</h3>
-                         </a>
-                       ))}
-                    </div>
-                 </div>
-               )}
                {/* Business */}
                {businessNews.length > 0 && (
                  <div>
-                    <div className="border-b-2 border-green-600 mb-4 flex justify-between items-end pb-1">
-                       <h2 className="text-xl font-bold text-green-700">বাণিজ্য</h2>
-                       <a href="/?category=বাণিজ্য" className="text-sm font-bold text-green-600 hover:text-green-800">সব খবর »</a>
+                    <div className="mb-6 flex justify-between items-center">
+                       <h2 className="text-xl md:text-2xl font-bold border-l-[5px] border-red-600 pl-3 text-gray-900">বাণিজ্য</h2>
                     </div>
-                    <div className="flex flex-col gap-4">
-                       {businessNews.map((news, idx) => (
-                         <a href={news.source_url} target="_blank" key={news.id} className={`group flex gap-3 items-center ${idx !== 0 ? 'border-t border-gray-100 pt-3' : ''}`}>
-                            <SafeImage src={news.image_url} alt={news.title} className="w-24 h-20 object-cover rounded-sm shrink-0" />
-                            <h3 className="text-sm md:text-[15px] font-bold text-gray-800 group-hover:text-green-600 leading-snug">{news.title}</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                       {businessNews[0] && (
+                         <a href={businessNews[0].source_url} target="_blank" className="group block">
+                            <SafeImage src={businessNews[0].image_url} alt={businessNews[0].title} className="w-full h-36 object-cover rounded-sm mb-3" />
+                            <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-red-700 leading-snug">{businessNews[0].title}</h3>
                          </a>
-                       ))}
+                       )}
+                       <div className="flex flex-col gap-4">
+                          {businessNews.slice(1, 4).map(news => (
+                             <a href={news.source_url} target="_blank" key={news.id} className="group flex gap-3 items-start border-b border-gray-100 pb-3 last:border-0">
+                                <SafeImage src={news.image_url} alt={news.title} className="w-20 h-14 object-cover rounded-sm shrink-0" />
+                                <h3 className="text-[14px] font-bold text-gray-800 group-hover:text-red-700 leading-snug">{news.title}</h3>
+                             </a>
+                          ))}
+                       </div>
+                    </div>
+                 </div>
+               )}
+               
+               {/* Law */}
+               {lawNews.length > 0 && (
+                 <div>
+                    <div className="mb-6 flex justify-between items-center">
+                       <h2 className="text-xl md:text-2xl font-bold border-l-[5px] border-red-600 pl-3 text-gray-900">আইন-আদালত</h2>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                       {lawNews[0] && (
+                         <a href={lawNews[0].source_url} target="_blank" className="group block">
+                            <SafeImage src={lawNews[0].image_url} alt={lawNews[0].title} className="w-full h-36 object-cover rounded-sm mb-3" />
+                            <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-red-700 leading-snug">{lawNews[0].title}</h3>
+                         </a>
+                       )}
+                       <div className="flex flex-col gap-4">
+                          {lawNews.slice(1, 4).map(news => (
+                             <a href={news.source_url} target="_blank" key={news.id} className="group flex gap-3 items-start border-b border-gray-100 pb-3 last:border-0">
+                                <SafeImage src={news.image_url} alt={news.title} className="w-20 h-14 object-cover rounded-sm shrink-0" />
+                                <h3 className="text-[14px] font-bold text-gray-800 group-hover:text-red-700 leading-snug">{news.title}</h3>
+                             </a>
+                          ))}
+                       </div>
                     </div>
                  </div>
                )}
             </div>
 
-            {/* 5. Law & Religion Section (Horizontal Cards) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
-               {/* Law */}
-               {lawNews.length > 0 && (
-                 <div className="border border-gray-200 p-4 rounded-sm">
-                    <div className="border-b border-gray-300 mb-4 pb-2">
-                       <h2 className="text-lg font-bold text-gray-900 border-l-4 border-black pl-2">আইন-আদালত</h2>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                       {lawNews.map(news => (
-                         <a href={news.source_url} target="_blank" key={news.id} className="group block">
-                            <SafeImage src={news.image_url} alt={news.title} className="w-full h-24 object-cover rounded-sm mb-2" />
-                            <h3 className="text-[13px] font-bold text-gray-800 group-hover:text-red-700 leading-snug">{news.title}</h3>
-                         </a>
-                       ))}
-                    </div>
-                 </div>
-               )}
-               {/* Religion */}
-               {religionNews.length > 0 && (
-                 <div className="border border-gray-200 p-4 rounded-sm">
-                    <div className="border-b border-gray-300 mb-4 pb-2">
-                       <h2 className="text-lg font-bold text-gray-900 border-l-4 border-green-600 pl-2">ধর্ম</h2>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                       {religionNews.map(news => (
-                         <a href={news.source_url} target="_blank" key={news.id} className="group block">
-                            <SafeImage src={news.image_url} alt={news.title} className="w-full h-24 object-cover rounded-sm mb-2" />
-                            <h3 className="text-[13px] font-bold text-gray-800 group-hover:text-green-700 leading-snug">{news.title}</h3>
-                         </a>
-                       ))}
-                    </div>
-                 </div>
-               )}
-            </div>
+            {/* 5. NEW: Religion Block (Full Width 4 Cols) */}
+            {religionNews.length > 0 && (
+               <div className="mb-10 border border-gray-200 bg-gray-50 p-4 rounded-sm">
+                  <div className="border-b border-gray-300 mb-4 pb-2">
+                     <h2 className="text-xl font-bold text-gray-900 border-l-[5px] border-green-600 pl-2">ধর্ম</h2>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                     {religionNews.map(news => (
+                       <a href={news.source_url} target="_blank" key={news.id} className="group block bg-white p-2 rounded shadow-sm hover:shadow-md transition">
+                          <SafeImage src={news.image_url} alt={news.title} className="w-full h-28 object-cover rounded-sm mb-2" />
+                          <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-green-700 leading-snug line-clamp-3">{news.title}</h3>
+                       </a>
+                     ))}
+                  </div>
+               </div>
+            )}
 
           </>
         )}
       </main>
 
-      {/* ----------------- Footer ----------------- */}
+      {/* ----------------- Footer (Unchanged) ----------------- */}
       <footer className="bg-[#1a1a1a] text-gray-300 mt-12 border-t-4 border-red-700">
         <div className="max-w-[1200px] mx-auto px-4 py-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
