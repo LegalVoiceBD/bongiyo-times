@@ -69,8 +69,11 @@ export default function AdminDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
+    setMessage('ছবি আপলোড হচ্ছে...');
+    
     const formData = new FormData();
     formData.append('file', file);
+    // ক্লাউডিনারি প্রিসেট (আপনার যদি ml_default কাজ না করে, তবে Cloudinary থেকে Unsigned প্রিসেট তৈরি করে সেই নাম এখানে দেবেন)
     formData.append('upload_preset', 'ml_default'); 
 
     try {
@@ -78,7 +81,17 @@ export default function AdminDashboard() {
         method: 'POST', body: formData,
       });
       const data = await res.json();
-      if (data.secure_url) setImageUrl(data.secure_url);
+      
+      if (data.secure_url) {
+        setImageUrl(data.secure_url);
+        setMessage('✅ ছবি সফলভাবে আপলোড হয়েছে!');
+      } else {
+        alert('Cloudinary Error: ' + (data.error?.message || 'Unknown error occurred.'));
+        setMessage('❌ ছবি আপলোডে সমস্যা হয়েছে।');
+      }
+    } catch (error) {
+      alert('Network Error: ছবি আপলোড করা সম্ভব হয়নি।');
+      setMessage('❌ ইন্টারনেট বা সার্ভার সমস্যা।');
     } finally {
       setIsUploading(false);
     }
@@ -115,7 +128,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // অ্যাডমিন প্যানেলে আপলোড করা খবর ফিল্টার করার সার্চ ফাংশন
   const filteredNews = myNews.filter(news => 
      news.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
      news.category.toLowerCase().includes(searchTerm.toLowerCase())
@@ -148,14 +160,12 @@ export default function AdminDashboard() {
            <button onClick={() => { localStorage.removeItem('bongiyo_admin'); window.location.reload(); }} className="bg-gray-200 px-4 py-2 rounded text-sm font-bold text-gray-700 hover:bg-red-50 hover:text-red-700">লগআউট</button>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-4 mb-6">
            <button onClick={() => setActiveTab('add')} className={`px-6 py-2 font-bold rounded transition ${activeTab==='add' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>নতুন খবর</button>
            <button onClick={() => setActiveTab('manage')} className={`px-6 py-2 font-bold rounded transition ${activeTab==='manage' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>খবর ম্যানেজ ও সার্চ</button>
            <button onClick={() => setActiveTab('settings')} className={`px-6 py-2 font-bold rounded transition ${activeTab==='settings' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>সিকিউরিটি</button>
         </div>
 
-        {/* Content Tabs */}
         {activeTab === 'add' && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <input required type="text" placeholder="শিরোনাম" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border p-3 rounded font-bold focus:outline-none focus:ring-2 focus:ring-red-200" />
@@ -167,32 +177,36 @@ export default function AdminDashboard() {
               </select>
               <input required type="text" placeholder="সূত্র/লেখক" value={sourceName} onChange={(e) => setSourceName(e.target.value)} className="border p-3 rounded font-bold" />
             </div>
-            <div className="border p-4 rounded bg-gray-50 text-center">
-               <label className="block font-bold mb-2">ছবি আপলোড (Cloudinary)</label>
-               <input type="file" onChange={handleImageUpload} className="mb-2 text-sm" />
-               <input type="text" placeholder="অথবা সরাসরি ছবির ইউআরএল দিন" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full border p-2 rounded text-sm mt-2" />
-               {isUploading && <span className="text-blue-500 text-sm font-bold block mt-2 animate-pulse">আপলোড হচ্ছে...</span>}
+            
+            <div className="border border-gray-300 p-6 rounded bg-gray-50 text-center">
+               <label className="block font-bold mb-4 text-gray-700">ছবি আপলোড (Cloudinary)</label>
+               <input type="file" onChange={handleImageUpload} className="mb-2 text-sm block mx-auto" />
+               <p className="text-gray-400 text-sm my-2">- অথবা সরাসরি ছবির ইউআরএল দিন -</p>
+               <input type="text" placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full border p-2 rounded text-sm mb-4 outline-none focus:border-red-400" />
+               
+               {/* Image Preview Block */}
+               {imageUrl && (
+                  <div className="mt-4 border p-2 bg-white rounded shadow-sm inline-block">
+                     <p className="text-xs font-bold text-green-600 mb-2">ছবির প্রিভিউ:</p>
+                     <img src={imageUrl} alt="Preview" className="w-48 h-32 object-cover rounded mx-auto" />
+                  </div>
+               )}
             </div>
-            {message && <div className="p-3 bg-blue-50 text-blue-800 font-bold text-center rounded">{message}</div>}
-            <button type="submit" disabled={isUploading || !imageUrl || !title} className="w-full bg-red-700 text-white font-bold text-lg py-3 rounded hover:bg-red-800">পাবলিশ করুন</button>
+
+            {message && <div className={`p-3 font-bold text-center rounded ${message.includes('✅') ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-800'}`}>{message}</div>}
+            
+            <button type="submit" disabled={isUploading || !imageUrl || !title} className="w-full bg-red-700 text-white font-bold text-lg py-3 rounded hover:bg-red-800 disabled:bg-gray-400 transition">
+               {isUploading ? 'ছবি আপলোড হচ্ছে...' : 'পাবলিশ করুন'}
+            </button>
           </form>
         )}
 
         {activeTab === 'manage' && (
           <div className="space-y-4">
-             {/* Search box inside Admin Manage News */}
              <div className="mb-4">
-                <input 
-                  type="text" 
-                  placeholder="আপনার আপলোড করা হাজার হাজার নিউজের শিরোনাম টাইপ করে খুঁজুন..." 
-                  value={searchTerm} 
-                  onChange={(e) => setSearchTerm(e.target.value)} 
-                  className="w-full border-2 border-red-700 p-3 rounded font-bold focus:outline-none bg-red-50/30"
-                />
+                <input type="text" placeholder="আপনার আপলোড করা নিউজের শিরোনাম টাইপ করে খুঁজুন..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full border-2 border-red-700 p-3 rounded font-bold focus:outline-none bg-red-50/30" />
              </div>
-
              {filteredNews.length === 0 ? <p className="text-center text-gray-500 py-10 font-bold">কোনো ম্যাচিং খবর পাওয়া যায়নি।</p> : null}
-             
              {filteredNews.map(news => (
                 <div key={news.id} className="flex flex-col md:flex-row justify-between md:items-center border p-4 rounded bg-gray-50 gap-4 hover:shadow-sm">
                    <div>
