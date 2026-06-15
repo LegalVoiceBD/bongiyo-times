@@ -1,3 +1,20 @@
+@import url('https://fonts.maateen.me/kalpurush/font.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* পুরো সাইটে জোরপূর্বক কালপুরুষ ফন্ট বসানো হলো */
+body {
+  font-family: 'Kalpurush', Arial, sans-serif !important;
+  background-color: #ffffff;
+}
+
+/* ন্যাভিগেশন বার স্ক্রলবার লুকানোর জন্য */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
