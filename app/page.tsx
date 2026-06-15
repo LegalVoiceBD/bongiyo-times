@@ -11,13 +11,14 @@ function formatDateTime(dateString: string) {
   return `🕒 ${d}, ${t}`;
 }
 
-export default async function Home({ searchParams }: { searchParams: { category?: string, tab?: string, page?: string } }) {
+export default async function Home({ searchParams }: { searchParams: { category?: string, tab?: string, page?: string, q?: string } }) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
   );
 
   const activeCategory = searchParams.category || '';
+  const searchQuery = searchParams.q || '';
   const currentPage = parseInt(searchParams.page || '1');
   const limitPerPage = 20; 
   const startRow = (currentPage - 1) * limitPerPage;
@@ -25,7 +26,9 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
   let query = supabase.from('news').select('*', { count: 'exact' }).order('created_at', { ascending: false });
   
-  if (activeCategory) {
+  if (searchQuery) {
+    query = query.ilike('title', `%${searchQuery}%`).range(startRow, endRow);
+  } else if (activeCategory) {
     query = query.eq('category', activeCategory).range(startRow, endRow);
   } else {
     query = query.limit(150); 
@@ -46,12 +49,14 @@ export default async function Home({ searchParams }: { searchParams: { category?
   
   const nationalNews = allNews.filter(n => (n.category === 'বাংলাদেশ' || n.category === 'জাতীয়' || n.category === 'সারাদেশ') && !hasKeywords(n.title, sportsWords) && !hasKeywords(n.title, intlWords)).slice(0, 5);
   const worldNews = allNews.filter(n => n.category === 'আন্তর্জাতিক' || n.category === 'বিশ্ব').slice(0, 4);
-  const sportsNews = allNews.filter(n => n.category === 'খেলাধুলা').slice(0, 4);
   const entertainmentNews = allNews.filter(n => n.category === 'বিনোদন').slice(0, 5);
   const techNews = allNews.filter(n => n.category === 'প্রযুক্তি').slice(0, 4);
   const businessNews = allNews.filter(n => n.category === 'বাণিজ্য').slice(0, 5);
   const lawNews = allNews.filter(n => n.category === 'আইন-আদালত').slice(0, 5);
   const religionNews = allNews.filter(n => n.category === 'ধর্ম' && !hasKeywords(n.title, sportsWords) && !hasKeywords(n.title, intlWords) && !hasKeywords(n.title, generalGarbage)).slice(0, 4);
+  
+  // স্পোর্টস মেগা ব্লকের জন্য ৫টি খবর
+  const sportsNews = allNews.filter(n => n.category === 'খেলাধুলা').slice(0, 5);
 
   const opinionNews = [
     { id: 1, title: 'প্রধানমন্ত্রীর প্রতি এক উদ্বিগ্ন নাগরিকের খোলা চিঠি', author: 'ড. সালেহ উদ্দিন', image_url: 'https://images.unsplash.com/photo-1556761175-5973dc0f32b7?q=80&w=200' },
@@ -107,14 +112,17 @@ export default async function Home({ searchParams }: { searchParams: { category?
       </header>
 
       <main className="max-w-[1200px] mx-auto px-4 mt-4 md:mt-6 pb-10">
-        {activeCategory ? (
+        {(activeCategory || searchQuery) ? (
            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="col-span-1 md:col-span-3">
                  <div className="border-b-2 border-red-700 mb-4 pb-2">
-                    <h2 className="text-xl md:text-2xl font-bold text-red-700 flex items-center gap-2"><span className="bg-red-700 w-3 h-3 rounded-full"></span> {activeCategory} এর সব খবর</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-red-700 flex items-center gap-2">
+                       <span className="bg-red-700 w-3 h-3 rounded-full"></span> 
+                       {searchQuery ? `"${searchQuery}" এর সার্চ রেজাল্ট` : `${activeCategory} এর সব খবর`}
+                    </h2>
                  </div>
                  {allNews.length === 0 ? (
-                    <div className="text-center py-20 text-gray-500 font-bold text-lg">এই ক্যাটাগরিতে কোনো খবর পাওয়া যায়নি।</div>
+                    <div className="text-center py-20 text-gray-500 font-bold text-lg">কোনো খবর পাওয়া যায়নি।</div>
                  ) : (
                     <>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
@@ -127,11 +135,12 @@ export default async function Home({ searchParams }: { searchParams: { category?
                             </a>
                          ))}
                       </div>
+                      
                       {totalPages > 1 && (
                          <div className="flex justify-center items-center gap-2 mt-10">
-                            {currentPage > 1 && <a href={`/?category=${activeCategory}&page=${currentPage - 1}`} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 font-bold rounded hover:bg-red-50 hover:text-red-700 transition">« আগের পাতা</a>}
+                            {currentPage > 1 && <a href={`/?${searchQuery ? `q=${searchQuery}` : `category=${activeCategory}`}&page=${currentPage - 1}`} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 font-bold rounded hover:bg-red-50 hover:text-red-700 transition">« আগের পাতা</a>}
                             <span className="bg-red-700 text-white px-4 py-2 font-bold rounded shadow-sm">পাতা {currentPage}</span>
-                            {currentPage < totalPages && <a href={`/?category=${activeCategory}&page=${currentPage + 1}`} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 font-bold rounded hover:bg-red-50 hover:text-red-700 transition">পরের পাতা »</a>}
+                            {currentPage < totalPages && <a href={`/?${searchQuery ? `q=${searchQuery}` : `category=${activeCategory}`}&page=${currentPage + 1}`} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 font-bold rounded hover:bg-red-50 hover:text-red-700 transition">পরের পাতা »</a>}
                          </div>
                       )}
                     </>
@@ -218,9 +227,10 @@ export default async function Home({ searchParams }: { searchParams: { category?
                    </div>
                    <div>
                       <div className="border-b-[3px] border-black mb-4 flex justify-between items-center pb-1">
-                         <h2 className="text-xl font-bold text-gray-900">খেলাধুলা <span className="text-red-600 text-[18px]">❯</span></h2>
+                         <h2 className="text-xl font-bold text-gray-900">আইন-আদালত <span className="text-red-600 text-[18px]">❯</span></h2>
+                         <a href="/?category=আইন-আদালত" className="text-sm font-bold text-gray-500 hover:text-red-600">সব খবর »</a>
                       </div>
-                      {sportsNews.map((news, idx) => (
+                      {lawNews.slice(0, 4).map((news, idx) => (
                         <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`flex gap-3 group items-center ${idx !== 0 ? 'border-t border-gray-100 pt-3 mt-3' : ''}`}>
                           <SafeImage src={news.image_url} alt={news.title} className="w-20 h-16 rounded-sm shrink-0" />
                           <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-red-700 leading-snug line-clamp-2">{news.title}</h3>
@@ -229,6 +239,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                    </div>
                 </div>
               </div>
+
               <div className="lg:col-span-4">
                  <div className="border border-gray-200 bg-white shadow-sm rounded-sm">
                     <ClientTabs latestList={allNews.slice(5, 12)} popularList={allNews.slice(15, 22)} />
@@ -256,7 +267,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      )}
                      <div className="flex flex-col justify-between gap-4">
                         {entertainmentNews.slice(1, 5).map(news => (
-                           <a href={entertainmentNews[0].is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-4 items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-4 items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0">
                               <div className="flex-1">
                                  <h3 className="text-[16px] font-bold text-gray-800 group-hover:text-red-700 leading-snug line-clamp-2">{news.title}</h3>
                               </div>
@@ -266,6 +277,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      </div>
                   </div>
                </div>
+
                <div className="lg:col-span-4">
                   <div className="border-b-[3px] border-black mb-4 flex justify-between items-center pb-1">
                      <h2 className="text-xl font-bold text-gray-900">প্রযুক্তি <span className="text-red-600 text-[18px]">❯</span></h2>
@@ -286,7 +298,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
             </div>
 
-            {/* 4. Business & Law */}
+            {/* 4. Business & Religion */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
                {businessNews.length > 0 && (
                  <div>
@@ -311,23 +323,24 @@ export default async function Home({ searchParams }: { searchParams: { category?
                     </div>
                  </div>
                )}
-               {lawNews.length > 0 && (
+               
+               {religionNews.length > 0 && (
                  <div>
                     <div className="mb-6 flex justify-between items-center">
-                       <h2 className="text-xl md:text-2xl font-bold border-l-[5px] border-red-600 pl-3 text-gray-900">আইন-আদালত</h2>
+                       <h2 className="text-xl md:text-2xl font-bold border-l-[5px] border-green-600 pl-3 text-gray-900">ধর্ম</h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                       {lawNews[0] && (
-                         <a href={lawNews[0].is_custom ? `/news/${lawNews[0].id}` : lawNews[0].source_url} target="_blank" className="group block">
-                            <SafeImage src={lawNews[0].image_url} alt={lawNews[0].title} className="w-full h-36 object-cover rounded-sm mb-3" />
-                            <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-red-700 leading-snug">{lawNews[0].title}</h3>
+                       {religionNews[0] && (
+                         <a href={religionNews[0].is_custom ? `/news/${religionNews[0].id}` : religionNews[0].source_url} target="_blank" className="group block">
+                            <SafeImage src={religionNews[0].image_url} alt={religionNews[0].title} className="w-full h-36 object-cover rounded-sm mb-3" />
+                            <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-green-700 leading-snug">{religionNews[0].title}</h3>
                          </a>
                        )}
                        <div className="flex flex-col gap-4">
-                          {lawNews.slice(1, 4).map(news => (
+                          {religionNews.slice(1, 4).map(news => (
                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-3 items-start border-b border-gray-100 pb-3 last:border-0">
                                 <SafeImage src={news.image_url} alt={news.title} className="w-20 h-14 object-cover rounded-sm shrink-0" />
-                                <h3 className="text-[14px] font-bold text-gray-800 group-hover:text-red-700 leading-snug">{news.title}</h3>
+                                <h3 className="text-[14px] font-bold text-gray-800 group-hover:text-green-700 leading-snug">{news.title}</h3>
                              </a>
                           ))}
                        </div>
@@ -336,26 +349,56 @@ export default async function Home({ searchParams }: { searchParams: { category?
                )}
             </div>
 
-            {/* 5. Religion */}
-            {religionNews.length > 0 && (
-               <div className="mb-10 border border-gray-200 bg-gray-50 p-4 rounded-sm">
-                  <div className="border-b border-gray-300 mb-4 pb-2">
-                     <h2 className="text-xl font-bold text-gray-900 border-l-[5px] border-green-600 pl-2">ধর্ম</h2>
+            {/* 5. NEW: Sports Mega Block (Colorful Hero Style) */}
+            {sportsNews.length > 0 && (
+               <div className="mb-10 bg-[#0a2342] p-6 rounded-sm shadow-sm text-white">
+                  <div className="border-b border-blue-500 mb-6 flex justify-between items-end pb-2">
+                     <h2 className="text-2xl md:text-3xl font-bold">খেলাধুলা <span className="text-red-400">❯</span></h2>
+                     <a href="/?category=খেলাধুলা" className="text-sm font-bold text-blue-300 hover:text-white transition">সব খবর »</a>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                     {religionNews.map(news => (
-                       <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block bg-white p-2 rounded shadow-sm hover:shadow-md transition">
-                          <SafeImage src={news.image_url} alt={news.title} className="w-full h-28 object-cover rounded-sm mb-2" />
-                          <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-green-700 leading-snug line-clamp-3">{news.title}</h3>
-                       </a>
-                     ))}
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                     {/* Left 2 Small */}
+                     <div className="flex flex-col justify-between gap-6 lg:border-r border-blue-800 lg:pr-4">
+                        {sportsNews.slice(1, 3).map(news => (
+                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                              <SafeImage src={news.image_url} alt={news.title} className="w-full h-32 object-cover rounded-sm mb-2" />
+                              <h3 className="text-[16px] font-bold group-hover:text-blue-300 leading-snug">{news.title}</h3>
+                           </a>
+                        ))}
+                     </div>
+
+                     {/* Middle Big Hero */}
+                     <div className="lg:col-span-2">
+                        {sportsNews[0] && (
+                           <a href={sportsNews[0].is_custom ? `/news/${sportsNews[0].id}` : sportsNews[0].source_url} target="_blank" className="group relative overflow-hidden block rounded-sm border border-blue-800">
+                              <SafeImage src={sportsNews[0].image_url} alt={sportsNews[0].title} className="w-full h-[250px] md:h-[350px] group-hover:scale-105 transition duration-500" />
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0a2342] via-[#0a2342]/80 to-transparent p-4 md:p-6 pt-12">
+                                 <h3 className="text-2xl md:text-3xl font-bold group-hover:text-blue-300 leading-tight drop-shadow-md">{sportsNews[0].title}</h3>
+                                 <p className="text-xs text-blue-300 mt-2">{formatDateTime(sportsNews[0].created_at)}</p>
+                              </div>
+                           </a>
+                        )}
+                     </div>
+
+                     {/* Right 2 Small */}
+                     <div className="flex flex-col justify-between gap-6 lg:border-l border-blue-800 lg:pl-4">
+                        {sportsNews.slice(3, 5).map(news => (
+                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                              <SafeImage src={news.image_url} alt={news.title} className="w-full h-32 object-cover rounded-sm mb-2" />
+                              <h3 className="text-[16px] font-bold group-hover:text-blue-300 leading-snug">{news.title}</h3>
+                           </a>
+                        ))}
+                     </div>
                   </div>
                </div>
             )}
+
           </>
         )}
       </main>
 
+      {/* Footer */}
       <footer className="bg-[#1a1a1a] text-gray-300 mt-12 border-t-4 border-red-700">
         <div className="max-w-[1200px] mx-auto px-4 py-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
