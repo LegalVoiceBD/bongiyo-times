@@ -1,6 +1,7 @@
 import React from 'react';
 import { createClient } from '@supabase/supabase-js';
 import ClientTabs from './components/ClientTabs';
+import SafeImage from './components/SafeImage';
 
 export const revalidate = 0;
 
@@ -54,8 +55,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const businessNews = allNews.filter(n => n.category === 'বাণিজ্য').slice(0, 5);
   const lawNews = allNews.filter(n => n.category === 'আইন-আদালত').slice(0, 5);
   const religionNews = allNews.filter(n => n.category === 'ধর্ম' && !hasKeywords(n.title, sportsWords) && !hasKeywords(n.title, intlWords) && !hasKeywords(n.title, generalGarbage)).slice(0, 4);
-  
-  // স্পোর্টস মেগা ব্লকের জন্য ৫টি খবর
   const sportsNews = allNews.filter(n => n.category === 'খেলাধুলা').slice(0, 5);
 
   const opinionNews = [
@@ -64,15 +63,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
   ];
 
   const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "প্রযুক্তি", "ধর্ম", "মতামত"];
-
-  const SafeImage = ({ src, alt, className }: { src: string, alt: string, className: string }) => (
-    <div className={`relative bg-gray-50 flex items-center justify-center overflow-hidden ${className}`}>
-      <div className="absolute inset-0 flex items-center justify-center opacity-[0.08] select-none">
-        <span className="text-xl md:text-3xl font-extrabold text-gray-900 transform -rotate-12 whitespace-nowrap">বঙ্গীয় টাইমস</span>
-      </div>
-      {src && <img src={src} alt={alt} className="absolute inset-0 w-full h-full object-cover z-10" />}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-white text-black">
@@ -152,7 +142,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
            </div>
         ) : (
           <>
-            {/* 1. Hero Section */}
             {leadNews && (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10 border-b border-gray-300 pb-6 md:pb-8">
                 <div className="hidden lg:flex flex-col gap-6 border-r border-gray-200 pr-4">
@@ -187,7 +176,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
               </div>
             )}
 
-            {/* 2. Primary Body */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10 border-b border-gray-200 pb-10">
               <div className="lg:col-span-8 flex flex-col gap-8">
                 <div>
@@ -251,7 +239,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
               </div>
             </div>
 
-            {/* 3. Entertainment & Tech */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10 border-b border-gray-200 pb-10">
                <div className="lg:col-span-8">
                   <div className="border-b-[3px] border-black mb-4 flex justify-between items-center pb-1">
@@ -298,7 +285,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
             </div>
 
-            {/* 4. Business & Religion */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
                {businessNews.length > 0 && (
                  <div>
@@ -324,23 +310,23 @@ export default async function Home({ searchParams }: { searchParams: { category?
                  </div>
                )}
                
-               {religionNews.length > 0 && (
+               {lawNews.length > 0 && (
                  <div>
                     <div className="mb-6 flex justify-between items-center">
-                       <h2 className="text-xl md:text-2xl font-bold border-l-[5px] border-green-600 pl-3 text-gray-900">ধর্ম</h2>
+                       <h2 className="text-xl md:text-2xl font-bold border-l-[5px] border-red-600 pl-3 text-gray-900">আইন-আদালত</h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                       {religionNews[0] && (
-                         <a href={religionNews[0].is_custom ? `/news/${religionNews[0].id}` : religionNews[0].source_url} target="_blank" className="group block">
-                            <SafeImage src={religionNews[0].image_url} alt={religionNews[0].title} className="w-full h-36 object-cover rounded-sm mb-3" />
-                            <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-green-700 leading-snug">{religionNews[0].title}</h3>
+                       {lawNews[0] && (
+                         <a href={lawNews[0].is_custom ? `/news/${lawNews[0].id}` : lawNews[0].source_url} target="_blank" className="group block">
+                            <SafeImage src={lawNews[0].image_url} alt={lawNews[0].title} className="w-full h-36 object-cover rounded-sm mb-3" />
+                            <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-red-700 leading-snug">{lawNews[0].title}</h3>
                          </a>
                        )}
                        <div className="flex flex-col gap-4">
-                          {religionNews.slice(1, 4).map(news => (
+                          {lawNews.slice(1, 4).map(news => (
                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-3 items-start border-b border-gray-100 pb-3 last:border-0">
                                 <SafeImage src={news.image_url} alt={news.title} className="w-20 h-14 object-cover rounded-sm shrink-0" />
-                                <h3 className="text-[14px] font-bold text-gray-800 group-hover:text-green-700 leading-snug">{news.title}</h3>
+                                <h3 className="text-[14px] font-bold text-gray-800 group-hover:text-red-700 leading-snug">{news.title}</h3>
                              </a>
                           ))}
                        </div>
@@ -349,7 +335,23 @@ export default async function Home({ searchParams }: { searchParams: { category?
                )}
             </div>
 
-            {/* 5. NEW: Sports Mega Block (Colorful Hero Style) */}
+            {religionNews.length > 0 && (
+               <div className="mb-10 border border-gray-200 bg-gray-50 p-4 rounded-sm">
+                  <div className="border-b border-gray-300 mb-4 pb-2">
+                     <h2 className="text-xl font-bold text-gray-900 border-l-[5px] border-green-600 pl-2">ধর্ম</h2>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                     {religionNews.map(news => (
+                       <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block bg-white p-2 rounded shadow-sm hover:shadow-md transition">
+                          <SafeImage src={news.image_url} alt={news.title} className="w-full h-28 object-cover rounded-sm mb-2" />
+                          <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-green-700 leading-snug line-clamp-3">{news.title}</h3>
+                       </a>
+                     ))}
+                  </div>
+               </div>
+            )}
+
+            {/* Sports Mega Block */}
             {sportsNews.length > 0 && (
                <div className="mb-10 bg-[#0a2342] p-6 rounded-sm shadow-sm text-white">
                   <div className="border-b border-blue-500 mb-6 flex justify-between items-end pb-2">
@@ -358,7 +360,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   </div>
                   
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                     {/* Left 2 Small */}
                      <div className="flex flex-col justify-between gap-6 lg:border-r border-blue-800 lg:pr-4">
                         {sportsNews.slice(1, 3).map(news => (
                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
@@ -368,7 +369,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         ))}
                      </div>
 
-                     {/* Middle Big Hero */}
                      <div className="lg:col-span-2">
                         {sportsNews[0] && (
                            <a href={sportsNews[0].is_custom ? `/news/${sportsNews[0].id}` : sportsNews[0].source_url} target="_blank" className="group relative overflow-hidden block rounded-sm border border-blue-800">
@@ -381,7 +381,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         )}
                      </div>
 
-                     {/* Right 2 Small */}
                      <div className="flex flex-col justify-between gap-6 lg:border-l border-blue-800 lg:pl-4">
                         {sportsNews.slice(3, 5).map(news => (
                            <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
@@ -398,7 +397,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
         )}
       </main>
 
-      {/* Footer */}
       <footer className="bg-[#1a1a1a] text-gray-300 mt-12 border-t-4 border-red-700">
         <div className="max-w-[1200px] mx-auto px-4 py-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
