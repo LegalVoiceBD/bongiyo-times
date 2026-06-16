@@ -129,20 +129,22 @@ export default async function Home({ searchParams }: { searchParams: { category?
           </div>
         </div>
 
-      {/* Navigation Bar */}
+     {/* Navigation Bar */}
         <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
-          <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12 relative overflow-hidden">
+          <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12">
             
-            {/* Menu Items: Added shrink-0 and adjusted gap/text-size for perfect fit & scroll */}
-            <nav className="flex items-center gap-4 lg:gap-5 overflow-x-auto scrollbar-hide text-[15px] font-bold text-black flex-1 pr-4">
-              {menuCategories.map((cat, index) => (
-                <a key={index} href={`/?category=${cat}`} className={`hover:text-blue-600 whitespace-nowrap shrink-0 ${activeCategory === cat ? 'text-blue-600 border-b-[3px] border-blue-600 h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}>
-                   {cat}
-                </a>
-              ))}
-            </nav>
+            {/* Left Side: Scrollable Menu - Added min-w-0 and removed scrollbar-hide for PC users */}
+            <div className="flex-1 min-w-0 h-full flex items-center pr-4">
+               <nav className="flex items-center gap-4 lg:gap-5 overflow-x-auto text-[15px] font-bold text-black w-full pb-1 custom-scrollbar">
+                 {menuCategories.map((cat, index) => (
+                   <a key={index} href={`/?category=${cat}`} className={`hover:text-blue-600 whitespace-nowrap shrink-0 ${activeCategory === cat ? 'text-blue-600 border-b-[3px] border-blue-600 h-11 flex items-center' : 'h-11 flex items-center transition-colors'}`}>
+                      {cat}
+                   </a>
+                 ))}
+               </nav>
+            </div>
             
-            {/* Search Box: Added shrink-0 and bg-white z-10 to prevent menu from going under it */}
+            {/* Right Side: Search & Login */}
             <div className="hidden md:flex items-center gap-3 lg:gap-4 border-l border-gray-300 pl-4 h-full text-[14px] lg:text-[15px] font-bold shrink-0 bg-white z-10">
                <form action="/" method="GET" className="flex items-center gap-2">
                   <input type="text" name="q" defaultValue={searchQuery} placeholder="খবর খুঁজুন..." className="border border-gray-300 px-2 py-1 text-sm rounded outline-none focus:border-blue-500 w-28 lg:w-32 font-normal"/>
