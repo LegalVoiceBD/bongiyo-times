@@ -61,13 +61,15 @@ export default async function Home({ searchParams }: { searchParams: { category?
   };
 
   const bdNews = await fetchDirectCategory('বাংলাদেশ', 8);
-  const intlNews = await fetchDirectCategory('আন্তর্জাতিক', 6);
-  const politicsNews = await fetchDirectCategory('রাজনীতি', 6); 
+  // ৭টি করে নিউজ ফেচ করা হচ্ছে
+  const intlNews = await fetchDirectCategory('আন্তর্জাতিক', 7);
+  const politicsNews = await fetchDirectCategory('রাজনীতি', 7); 
   const opinionNews = await fetchDirectCategory('মতামত', 5); 
   const sportsNews = await fetchDirectCategory('খেলাধুলা', 5); 
   const businessNews = await fetchDirectCategory('বাণিজ্য', 4); 
-  const entertainmentNews = await fetchDirectCategory('বিনোদন', 6); 
-  const lawNews = await fetchDirectCategory('আইন-আদালত', 6);
+  const entertainmentNews = await fetchDirectCategory('বিনোদন', 7); 
+  const lawNews = await fetchDirectCategory('আইন-আদালত', 7);
+  
   const lifestyleNews = await fetchDirectCategory('জীবনযাপন', 4);
   const eduNews = await fetchDirectCategory('শিক্ষা', 4);
   const jobsNews = await fetchDirectCategory('চাকরি', 4);
@@ -266,7 +268,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
             </div>
 
-            {/* আন্তর্জাতিক ও আইন-আদালত */}
+            {/* আন্তর্জাতিক ও আইন-আদালত (৭টি করে নিউজ) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 mb-8 border-b border-gray-300 pb-8">
                {/* আন্তর্জাতিক */}
                <div className="bg-[#f4fdfa] p-4 sm:p-5 border-t-[4px] border-[#4bd396] rounded-sm min-h-[250px]">
@@ -285,16 +287,25 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                  <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(intlNews[0].created_at)}</p>
                               </a>
                            )}
-                           {intlNews[1] && (
-                              <a href={intlNews[1].is_custom ? `/news/${intlNews[1].id}` : intlNews[1].source_url} target="_blank" className="group block pt-3 border-t border-[#bbf2d8] mt-auto">
-                                 <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#2db97a] leading-snug">
-                                    <span className="text-[#2db97a] mr-1">■</span> {intlNews[1].title}
-                                 </h3>
-                              </a>
-                           )}
+                           <div className="mt-auto">
+                              {intlNews[1] && (
+                                 <a href={intlNews[1].is_custom ? `/news/${intlNews[1].id}` : intlNews[1].source_url} target="_blank" className="group block pt-3 border-t border-[#bbf2d8]">
+                                    <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#2db97a] leading-snug">
+                                       <span className="text-[#2db97a] mr-1">■</span> {intlNews[1].title}
+                                    </h3>
+                                 </a>
+                              )}
+                              {intlNews[2] && (
+                                 <a href={intlNews[2].is_custom ? `/news/${intlNews[2].id}` : intlNews[2].source_url} target="_blank" className="group block pt-3 mt-3 border-t border-[#bbf2d8]">
+                                    <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#2db97a] leading-snug">
+                                       <span className="text-[#2db97a] mr-1">■</span> {intlNews[2].title}
+                                    </h3>
+                                 </a>
+                              )}
+                           </div>
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#bbf2d8]">
-                           {intlNews.slice(2, 6).map((news, idx) => (
+                           {intlNews.slice(3, 7).map((news, idx) => (
                               <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
                                     <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-[#2db97a] leading-snug">{news.title}</h3>
@@ -325,16 +336,25 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                  <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(lawNews[0].created_at)}</p>
                               </a>
                            )}
-                           {lawNews[1] && (
-                              <a href={lawNews[1].is_custom ? `/news/${lawNews[1].id}` : lawNews[1].source_url} target="_blank" className="group block pt-3 border-t border-[#fbcbcb] mt-auto">
-                                 <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#d73f3f] leading-snug">
-                                    <span className="text-[#d73f3f] mr-1">■</span> {lawNews[1].title}
-                                 </h3>
-                              </a>
-                           )}
+                           <div className="mt-auto">
+                              {lawNews[1] && (
+                                 <a href={lawNews[1].is_custom ? `/news/${lawNews[1].id}` : lawNews[1].source_url} target="_blank" className="group block pt-3 border-t border-[#fbcbcb]">
+                                    <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#d73f3f] leading-snug">
+                                       <span className="text-[#d73f3f] mr-1">■</span> {lawNews[1].title}
+                                    </h3>
+                                 </a>
+                              )}
+                              {lawNews[2] && (
+                                 <a href={lawNews[2].is_custom ? `/news/${lawNews[2].id}` : lawNews[2].source_url} target="_blank" className="group block pt-3 mt-3 border-t border-[#fbcbcb]">
+                                    <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#d73f3f] leading-snug">
+                                       <span className="text-[#d73f3f] mr-1">■</span> {lawNews[2].title}
+                                    </h3>
+                                 </a>
+                              )}
+                           </div>
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#fbcbcb]">
-                           {lawNews.slice(2, 6).map((news, idx) => (
+                           {lawNews.slice(3, 7).map((news, idx) => (
                               <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
                                     <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-[#d73f3f] leading-snug">{news.title}</h3>
@@ -411,7 +431,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                )}
             </div>
 
-            {/* বিনোদন ও রাজনীতি */}
+            {/* বিনোদন ও রাজনীতি (৭টি করে নিউজ) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 mb-8 border-b border-gray-300 pb-8">
                {/* বিনোদন */}
                <div className="bg-[#eef5fa] p-4 sm:p-5 border-t-[4px] border-[#5293c4] rounded-sm min-h-[250px]">
@@ -430,16 +450,25 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                  <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(entertainmentNews[0].created_at)}</p>
                               </a>
                            )}
-                           {entertainmentNews[1] && (
-                              <a href={entertainmentNews[1].is_custom ? `/news/${entertainmentNews[1].id}` : entertainmentNews[1].source_url} target="_blank" className="group block pt-3 border-t border-[#c8dceb] mt-auto">
-                                 <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">
-                                    <span className="text-[#5293c4] mr-1">■</span> {entertainmentNews[1].title}
-                                 </h3>
-                              </a>
-                           )}
+                           <div className="mt-auto">
+                              {entertainmentNews[1] && (
+                                 <a href={entertainmentNews[1].is_custom ? `/news/${entertainmentNews[1].id}` : entertainmentNews[1].source_url} target="_blank" className="group block pt-3 border-t border-[#c8dceb]">
+                                    <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">
+                                       <span className="text-[#5293c4] mr-1">■</span> {entertainmentNews[1].title}
+                                    </h3>
+                                 </a>
+                              )}
+                              {entertainmentNews[2] && (
+                                 <a href={entertainmentNews[2].is_custom ? `/news/${entertainmentNews[2].id}` : entertainmentNews[2].source_url} target="_blank" className="group block pt-3 mt-3 border-t border-[#c8dceb]">
+                                    <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">
+                                       <span className="text-[#5293c4] mr-1">■</span> {entertainmentNews[2].title}
+                                    </h3>
+                                 </a>
+                              )}
+                           </div>
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#c8dceb]">
-                           {entertainmentNews.slice(2, 6).map((news, idx) => (
+                           {entertainmentNews.slice(3, 7).map((news, idx) => (
                               <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
                                     <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
@@ -470,16 +499,25 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                  <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(politicsNews[0].created_at)}</p>
                               </a>
                            )}
-                           {politicsNews[1] && (
-                              <a href={politicsNews[1].is_custom ? `/news/${politicsNews[1].id}` : politicsNews[1].source_url} target="_blank" className="group block pt-3 border-t border-[#e8dfce] mt-auto">
-                                 <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#e05e3b] leading-snug">
-                                    <span className="text-[#d4b072] mr-1">■</span> {politicsNews[1].title}
-                                 </h3>
-                              </a>
-                           )}
+                           <div className="mt-auto">
+                              {politicsNews[1] && (
+                                 <a href={politicsNews[1].is_custom ? `/news/${politicsNews[1].id}` : politicsNews[1].source_url} target="_blank" className="group block pt-3 border-t border-[#e8dfce]">
+                                    <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#e05e3b] leading-snug">
+                                       <span className="text-[#d4b072] mr-1">■</span> {politicsNews[1].title}
+                                    </h3>
+                                 </a>
+                              )}
+                              {politicsNews[2] && (
+                                 <a href={politicsNews[2].is_custom ? `/news/${politicsNews[2].id}` : politicsNews[2].source_url} target="_blank" className="group block pt-3 mt-3 border-t border-[#e8dfce]">
+                                    <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#e05e3b] leading-snug">
+                                       <span className="text-[#d4b072] mr-1">■</span> {politicsNews[2].title}
+                                    </h3>
+                                 </a>
+                              )}
+                           </div>
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#e8dfce]">
-                           {politicsNews.slice(2, 6).map((news, idx) => (
+                           {politicsNews.slice(3, 7).map((news, idx) => (
                               <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
                                     <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-[#e05e3b] leading-snug">{news.title}</h3>
@@ -673,7 +711,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                               <a href={featureNews[0].is_custom ? `/news/${featureNews[0].id}` : featureNews[0].source_url} target="_blank" className="group block">
                                  <SafeImage src={featureNews[0].image_url} alt={featureNews[0].title} className="w-full h-[200px] object-cover mb-3 rounded-sm shadow-sm" />
                                  <h3 className="text-[20px] font-bold text-gray-900 group-hover:text-[#966b22] leading-snug">{featureNews[0].title}</h3>
-                                 <p className="text-[14px] text-gray-500 mt-2 line-clamp-2">ফিচারের বিশেষ আয়োজন সম্পর্কে বিস্তারিত পড়তে ক্লিক করুন।</p>
+                                 <p className="text-[14px] text-gray-500 mt-2 line-clamp-2">ফিচারের বিশেষ আয়োজন সম্পর্কে বিস্তারিত পড়তে ক্লিক করুন。</p>
                               </a>
                            )}
                         </div>
