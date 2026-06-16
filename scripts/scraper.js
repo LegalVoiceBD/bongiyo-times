@@ -176,12 +176,24 @@ async function runBot() {
     return text.replace(/[\s\|\-\–\\—]+$/, '').trim();
   }
 
-  // স্ট্রিক্ট ইউআরএল ব্ল্যাকলিস্ট (ক্যাটাগরি মিক্সিং বন্ধ করতে)
+// স্ট্রিক্ট ইউআরএল ব্ল্যাকলিস্ট (ক্যাটাগরি মিক্সিং বন্ধ করতে)
   function isStrictlyValid(url, expectedCategory) {
     const lowerUrl = url.toLowerCase();
-    const generalBadWords = ['tag', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo', 'gallery'];
-    if (generalBadWords.some(word => lowerUrl.includes(word))) return false;
+    
+    // generalBadWords-এ 'country', 'city', 'probash' ইত্যাদি যোগ করা হয়েছে 
+    // যেন অন্যান্য ক্যাটেগরিতেও সাইডবার থেকে আজেবাজে নিউজ না আসে
+    const generalBadWords = ['tag', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo', 'gallery', 'country', 'city', 'probash', 'editorial', 'opinion'];
+    if (generalBadWords.some(word => lowerUrl.includes(`/${word}`))) return false;
+    
     if (!/\d/.test(lowerUrl)) return false; // নিউজের লিংকে সাধারণত নাম্বার থাকে
+
+    // === নতুন লজিক: ধর্মের নিউজে ১০০% একুরেসি আনার জন্য ===
+    if (expectedCategory === 'ধর্ম') {
+       // লিংকে অবশ্যই 'islam', 'religion' বা 'islamic' কথাটি থাকতে হবে, না হলে সোজা বাতিল!
+       if (!lowerUrl.includes('islam') && !lowerUrl.includes('religion')) {
+          return false;
+       }
+    }
 
     const categoryBlacklist = {
       'বাংলাদেশ': ['world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'politics', 'fun', 'chakri'],
@@ -193,7 +205,6 @@ async function runBot() {
       'শিক্ষা': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'lifestyle', 'politics', 'fun', 'chakri'],
       'প্রযুক্তি': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'politics', 'fun', 'chakri'],
       'ধর্ম': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'campus', 'education', 'lifestyle', 'politics', 'fun', 'chakri'],
-      // নতুন ক্যাটাগরির জন্য ব্ল্যাকলিস্ট
       'জীবনযাপন': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'politics', 'fun', 'chakri'],
       'চাকরি': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'islam', 'religion', 'lifestyle', 'politics', 'fun'],
       'রাজনীতি': ['world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'fun', 'chakri'],
