@@ -129,25 +129,29 @@ export default async function Home({ searchParams }: { searchParams: { category?
           </div>
         </div>
 
-        {/* Navigation Bar */}
+      {/* Navigation Bar */}
         <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
-          <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12">
-            <nav className="flex items-center gap-5 overflow-x-auto scrollbar-hide text-[16px] font-bold text-black flex-1">
+          <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12 relative overflow-hidden">
+            
+            {/* Menu Items: Added shrink-0 and adjusted gap/text-size for perfect fit & scroll */}
+            <nav className="flex items-center gap-4 lg:gap-5 overflow-x-auto scrollbar-hide text-[15px] font-bold text-black flex-1 pr-4">
               {menuCategories.map((cat, index) => (
-                <a key={index} href={`/?category=${cat}`} className={`hover:text-blue-600 whitespace-nowrap ${activeCategory === cat ? 'text-blue-600 border-b-[3px] border-blue-600 h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}>
+                <a key={index} href={`/?category=${cat}`} className={`hover:text-blue-600 whitespace-nowrap shrink-0 ${activeCategory === cat ? 'text-blue-600 border-b-[3px] border-blue-600 h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}>
                    {cat}
                 </a>
               ))}
             </nav>
             
-            <div className="hidden md:flex items-center gap-4 border-l border-gray-300 pl-4 h-full text-[15px] font-bold">
+            {/* Search Box: Added shrink-0 and bg-white z-10 to prevent menu from going under it */}
+            <div className="hidden md:flex items-center gap-3 lg:gap-4 border-l border-gray-300 pl-4 h-full text-[14px] lg:text-[15px] font-bold shrink-0 bg-white z-10">
                <form action="/" method="GET" className="flex items-center gap-2">
-                  <input type="text" name="q" defaultValue={searchQuery} placeholder="খবর খুঁজুন..." className="border border-gray-300 px-2 py-1 text-sm rounded outline-none focus:border-blue-500 w-32 font-normal"/>
+                  <input type="text" name="q" defaultValue={searchQuery} placeholder="খবর খুঁজুন..." className="border border-gray-300 px-2 py-1 text-sm rounded outline-none focus:border-blue-500 w-28 lg:w-32 font-normal"/>
                   <button type="submit" className="hover:text-blue-600 flex items-center gap-1 cursor-pointer"><span className="text-lg">🔍</span> খুঁজুন</button>
                </form>
                <div className="border-l border-gray-300 h-6 mx-1"></div>
                <a href="https://www.bongiyotimes.com/bongiyo-secret-panel" className="hover:text-blue-600 flex items-center gap-1 transition-colors"><span className="text-lg">👤</span> Login</a>
             </div>
+            
           </div>
         </div>
       </header>
