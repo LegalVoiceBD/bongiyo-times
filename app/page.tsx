@@ -50,8 +50,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
   // (এখানেই আপনি হিরো সেকশনের নিউজ সংখ্যা কন্ট্রোল করতে পারবেন)
   const headerNews = allNews.slice(0, 3); // লোগোর পাশে ৩টি নিউজ
   const leadNews = allNews[3];            // বড় লিড নিউজ (১টি)
-  const subLeadGridNews = allNews.slice(4, 8); // লিডের পাশে ছোট গ্রিড (৪টি)
-  const leftSideNews = allNews.slice(8, 11);   // একদম বামের লিস্ট নিউজ (৩টি)
+  const subLeadGridNews = allNews.slice(4, 10); // লিডের পাশে ছোট গ্রিড (৪টি)
+  const leftSideNews = allNews.slice(10, 16);   // একদম বামের লিস্ট নিউজ (৩টি)
   
   // --- Category Data Mapping ---
   // (এখানে ক্যাটাগরির নাম এবং নিউজের সংখ্যা কন্ট্রোল করবেন)
@@ -59,18 +59,18 @@ export default async function Home({ searchParams }: { searchParams: { category?
      return allNews.filter(n => n.category === catName).slice(0, count);
   };
 
-  const bdNews = getCategoryNews('বাংলাদেশ', 5);
-  const intlNews = getCategoryNews('আন্তর্জাতিক', 3);
-  const politicsNews = getCategoryNews('রাজনীতি', 3); 
+  const bdNews = getCategoryNews('বাংলাদেশ', 8);
+  const intlNews = getCategoryNews('আন্তর্জাতিক', 6);
+  const politicsNews = getCategoryNews('রাজনীতি', 4); 
   const opinionNews = getCategoryNews('মতামত', 5); 
   const sportsNews = getCategoryNews('খেলাধুলা', 5); 
-  const businessNews = getCategoryNews('বাণিজ্য', 2); 
-  const entertainmentNews = getCategoryNews('বিনোদন', 3); 
-  const lawNews = getCategoryNews('আইন-আদালত', 3);
+  const businessNews = getCategoryNews('বাণিজ্য', 4); 
+  const entertainmentNews = getCategoryNews('বিনোদন', 4); 
+  const lawNews = getCategoryNews('আইন-আদালত', 4);
   const lifestyleNews = getCategoryNews('জীবনযাপন', 4);
-  const eduNews = getCategoryNews('শিক্ষা', 2);
-  const jobsNews = getCategoryNews('চাকরি', 2);
-  const techNews = getCategoryNews('প্রযুক্তি', 2);
+  const eduNews = getCategoryNews('শিক্ষা', 4);
+  const jobsNews = getCategoryNews('চাকরি', 4);
+  const techNews = getCategoryNews('প্রযুক্তি', 4);
   
   // Custom design categories at the bottom
   const featureNews = getCategoryNews('ফিচার', 4); // রস+আলো ডিজাইনের জন্য
