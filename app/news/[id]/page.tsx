@@ -2,7 +2,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
-// ডাটাবেস ক্র্যাশ রোধ করার জন্য revalidate 0 এর বদলে 60 (১ মিনিট) করে দেওয়া হলো। 
+// ডাটাবেস ক্র্যাশ রোধ করার জন্য revalidate 0 এর বদলে 60 (১ মিনিট) করে দেওয়া হলো। 
 // চাইলে আপনি 0 রাখতে পারেন, তবে প্রফেশনাল সাইটে 60 রাখা উত্তম।
 export const revalidate = 60;
 
@@ -59,7 +59,12 @@ function formatDateTime(dateString: string) {
 
 export default async function NewsDetail({ params }: { params: { id: string } }) {
 
+  // বর্তমান নিউজটি ফেচ করা
   const { data: news } = await supabase.from('news').select('*').eq('id', params.id).single();
+
+  // হেডারে দেখানোর জন্য লেটেস্ট ৩টি নিউজ ফেচ করা
+  const { data: latestForHeader } = await supabase.from('news').select('*').order('created_at', { ascending: false }).limit(3);
+  const headerNews = latestForHeader || [];
 
   let relatedNews: any[] = [];
   if (news) {
@@ -82,27 +87,66 @@ export default async function NewsDetail({ params }: { params: { id: string } })
         body { font-family: 'Kalpurush', Arial, sans-serif !important; }
       `}} />
 
-      {/* Professional Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-[1200px] mx-auto px-4 py-4 md:py-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <a href="/" className="flex flex-col items-center md:items-start shrink-0">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-red-700 tracking-tighter">বঙ্গীয় <span className="text-black">টাইমস</span></h1>
-          </a>
+      {/* Professional Header (Matched with Homepage) */}
+      <header className="bg-white">
+        {/* Top Header Section */}
+        <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
           
-          <form method="GET" action="/" className="w-full md:w-[350px] flex items-center border border-gray-300 rounded-sm overflow-hidden shadow-sm">
-             <input type="text" name="q" placeholder="খবর খুঁজুন..." className="w-full px-4 py-2 text-sm outline-none font-bold" required />
-             <button type="submit" className="bg-red-700 text-white px-4 py-2 font-bold hover:bg-red-800 transition">সার্চ</button>
-          </form>
+          {/* Mobile Date (Above Logo) */}
+          <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-10px] font-bold">
+            {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
+          </div>
 
+          <div className="shrink-0 flex items-center">
+             <a href="/" className="flex items-center gap-2">
+               <h1 className="text-4xl font-bold text-black flex items-center gap-1">
+                 বঙ্গীয় <span className="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-xl mt-1 shadow-sm">টা</span> ইমস
+               </h1>
+             </a>
+             {/* PC Date (Next to Logo) */}
+             <span className="hidden md:block text-[14px] text-gray-500 border-l-[2px] border-gray-300 pl-3 ml-3 mt-1 font-bold">
+                {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
+             </span>
+          </div>
+          
+          {/* Header News Section (Right Side) */}
+          <div className="hidden lg:flex divide-x divide-gray-300">
+             {headerNews.map((hn: any, index: number) => (
+                <a href={hn.is_custom ? `/news/${hn.id}` : hn.source_url} target="_blank" key={index} className="flex gap-3 px-4 w-[250px] group">
+                   <div className="flex-1">
+                      <p className="text-xs text-red-600 mb-1">■ {hn.category}</p>
+                      <h3 className="text-[15px] leading-tight font-semibold group-hover:text-blue-600 line-clamp-2">{hn.title}</h3>
+                   </div>
+                   <img src={hn.image_url} alt={hn.title} className="w-16 h-16 object-cover border border-gray-100" />
+                </a>
+             ))}
+          </div>
         </div>
-        <div className="border-t border-gray-200 shadow-sm sticky top-0 z-50 bg-white">
-          <div className="max-w-[1200px] mx-auto px-4 overflow-x-auto scrollbar-hide">
-            <nav className="flex items-center min-w-max py-2 md:py-3 text-[16px] font-bold text-gray-800 gap-5">
-              <a href="/" className="hover:text-red-600 transition border-r border-gray-300 pr-5">প্রচ্ছদ</a>
-              {menuCategories.map((cat, index) => (
-                <a key={index} href={`/?category=${cat}`} className="hover:text-red-600 transition">{cat}</a>
-              ))}
-            </nav>
+
+        {/* Navigation Bar */}
+        <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
+          <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12 relative overflow-hidden">
+            
+            <div className="flex-1 min-w-0 h-full flex items-center pr-4">
+               <nav className="flex items-center gap-4 lg:gap-5 overflow-x-auto text-[15px] font-bold text-black w-full pb-1 custom-scrollbar">
+                 <a href="/" className="h-11 flex items-center transition-colors hover:text-blue-600 whitespace-nowrap shrink-0">প্রচ্ছদ</a>
+                 {menuCategories.map((cat, index) => (
+                   <a key={index} href={`/?category=${cat}`} className="hover:text-blue-600 whitespace-nowrap shrink-0 h-11 flex items-center transition-colors">
+                      {cat}
+                   </a>
+                 ))}
+               </nav>
+            </div>
+            
+            <div className="hidden md:flex items-center gap-3 lg:gap-4 border-l border-gray-300 pl-4 h-full text-[14px] lg:text-[15px] font-bold shrink-0 bg-white z-10">
+               <form action="/" method="GET" className="flex items-center gap-2">
+                  <input type="text" name="q" placeholder="খবর খুঁজুন..." className="border border-gray-300 px-2 py-1 text-sm rounded outline-none focus:border-blue-500 w-28 lg:w-32 font-normal" required/>
+                  <button type="submit" className="hover:text-blue-600 flex items-center gap-1 cursor-pointer"><span className="text-lg">🔍</span> খুঁজুন</button>
+               </form>
+               <div className="border-l border-gray-300 h-6 mx-1"></div>
+               <a href="https://www.bongiyotimes.com/bongiyo-secret-panel" className="hover:text-blue-600 flex items-center gap-1 transition-colors"><span className="text-lg">👤</span> Login</a>
+            </div>
+            
           </div>
         </div>
       </header>
@@ -142,7 +186,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                   </a>
 
-                  <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(news.title + " \n\nবিস্তারিত পড়ুন: " + currentUrl)}`} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp"
+                  <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(news.title + " \n\nবিস্তারিত পড়ুন: " + currentUrl)}`} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp"
                      className="bg-[#25d366] text-white w-8 h-8 flex items-center justify-center rounded-sm hover:opacity-90 transition">
                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12.031 0C5.383 0 0 5.383 0 12.031c0 2.628.847 5.066 2.274 7.07L.707 23.293l4.316-1.524A11.97 11.97 0 0012.031 24c6.648 0 12.031-5.383 12.031-12.031S18.679 0 12.031 0zm0 21.969c-2.127 0-4.14-.543-5.908-1.503l-.423-.231-3.13 1.104 1.125-3.085-.251-.433A9.92 9.92 0 012.062 12.03C2.062 6.529 6.53 2.063 12.03 2.063c5.501 0 9.969 4.466 9.969 9.968 0 5.502-4.468 9.969-9.969 9.969z"/><path d="M17.472 14.391c-.275-.138-1.625-.802-1.876-.893-.25-.091-.432-.138-.613.138-.182.275-.708.893-.867 1.075-.16.183-.32.206-.594.069-.275-.138-1.158-.427-2.204-1.356-.813-.722-1.36-1.614-1.52-1.89-.16-.275-.017-.425.121-.563.124-.124.275-.321.413-.482.138-.16.184-.275.276-.459.092-.183.046-.344-.023-.482-.069-.138-.613-1.479-.84-2.025-.221-.532-.444-.459-.613-.468-.16-.008-.344-.009-.527-.009-.184 0-.482.069-.733.344-.25.275-.957.935-.957 2.279 0 1.344.98 2.645 1.117 2.828.138.183 1.93 2.946 4.674 4.129 2.744 1.183 2.744.79 3.248.745.503-.046 1.625-.664 1.854-1.308.23-.645.23-1.196.16-1.308-.07-.113-.254-.182-.529-.321z"/></svg>
                   </a>
@@ -163,7 +207,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                {news.content || news.snippet}
                {!news.content && (
                   <p className="mt-8 font-bold text-red-700">
-                     <a href={news.source_url} target="_blank" className="hover:underline">বিস্তারিত পড়তে মূল লিংকে ক্লিক করুন ❯</a>
+                     <a href={news.source_url} target="_blank" className="hover:underline">বিস্তারিত পড়তে মূল লিংকে ক্লিক করুন ❯</a>
                   </p>
                )}
             </div>
