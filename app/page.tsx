@@ -707,9 +707,9 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
                {/* ফিচার */}
                <div className="border border-[#e8dfce] bg-[#fdfaf5] rounded-sm overflow-hidden min-h-[300px]">
-                  <div className="flex justify-center items-center py-4 border-b-2 border-[#d4b072]">
-                     <a href="/?category=ফিচার" className="text-[26px] font-bold text-[#966b22] tracking-wider hover:text-yellow-700">ফিচার</a>
-                  </div>
+                  <div className="flex justify-start items-center py-4 px-4 border-b-2 border-[#d4b072]">
+      <a href="/?category=ফিচার" className="text-[26px] font-bold text-[#966b22] tracking-wider hover:text-yellow-700">ফিচার</a>
+   </div>
                   {featureNews.length === 0 ? (
                      <div className="text-gray-400 text-center py-20">খবর আপডেট হচ্ছে...</div>
                   ) : (
