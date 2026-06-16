@@ -94,10 +94,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const featureNews = await fetchDirectCategory('ফিচার', 4); 
   const hasyroshNews = await fetchDirectCategory('হাস্যরস', 4);
   
-  // Custom design categories fixed
-  const featureNews = getCategoryNews('ফিচার', 4); 
-  const hasyroshNews = getCategoryNews('হাস্যরস', 4); 
-
+ 
   // মেনুবারে সব ক্যাটাগরি ঠিক করা হলো
   const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস"];
 
