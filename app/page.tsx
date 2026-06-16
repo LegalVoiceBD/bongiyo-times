@@ -238,6 +238,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <a href={bdNews[0].is_custom ? `/news/${bdNews[0].id}` : bdNews[0].source_url} target="_blank" className="group block">
                         <SafeImage src={bdNews[0].image_url} alt={bdNews[0].title} className="w-full h-[220px] md:h-[300px] object-cover mb-3 rounded-sm" />
                         <h3 className="text-[22px] sm:text-[24px] font-bold group-hover:text-blue-600 leading-snug">{bdNews[0].title}</h3>
+                        <p className="text-[15px] text-gray-600 mt-2 line-clamp-2">{bdNews[0].description || bdNews[0].excerpt || 'খবরটির বিস্তারিত জানতে লিংকে ক্লিক করে সম্পূর্ণ সংবাদটি পড়ুন।'}</p>
                         <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(bdNews[0].created_at)}</p>
                      </a>
                   )}
@@ -273,7 +274,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                               <span className="group-hover:text-blue-600">{opinionNews[0].title}</span>
                            </h3>
                            <p className="text-[15px] text-gray-600 flex-1 line-clamp-4 mt-1">
-                              {opinionNews[0].title} প্রসঙ্গে আরও বিস্তারিত পড়তে লিংকে ক্লিক করুন।
+                              {opinionNews[0].title} প্রসঙ্গে আরও বিস্তারিত পড়তে লিংকে ক্লিক করুন।
                            </p>
                            <p className="text-[14px] text-gray-800 mt-4 font-bold">{opinionNews[0].source_name || 'নিবন্ধকার'}</p>
                         </a>
@@ -445,7 +446,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   {businessNews[0] && (
                      <a href={businessNews[0].is_custom ? `/news/${businessNews[0].id}` : businessNews[0].source_url} target="_blank" className="group block mb-5 border-b border-gray-200 pb-4">
                         <SafeImage src={businessNews[0].image_url} alt={businessNews[0].title} className="w-full h-[200px] sm:h-[130px] object-cover mb-3 rounded-sm" />
-                        <h3 className="text-[18px] font-bold group-hover:text-blue-600 leading-snug">{businessNews[0].title}</h3>
+                        <h3 className="text-[18px] font-bold group-hover:text-blue-600 leading-snug text-blue-600">{businessNews[0].title}</h3>
                         <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(businessNews[0].created_at)}</p>
                      </a>
                   )}
