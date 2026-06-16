@@ -117,28 +117,26 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
           {/* Logo Section */}
           <div className="shrink-0 flex items-center">
-             <a href="/" className="flex items-center gap-2 group">
+             <a href="/" className="group">
                <h1 className="text-4xl md:text-[42px] font-extrabold text-black flex items-center tracking-tighter">
-                 বঙ্গীয় 
+                 বঙ্গীয়
                  
                  {/* Animated Clock System Circle */}
-                 <div className="relative flex items-center justify-center w-10 h-10 mx-1 mt-1 overflow-hidden rounded-full shadow-md">
+                 <div className="relative flex items-center justify-center w-[36px] h-[36px] md:w-[42px] md:h-[42px] mx-[2px] rounded-full shadow-md overflow-hidden">
                    {/* Main Red Circle Background */}
                    <div className="absolute inset-0 bg-red-600"></div>
                    
                    {/* Clock Tick Marks (Spinning Dashed Border) */}
-                   <div className="absolute inset-[2.5px] rounded-full border-[1.5px] border-dashed border-white/50 animate-[spin_10s_linear_infinite]"></div>
+                   <div className="absolute inset-[3px] rounded-full border-[1.5px] border-dashed border-white/50 animate-[spin_10s_linear_infinite]"></div>
                    
                    {/* Clock Hands */}
                    <div className="absolute inset-0 flex items-center justify-center">
-                      {/* Minute Hand (Fast) */}
-                      <div className="absolute w-[1.5px] h-[13px] bg-white/60 origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite]"></div>
-                      {/* Hour Hand (Slow) */}
-                      <div className="absolute w-[2px] h-[9px] bg-white/80 origin-bottom bottom-1/2 rounded-t-full animate-[spin_24s_linear_infinite] rotate-45"></div>
+                      <div className="absolute w-[1.5px] h-[30%] bg-white/60 origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite]"></div>
+                      <div className="absolute w-[2px] h-[20%] bg-white/80 origin-bottom bottom-1/2 rounded-t-full animate-[spin_24s_linear_infinite] rotate-45"></div>
                    </div>
 
                    {/* The text "টা" on top */}
-                   <span className="relative z-10 text-white text-[22px] font-black drop-shadow-lg pb-[2px]">টা</span>
+                   <span className="relative z-10 text-white text-[22px] md:text-[26px] font-black drop-shadow-md leading-none pt-1">টা</span>
                  </div>
                  
                  ইমস
