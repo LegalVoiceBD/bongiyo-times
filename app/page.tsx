@@ -683,30 +683,43 @@ export default async function Home({ searchParams }: { searchParams: { category?
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#1a1a1a] text-gray-300 mt-12 border-t-4 border-red-700">
-        <div className="max-w-[1200px] mx-auto px-4 py-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
-            <div>
-              <h2 className="text-3xl font-extrabold text-white mb-4">বঙ্গীয় <span className="text-red-600">টাইমস</span></h2>
-              <p className="text-sm leading-relaxed text-gray-400">সত্য, সাহস ও বস্তুনিষ্ঠ সাংবাদিকতার এক অবিচল কণ্ঠস্বর। বাংলাদেশ ও সারা বিশ্বের সর্বশেষ সংবাদ সবার আগে পৌঁছে দিতে আমরা অঙ্গীকারবদ্ধ।</p>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white mb-4 border-b border-gray-700 pb-2 inline-block">সম্পাদকীয় ও প্রকাশনা</h3>
-              <p className="text-sm mb-2"><span className="text-gray-500">সম্পাদক ও প্রকাশক:</span> <br/><span className="text-base font-bold text-white">মো: আজাদুর রহমান</span></p>
-              <p className="text-sm mt-3"><span className="text-gray-500">প্রধান কার্যালয়:</span> <br/>ঢাকা, বাংলাদেশ</p>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white mb-4 border-b border-gray-700 pb-2 inline-block">যোগাযোগ</h3>
-              <p className="text-sm mb-2 hover:text-white cursor-pointer transition">ইমেইল: news@bongiyotimes.com</p>
-              <p className="text-sm hover:text-white cursor-pointer transition">বিজ্ঞাপন: ads@bongiyotimes.com</p>
-            </div>
+     {/* Footer Section (Image Style) */}
+      <footer className="bg-white border-t-4 border-red-700 mt-12 pt-8 pb-6 text-black text-center shadow-inner">
+        <div className="max-w-[1200px] mx-auto px-4">
+          
+          {/* Horizontal Links */}
+          <div className="flex flex-wrap justify-center items-center gap-3 md:gap-5 text-[15px] md:text-[17px] font-bold mb-6 border-b border-gray-300 pb-4">
+             <a href="/" className="hover:text-red-700 transition">প্রচ্ছদ</a> <span className="text-gray-300">|</span>
+             <a href="/privacy" className="hover:text-red-700 transition">গোপনীয়তার নীতি</a> <span className="text-gray-300">|</span>
+             <a href="/terms" className="hover:text-red-700 transition">শর্তাবলি</a> <span className="text-gray-300">|</span>
+             <a href="/contact" className="hover:text-red-700 transition text-blue-600">বিজ্ঞাপন</a> <span className="text-gray-300">|</span>
+             <a href="/contact" className="hover:text-red-700 transition">যোগাযোগ</a>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-6 text-center text-xs text-gray-500">
-            <p>&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
+
+          {/* Editor and Address Info */}
+          <div className="mb-6 space-y-2">
+             <p className="text-[18px] font-bold text-gray-900">
+               সম্পাদক ও প্রকাশক : মো: আজাদুর রহমান
+             </p>
+             <p className="text-[15px] text-gray-700">
+               প্রধান কার্যালয়: ২৫/১ কোর্ট হাউজ স্ট্রিট, নাহার কমপ্লেক্স, রুম নং ডি-৬, কোতয়ালী, ঢাকা-১১০০।
+             </p>
+             <p className="text-[15px] text-gray-700 font-bold mt-1">
+               মোবাইল: <a href="tel:09696790279" className="text-red-700 hover:underline">০৯৬৯৬ ৭৯০২৭৯</a> <span className="mx-2 text-gray-300">|</span> ইমেইল: <a href="mailto:news@bongiyotimes.com" className="hover:underline text-blue-600">news@bongiyotimes.com</a>
+             </p>
           </div>
+
+          {/* Description & Copyright */}
+          <div className="border-t border-gray-300 pt-5">
+             <p className="text-sm md:text-[16px] leading-relaxed text-gray-800 font-medium max-w-4xl mx-auto mb-3">
+               বাংলাদেশ ও বিশ্বের সকল খবর, ব্রেকিং নিউজ, লাইভ নিউজ, রাজনীতি, বাণিজ্য, খেলা, বিনোদনসহ সকল সর্বশেষ সংবাদ সবার আগে পড়তে ক্লিক করুন বঙ্গীয় টাইমস ডট কম।
+             </p>
+             <p className="text-sm text-gray-500 font-bold">&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
+          </div>
+          
         </div>
       </footer>
+      
     </div>
   );
 }
