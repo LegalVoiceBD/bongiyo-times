@@ -136,7 +136,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                    </div>
 
                    {/* The text "টা" on top */}
-                   <span className="relative z-10 text-white text-[26px] md:text-[30px] font-black drop-shadow-md leading-none pt-1">টা</span>
+                   <span className="relative z-10 text-white text-[26px] md:text-[50px] font-black drop-shadow-md leading-none pt-1">টা</span>
                  </div>
                  
                  ইমস
