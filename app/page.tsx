@@ -115,28 +115,33 @@ export default async function Home({ searchParams }: { searchParams: { category?
             {todayDate}
           </div>
 
-          {/* Logo Section */}
+         {/* Logo Section */}
           <div className="shrink-0 flex items-center">
              <a href="/" className="group">
                <h1 className="text-4xl md:text-[42px] font-extrabold text-black flex items-center tracking-tighter">
                  বঙ্গীয়
                  
-                 {/* Animated Clock System Circle */}
-                 <div className="relative flex items-center justify-center w-[36px] h-[36px] md:w-[42px] md:h-[42px] mx-[2px] rounded-full shadow-md overflow-hidden">
-                   {/* Main Red Circle Background */}
-                   <div className="absolute inset-0 bg-red-600"></div>
+                 {/* Kalbela Style Clock Circle */}
+                 <div className="relative flex items-center justify-center w-[36px] h-[36px] md:w-[44px] md:h-[44px] mx-1">
+                   {/* Clock Outer Ring (Red Border like Kalbela) */}
+                   <div className="absolute inset-0 rounded-full border-[2.5px] md:border-[3px] border-red-600"></div>
                    
-                   {/* Clock Tick Marks (Spinning Dashed Border) */}
-                   <div className="absolute inset-[3px] rounded-full border-[1.5px] border-dashed border-white/50 animate-[spin_10s_linear_infinite]"></div>
-                   
-                   {/* Clock Hands */}
+                   {/* Clock Hands & Center Dot (Red) */}
                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="absolute w-[1.5px] h-[30%] bg-white/60 origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite]"></div>
-                      <div className="absolute w-[2px] h-[20%] bg-white/80 origin-bottom bottom-1/2 rounded-t-full animate-[spin_24s_linear_infinite] rotate-45"></div>
+                      <div className="absolute w-[5px] h-[5px] bg-red-600 rounded-full"></div>
+                      {/* Minute Hand */}
+                      <div className="absolute w-[2px] h-[35%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite]"></div>
+                      {/* Hour Hand */}
+                      <div className="absolute w-[2.5px] h-[25%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_24s_linear_infinite] rotate-[45deg]"></div>
                    </div>
 
-                   {/* The text "টা" on top */}
-                   <span className="relative z-10 text-white text-[30px] md:text-[40px] font-black drop-shadow-md leading-none pt-1">টা</span>
+                   {/* The text "টা" on top (Black color to match text, with subtle white stroke for clarity over hands) */}
+                   <span 
+                     className="relative z-10 text-black text-[26px] md:text-[32px] font-black leading-none pt-1"
+                     style={{ textShadow: '1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff' }}
+                   >
+                     টা
+                   </span>
                  </div>
                  
                  ইমস
