@@ -270,55 +270,63 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
             {/* আন্তর্জাতিক ও আইন-আদালত (৭টি করে নিউজ) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 mb-8 border-b border-gray-300 pb-8">
-               {/* আন্তর্জাতিক */}
-               <div className="bg-[#f4fdfa] p-4 sm:p-5 border-t-[4px] border-[#4bd396] rounded-sm min-h-[250px]">
-                  <div className="mb-5 border-b border-[#bbf2d8] pb-2">
-                     <a href="/?category=আন্তর্জাতিক" className="text-[22px] font-extrabold text-[#2db97a] hover:text-[#188a56] tracking-tight">আন্তর্জাতিক <span className="text-[#4bd396] ml-1">❯</span></a>
-                  </div>
-                  {intlNews.length === 0 ? (
-                     <div className="text-gray-400 text-center py-6">খবর আপডেট হচ্ছে...</div>
-                  ) : (
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
-                        <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#bbf2d8] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
-                           {intlNews[0] && (
-                              <a href={intlNews[0].is_custom ? `/news/${intlNews[0].id}` : intlNews[0].source_url} target="_blank" className="group block mb-4">
-                                 <SafeImage src={intlNews[0].image_url} alt={intlNews[0].title} className="w-full h-[180px] sm:h-[140px] object-cover mb-3 sm:mb-2 rounded-sm" />
-                                 <h3 className="text-[18px] sm:text-[17px] font-bold group-hover:text-[#2db97a] leading-snug">{intlNews[0].title}</h3>
-                                 <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(intlNews[0].created_at)}</p>
-                              </a>
-                           )}
-                           <div className="mt-auto">
-                              {intlNews[1] && (
-                                 <a href={intlNews[1].is_custom ? `/news/${intlNews[1].id}` : intlNews[1].source_url} target="_blank" className="group block pt-3 border-t border-[#bbf2d8]">
-                                    <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#2db97a] leading-snug">
-                                       <span className="text-[#2db97a] mr-1">■</span> {intlNews[1].title}
-                                    </h3>
-                                 </a>
-                              )}
-                              {intlNews[2] && (
-                                 <a href={intlNews[2].is_custom ? `/news/${intlNews[2].id}` : intlNews[2].source_url} target="_blank" className="group block pt-3 mt-3 border-t border-[#bbf2d8]">
-                                    <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#2db97a] leading-snug">
-                                       <span className="text-[#2db97a] mr-1">■</span> {intlNews[2].title}
-                                    </h3>
-                                 </a>
-                              )}
-                           </div>
-                        </div>
-                        <div className="flex flex-col gap-4 divide-y divide-[#bbf2d8]">
-                           {intlNews.slice(3, 7).map((news, idx) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
-                                 <div className="flex-1">
-                                    <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-[#2db97a] leading-snug">{news.title}</h3>
-                                    <p className="text-[12px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
-                                 </div>
-                                 <SafeImage src={news.image_url} alt={news.title} className="w-[70px] h-[60px] object-cover rounded-sm shrink-0" />
-                              </a>
-                           ))}
-                        </div>
-                     </div>
-                  )}
-               </div>
+             {/* আন্তর্জাতিক */}
+<div className="bg-[#f4fdfa] p-4 sm:p-5 border-t-[4px] border-[#4bd396] rounded-sm min-h-[250px]">
+   <div className="mb-5 border-b border-[#bbf2d8] pb-2">
+      <a href="/?category=আন্তর্জাতিক" className="text-[22px] font-extrabold text-[#2db97a] hover:text-[#188a56] tracking-tight">আন্তর্জাতিক <span className="text-[#4bd396] ml-1">❯</span></a>
+   </div>
+   
+   {intlNews.length === 0 ? (
+      <div className="text-gray-400 text-center py-6">খবর আপডেট হচ্ছে...</div>
+   ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
+         
+         {/* বাম পাশের কলাম */}
+         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#bbf2d8] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
+            {/* ১টি বড় নিউজ */}
+            {intlNews[0] && (
+               <a href={intlNews[0].is_custom ? `/news/${intlNews[0].id}` : intlNews[0].source_url} target="_blank" className="group block mb-4">
+                  <SafeImage src={intlNews[0].image_url} alt={intlNews[0].title} className="w-full h-[180px] sm:h-[140px] object-cover mb-3 sm:mb-2 rounded-sm" />
+                  <h3 className="text-[18px] sm:text-[17px] font-bold group-hover:text-[#2db97a] leading-snug">{intlNews[0].title}</h3>
+                  <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(intlNews[0].created_at)}</p>
+               </a>
+            )}
+            
+            {/* ২টি টেক্সট নিউজ */}
+            <div className="mt-auto space-y-4 pt-3 border-t border-[#bbf2d8]">
+               {intlNews[1] && (
+                  <a href={intlNews[1].is_custom ? `/news/${intlNews[1].id}` : intlNews[1].source_url} target="_blank" className="group block">
+                     <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#2db97a] leading-snug">
+                        <span className="text-[#2db97a] mr-1">■</span> {intlNews[1].title}
+                     </h3>
+                  </a>
+               )}
+               {intlNews[2] && (
+                  <a href={intlNews[2].is_custom ? `/news/${intlNews[2].id}` : intlNews[2].source_url} target="_blank" className="group block">
+                     <h3 className="text-[15px] font-bold text-gray-800 group-hover:text-[#2db97a] leading-snug">
+                        <span className="text-[#2db97a] mr-1">■</span> {intlNews[2].title}
+                     </h3>
+                  </a>
+               )}
+            </div>
+         </div>
 
+         {/* ডান পাশের কলাম */}
+         <div className="flex flex-col gap-4 divide-y divide-[#bbf2d8]">
+            {/* এখান থেকে slice(3, 7) হবে যাতে আগের ৩টি নিউজ রিপিট না হয় */}
+            {intlNews.slice(3, 7).map((news, idx) => (
+               <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                  <div className="flex-1">
+                     <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-[#2db97a] leading-snug">{news.title}</h3>
+                     <p className="text-[12px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
+                  </div>
+                  <SafeImage src={news.image_url} alt={news.title} className="w-[70px] h-[60px] object-cover rounded-sm shrink-0" />
+               </a>
+            ))}
+         </div>
+      </div>
+   )}
+</div>
                {/* আইন-আদালত */}
                <div className="bg-[#fcf5f5] p-4 sm:p-5 border-t-[4px] border-[#e85b5b] rounded-sm min-h-[250px]">
                   <div className="mb-5 border-b border-[#fbcbcb] pb-2">
