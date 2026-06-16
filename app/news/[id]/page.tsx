@@ -203,7 +203,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
 
       </main>
 
-        {/* Footer Section (Image Style) */}
+      {/* Footer Section (Image Style) */}
       <footer className="bg-white border-t-4 border-red-700 mt-12 pt-8 pb-6 text-black text-center shadow-inner">
         <div className="max-w-[1200px] mx-auto px-4">
           
@@ -221,11 +221,8 @@ export default async function NewsDetail({ params }: { params: { id: string } })
              <p className="text-[18px] font-bold text-gray-900">
                সম্পাদক ও প্রকাশক : অ্যাডভোকেট মো: আজাদুর রহমান
              </p>
-             <p className="text-[15px] text-gray-700">
-               প্রধান কার্যালয়: ২৫/১ কোর্ট হাউজ স্ট্রিট, নাহার কমপ্লেক্স, রুম নং ডি-৬, কোতয়ালী, ঢাকা-১১০০।
-             </p>
-             <p className="text-[15px] text-gray-700 font-bold mt-1">
-               মোবাইল: <a href="tel:09696790279" className="text-red-700 hover:underline">০৯৬৯৬ ৭৯০২৭৯</a> <span className="mx-2 text-gray-300">|</span> ইমেইল: <a href="mailto:bongiyotimes@gmail.com" className="hover:underline text-blue-600">news@bongiyotimes.com</a>
+                         <p className="text-[15px] text-gray-700 font-bold mt-1">
+               মোবাইল: <a href="tel:09696790279" className="text-red-700 hover:underline">০৯৬৯৬ ৭৯০২৭৯</a> <span className="mx-2 text-gray-300">|</span> ইমেইল: <a href="mailto:bongiyotimes@gmail.com" className="hover:underline text-blue-600">bongiyotimes@gmail.com</a>
              </p>
           </div>
 
