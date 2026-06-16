@@ -18,10 +18,13 @@ export default function AdminDashboard() {
   const [snippet, setSnippet] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('মতামত');
-  const [sourceName, setSourceName] = useState('বঙ্গীয় টাইমস');
+  const [sourceName, setSourceName] = useState('বঙ্গীয় টাইমস');
   const [imageUrl, setImageUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState('');
+
+  // Edit State
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   // Internal Search State inside Admin Panel
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,6 +35,7 @@ export default function AdminDashboard() {
   const [passMessage, setPassMessage] = useState('');
 
   const allCategories = ["বাংলাদেশ", "আন্তর্জাতিক", "রাজনীতি", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ধর্ম", "ফিচার", "হাস্যরস"];
+  
   useEffect(() => {
     const loggedInUser = localStorage.getItem('bongiyo_admin');
     if (loggedInUser) setUser(JSON.parse(loggedInUser));
@@ -44,7 +48,7 @@ export default function AdminDashboard() {
       localStorage.setItem('bongiyo_admin', JSON.stringify(data));
       setUser(data);
     } else {
-      alert('ভুল ইমেইল বা পাসওয়ার্ড!');
+      alert('ভুল ইমেইল বা পাসওয়ার্ড!');
     }
   };
 
@@ -62,6 +66,27 @@ export default function AdminDashboard() {
       await supabase.from('news').delete().eq('id', id);
       fetchMyNews();
     }
+  };
+
+  // এডিট বাটনে ক্লিক করলে এই ফাংশন কাজ করবে
+  const handleEditClick = (newsItem: any) => {
+    setEditingId(newsItem.id);
+    setTitle(newsItem.title);
+    setSnippet(newsItem.snippet || '');
+    setContent(newsItem.content || '');
+    setCategory(newsItem.category);
+    setSourceName(newsItem.source_name || '');
+    setImageUrl(newsItem.image_url || '');
+    setActiveTab('add'); // ফর্ম ট্যাবে নিয়ে যাবে
+    setMessage('');
+  };
+
+  // ফর্ম রিসেট করার ফাংশন
+  const resetForm = () => {
+    setEditingId(null);
+    setTitle(''); setSnippet(''); setContent(''); setImageUrl('');
+    setSourceName('বঙ্গীয় টাইমস'); setCategory('মতামত');
+    setMessage('');
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,13 +108,13 @@ export default function AdminDashboard() {
       
       if (data.secure_url) {
         setImageUrl(data.secure_url);
-        setMessage('✅ ছবি সফলভাবে আপলোড হয়েছে!');
+        setMessage('✅ ছবি সফলভাবে আপলোড হয়েছে!');
       } else {
         alert('Cloudinary Error: ' + (data.error?.message || 'Unknown error occurred.'));
-        setMessage('❌ ছবি আপলোডে সমস্যা হয়েছে।');
+        setMessage('❌ ছবি আপলোডে সমস্যা হয়েছে।');
       }
     } catch (error) {
-      alert('Network Error: ছবি আপলোড করা সম্ভব হয়নি।');
+      alert('Network Error: ছবি আপলোড করা সম্ভব হয়নি।');
       setMessage('❌ ইন্টারনেট বা সার্ভার সমস্যা।');
     } finally {
       setIsUploading(false);
@@ -98,32 +123,48 @@ export default function AdminDashboard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('পাবলিশ হচ্ছে...');
-    const { data, error } = await supabase.from('news').insert([{
-      title, snippet, content, category, source_name: sourceName, image_url: imageUrl, source_url: '#', is_custom: true
-    }]).select();
+    setMessage(editingId ? 'আপডেট হচ্ছে...' : 'পাবলিশ হচ্ছে...');
 
-    if (error) {
-      setMessage('এরর: ' + error.message);
-    } else if (data && data.length > 0) {
-      await supabase.from('news').update({ source_url: `/news/${data[0].id}` }).eq('id', data[0].id);
-      setMessage('✅ সফলভাবে পাবলিশ হয়েছে!');
-      setTitle(''); setSnippet(''); setContent(''); setImageUrl('');
+    if (editingId) {
+      // ডেটা আপডেট লজিক
+      const { error } = await supabase.from('news').update({
+        title, snippet, content, category, source_name: sourceName, image_url: imageUrl
+      }).eq('id', editingId);
+
+      if (error) {
+        setMessage('এরর: ' + error.message);
+      } else {
+        setMessage('✅ সফলভাবে আপডেট হয়েছে!');
+        resetForm(); // এডিট শেষে ফর্ম ক্লিয়ার
+      }
+    } else {
+      // নতুন ডেটা ইনসার্ট লজিক
+      const { data, error } = await supabase.from('news').insert([{
+        title, snippet, content, category, source_name: sourceName, image_url: imageUrl, source_url: '#', is_custom: true
+      }]).select();
+
+      if (error) {
+        setMessage('এরর: ' + error.message);
+      } else if (data && data.length > 0) {
+        await supabase.from('news').update({ source_url: `/news/${data[0].id}` }).eq('id', data[0].id);
+        setMessage('✅ সফলভাবে পাবলিশ হয়েছে!');
+        resetForm();
+      }
     }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 6) {
-       setPassMessage('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
+       setPassMessage('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
        return;
     }
     const { error } = await supabase.from('editors').update({ password: newPassword }).eq('id', user.id);
     if (!error) {
-       setPassMessage('✅ পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!');
+       setPassMessage('✅ পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!');
        setNewPassword('');
     } else {
-       setPassMessage('সমস্যা হয়েছে: ' + error.message);
+       setPassMessage('সমস্যা হয়েছে: ' + error.message);
     }
   };
 
@@ -141,7 +182,7 @@ export default function AdminDashboard() {
              <p className="text-gray-500 font-bold mt-2">সুরক্ষিত অ্যাডমিন প্যানেল</p>
           </div>
           <input type="email" placeholder="অ্যাডমিন ইমেইল" value={email} onChange={e=>setEmail(e.target.value)} className="w-full border p-3 mb-4 rounded font-bold focus:outline-none focus:ring-2 focus:ring-red-200" required />
-          <input type="password" placeholder="পাসওয়ার্ড" value={password} onChange={e=>setPassword(e.target.value)} className="w-full border p-3 mb-8 rounded font-bold focus:outline-none focus:ring-2 focus:ring-red-200" required />
+          <input type="password" placeholder="পাসওয়ার্ড" value={password} onChange={e=>setPassword(e.target.value)} className="w-full border p-3 mb-8 rounded font-bold focus:outline-none focus:ring-2 focus:ring-red-200" required />
           <button className="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded shadow transition">নিরাপদ লগইন</button>
         </form>
       </div>
@@ -160,7 +201,9 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex gap-4 mb-6">
-           <button onClick={() => setActiveTab('add')} className={`px-6 py-2 font-bold rounded transition ${activeTab==='add' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>নতুন খবর</button>
+           <button onClick={() => { setActiveTab('add'); resetForm(); }} className={`px-6 py-2 font-bold rounded transition ${activeTab==='add' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+              {editingId ? 'খবর এডিট' : 'নতুন খবর'}
+           </button>
            <button onClick={() => setActiveTab('manage')} className={`px-6 py-2 font-bold rounded transition ${activeTab==='manage' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>খবর ম্যানেজ ও সার্চ</button>
            <button onClick={() => setActiveTab('settings')} className={`px-6 py-2 font-bold rounded transition ${activeTab==='settings' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>সিকিউরিটি</button>
         </div>
@@ -193,9 +236,16 @@ export default function AdminDashboard() {
 
             {message && <div className={`p-3 font-bold text-center rounded ${message.includes('✅') ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-800'}`}>{message}</div>}
             
-            <button type="submit" disabled={isUploading || !imageUrl || !title} className="w-full bg-red-700 text-white font-bold text-lg py-3 rounded hover:bg-red-800 disabled:bg-gray-400 transition">
-               {isUploading ? 'ছবি আপলোড হচ্ছে...' : 'পাবলিশ করুন'}
-            </button>
+            <div className="flex gap-4">
+               <button type="submit" disabled={isUploading || !imageUrl || !title} className="flex-1 bg-red-700 text-white font-bold text-lg py-3 rounded hover:bg-red-800 disabled:bg-gray-400 transition">
+                  {isUploading ? 'ছবি আপলোড হচ্ছে...' : (editingId ? 'আপডেট করুন' : 'পাবলিশ করুন')}
+               </button>
+               {editingId && (
+                  <button type="button" onClick={resetForm} className="bg-gray-500 text-white font-bold text-lg py-3 px-6 rounded hover:bg-gray-600 transition">
+                     বাতিল
+                  </button>
+               )}
+            </div>
           </form>
         )}
 
@@ -204,7 +254,7 @@ export default function AdminDashboard() {
              <div className="mb-4">
                 <input type="text" placeholder="আপনার আপলোড করা নিউজের শিরোনাম টাইপ করে খুঁজুন..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full border-2 border-red-700 p-3 rounded font-bold focus:outline-none bg-red-50/30" />
              </div>
-             {filteredNews.length === 0 ? <p className="text-center text-gray-500 py-10 font-bold">কোনো ম্যাচিং খবর পাওয়া যায়নি।</p> : null}
+             {filteredNews.length === 0 ? <p className="text-center text-gray-500 py-10 font-bold">কোনো ম্যাচিং খবর পাওয়া যায়নি।</p> : null}
              {filteredNews.map(news => (
                 <div key={news.id} className="flex flex-col md:flex-row justify-between md:items-center border p-4 rounded bg-gray-50 gap-4 hover:shadow-sm">
                    <div>
@@ -213,6 +263,7 @@ export default function AdminDashboard() {
                    </div>
                    <div className="flex gap-2 shrink-0">
                       <a href={news.source_url} target="_blank" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold shadow">দেখুন</a>
+                      <button onClick={() => handleEditClick(news)} className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded text-sm font-bold shadow">এডিট</button>
                       <button onClick={() => handleDelete(news.id)} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-bold shadow">ডিলিট</button>
                    </div>
                 </div>
@@ -222,11 +273,11 @@ export default function AdminDashboard() {
 
         {activeTab === 'settings' && (
           <div className="bg-gray-50 p-6 border rounded shadow-inner max-w-lg mx-auto mt-4">
-             <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">সুরক্ষা পাসওয়ার্ড পরিবর্তন</h2>
+             <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">সুরক্ষা পাসওয়ার্ড পরিবর্তন</h2>
              <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
                 <div>
-                   <label className="block font-bold text-sm text-gray-600 mb-1">নতুন শক্তিশালী পাসওয়ার্ড</label>
-                   <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="কমপক্ষে ৬ অক্ষরের স্ট্রং পাসওয়ার্ড দিন" className="w-full border p-3 rounded focus:outline-none" required />
+                   <label className="block font-bold text-sm text-gray-600 mb-1">নতুন শক্তিশালী পাসওয়ার্ড</label>
+                   <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="কমপক্ষে ৬ অক্ষরের স্ট্রং পাসওয়ার্ড দিন" className="w-full border p-3 rounded focus:outline-none" required />
                 </div>
                 {passMessage && <div className={`p-2 text-center text-sm font-bold rounded ${passMessage.includes('✅') ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>{passMessage}</div>}
                 <button type="submit" className="bg-gray-800 text-white font-bold py-2 rounded hover:bg-black transition">সেভ করুন</button>
