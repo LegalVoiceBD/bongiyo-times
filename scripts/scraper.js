@@ -148,6 +148,34 @@ async function runBot() {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
   };
 
+  // টাইটেল থেকে পত্রিকার নাম রিমুভ করার ফাংশন
+  function cleanTitle(rawTitle) {
+    if (!rawTitle) return '';
+    let text = rawTitle;
+    
+    // পত্রিকার বাংলা ও ইংরেজি নামের তালিকা
+    const brandNames = [
+      'প্রথম আলো', 'Prothom Alo', 'যুগান্তর', 'Jugantor', 'ইত্তেফাক', 'Ittefaq',
+      'কালের কণ্ঠ', 'কালের কন্ঠ', 'Kaler Kantho', 'সমকাল', 'Samakal',
+      'বাংলাদেশ প্রতিদিন', 'BD Pratidin', 'নয়া দিগন্ত', 'Nayadiganta',
+      'ইনকিলাব', 'Inqilab', 'ঢাকা পোস্ট', 'Dhaka Post', 'জাগো নিউজ', 'জাগোনিউজ২৪',
+      'Jagonews24', 'বিডিনিউজ টোয়েন্টিফোর', 'বিডিনিউজ টোয়েন্টিফোর ডটকম', 'BDNews24', 'যমুনা টিভি', 'Jamuna TV',
+      'বিবিসি বাংলা', 'BBC Bangla', 'টিবিএস', 'TBS News', 'The Business Standard',
+      'বাংলা ট্রিবিউন', 'Bangla Tribune', 'সময় সংবাদ', 'সময় টিভি', 'Somoy TV', 'Somoy News',
+      'কালবেলা', 'Kalbela', 'মানবকণ্ঠ', 'Manobkantha', 'সময়ের আলো', 'Shomoyer Alo', 
+      'আমাদের সময়', 'Amader Shomoy'
+    ];
+
+    brandNames.forEach(brand => {
+      // ব্র্যান্ড নামের আগে বা পরে থাকা " | ", " - " বা " — " সহ নামটি মুছে ফেলবে
+      const regex = new RegExp(`[\\|\\-\\–\\—]*\\s*${brand}\\s*[\\|\\-\\–\\—]*`, 'gi');
+      text = text.replace(regex, '');
+    });
+
+    // শেষে যদি কোনো অতিরিক্ত স্পেস, ড্যাশ (-) বা পাইপ (|) থেকে যায়, তা মুছে ফেলবে
+    return text.replace(/[\s\|\-\–\\—]+$/, '').trim();
+  }
+
   // স্ট্রিক্ট ইউআরএল ব্ল্যাকলিস্ট (ক্যাটাগরি মিক্সিং বন্ধ করতে)
   function isStrictlyValid(url, expectedCategory) {
     const lowerUrl = url.toLowerCase();
@@ -206,8 +234,12 @@ async function runBot() {
         const articleHtml = await articleRes.text();
         const article$ = cheerio.load(articleHtml);
 
-        let title = article$('meta[property="og:title"]').attr('content') || article$('title').text();
-        let snippet = article$('meta[property="og:description"]').attr('content') || article$('meta[name="description"]').attr('content') || "বিস্তারিত পড়তে মূল খবরে ক্লিক করুন...";
+        let rawTitle = article$('meta[property="og:title"]').attr('content') || article$('title').text();
+        
+        // এখানে title ক্লিন করা হচ্ছে
+        let title = cleanTitle(rawTitle);
+        
+        let snippet = article$('meta[property="og:description"]').attr('content') || article$('meta[name="description"]').attr('content') || "বিস্তারিত পড়তে মূল খবরে ক্লিক করুন...";
         
         let image_url = article$('meta[property="og:image"]').attr('content') || article$('meta[name="twitter:image"]').attr('content');
         if (image_url && image_url.startsWith('/')) {
@@ -228,7 +260,7 @@ async function runBot() {
                 source_name: source.name,
                 category: source.defaultCategory
               }]);
-              console.log(`✅ সেভ হয়েছে [${source.defaultCategory}]: ${title.substring(0, 35)}...`);
+              console.log(`✅ সেভ হয়েছে [${source.defaultCategory}]: ${title.substring(0, 35)}...`);
             }
           }
         }
