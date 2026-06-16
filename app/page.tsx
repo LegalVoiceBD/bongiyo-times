@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import ClientTabs from './components/ClientTabs';
 import SafeImage from './components/SafeImage';
 
-export const revalidate = 0;
+// অপটিমাইজেশন: revalidate 60 ব্যবহার করা হলো (প্রতি ১ মিনিটে ক্যাশ রিফ্রেশ হবে) ডাটাবেস ক্র্যাশ রোধ করতে।
+export const revalidate = 60;
 
 function formatDateTime(dateString: string) {
   const date = new Date(dateString);
@@ -22,6 +23,15 @@ export default async function Home({ searchParams }: { searchParams: { category?
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
   );
+
+  // সার্ভার সাইডে আজকের বাংলা তারিখ জেনারেট করা হচ্ছে
+  const todayDate = new Intl.DateTimeFormat('bn-BD', {
+    timeZone: 'Asia/Dhaka',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(new Date());
 
   const activeCategory = searchParams.category || '';
   const searchQuery = searchParams.q || '';
@@ -47,14 +57,12 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const hasKeywords = (text: string, words: string[]) => words.some(w => text.includes(w));
 
   // --- Hero Section Data Mapping ---
-  // (এখানেই আপনি হিরো সেকশনের নিউজ সংখ্যা কন্ট্রোল করতে পারবেন)
-  const headerNews = allNews.slice(0, 3); // লোগোর পাশে ৩টি নিউজ
-  const leadNews = allNews[3];            // বড় লিড নিউজ (১টি)
-  const subLeadGridNews = allNews.slice(4, 10); // লিডের পাশে ছোট গ্রিড (৪টি)
-  const leftSideNews = allNews.slice(10, 17);   // একদম বামের লিস্ট নিউজ (৩টি)
+  const headerNews = allNews.slice(0, 3);
+  const leadNews = allNews[3];            
+  const subLeadGridNews = allNews.slice(4, 10); 
+  const leftSideNews = allNews.slice(10, 17);   
   
   // --- Category Data Mapping ---
-  // (এখানে ক্যাটাগরির নাম এবং নিউজের সংখ্যা কন্ট্রোল করবেন)
   const getCategoryNews = (catName: string, count: number) => {
      return allNews.filter(n => n.category === catName).slice(0, count);
   };
@@ -72,11 +80,12 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const jobsNews = getCategoryNews('চাকরি', 4);
   const techNews = getCategoryNews('প্রযুক্তি', 4);
   
-  // Custom design categories at the bottom
-  const featureNews = getCategoryNews('ফিচার', 4); // রস+আলো ডিজাইনের জন্য
-  const magNews = getCategoryNews('ম্যাগাজিন', 4); // হাল ফ্যাশন ডিজাইনের জন্য
+  // Custom design categories fixed
+  const featureNews = getCategoryNews('ফিচার', 4); 
+  const hasyroshNews = getCategoryNews('হাস্যরস', 4); 
 
-  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি"];
+  // মেনুবারে সব ক্যাটাগরি ঠিক করা হলো
+  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস"];
 
   return (
     <div className="min-h-screen bg-white text-[#333] tracking-tight">
@@ -89,11 +98,23 @@ export default async function Home({ searchParams }: { searchParams: { category?
       <header className="bg-white">
         {/* Top Header Section */}
         <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-          <a href="/" className="shrink-0 flex items-center">
-             <h1 className="text-4xl font-bold text-black flex items-center gap-1">
-               বঙ্গীয় <span className="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-xl mt-1 shadow-sm">টা</span> ইমস
-             </h1>
-          </a>
+          
+          {/* Mobile Date (Above Logo) */}
+          <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-10px] font-bold">
+            {todayDate}
+          </div>
+
+          <div className="shrink-0 flex items-center">
+             <a href="/" className="flex items-center gap-2">
+               <h1 className="text-4xl font-bold text-black flex items-center gap-1">
+                 বঙ্গীয় <span className="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-xl mt-1 shadow-sm">টা</span> ইমস
+               </h1>
+             </a>
+             {/* PC Date (Next to Logo) */}
+             <span className="hidden md:block text-[14px] text-gray-500 border-l-[2px] border-gray-300 pl-3 ml-3 mt-1 font-bold">
+                {todayDate}
+             </span>
+          </div>
           
           <div className="hidden lg:flex divide-x divide-gray-300">
              {headerNews.map((news, index) => (
@@ -584,28 +605,28 @@ export default async function Home({ searchParams }: { searchParams: { category?
                )}
             </div>
 
-            {/* BOTTOM TWO CATEGORIES: ফিচার & ম্যাগাজিন (Unconditional rendering) */}
+            {/* BOTTOM TWO CATEGORIES: হাস্যরস & ফিচার (Data matching fixed) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-4">
-               {/* 1. ফিচার */}
+               {/* 1. হাস্যরস */}
                <div className="border border-[#c1dff0] bg-white rounded-sm overflow-hidden min-h-[300px]">
                   <div className="bg-[#eef6fc] px-4 py-3 flex items-center border-b border-[#c1dff0]">
                      <a href="/?category=হাস্যরস" className="text-[26px] font-black text-[#006699] hover:text-blue-800">হাস্য<span className="text-red-500">+</span>রস</a>
                   </div>
-                  {featureNews.length === 0 ? (
+                  {hasyroshNews.length === 0 ? (
                      <div className="text-gray-400 text-center py-20">খবর আপডেট হচ্ছে...</div>
                   ) : (
                      <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="sm:border-r border-[#c1dff0] sm:pr-6">
-                           {featureNews[0] && (
-                              <a href={featureNews[0].is_custom ? `/news/${featureNews[0].id}` : featureNews[0].source_url} target="_blank" className="group block">
-                                 <SafeImage src={featureNews[0].image_url} alt={featureNews[0].title} className="w-full h-[200px] object-cover mb-3 rounded-sm shadow-sm" />
-                                 <h3 className="text-[22px] font-bold text-gray-800 group-hover:text-[#006699] leading-snug">{featureNews[0].title}</h3>
-                                 <p className="text-[14px] text-gray-500 mt-2">{formatDateTime(featureNews[0].created_at)}</p>
+                           {hasyroshNews[0] && (
+                              <a href={hasyroshNews[0].is_custom ? `/news/${hasyroshNews[0].id}` : hasyroshNews[0].source_url} target="_blank" className="group block">
+                                 <SafeImage src={hasyroshNews[0].image_url} alt={hasyroshNews[0].title} className="w-full h-[200px] object-cover mb-3 rounded-sm shadow-sm" />
+                                 <h3 className="text-[22px] font-bold text-gray-800 group-hover:text-[#006699] leading-snug">{hasyroshNews[0].title}</h3>
+                                 <p className="text-[14px] text-gray-500 mt-2">{formatDateTime(hasyroshNews[0].created_at)}</p>
                               </a>
                            )}
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#c1dff0] justify-center">
-                           {featureNews.slice(1, 4).map((news, idx) => (
+                           {hasyroshNews.slice(1, 4).map((news, idx) => (
                               <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex items-center justify-between gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1 pr-2">
                                     <h3 className="text-[16px] font-bold text-gray-800 group-hover:text-[#006699] leading-snug">{news.title}</h3>
@@ -618,26 +639,26 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   )}
                </div>
 
-               {/* 2. ম্যাগাজিন */}
+               {/* 2. ফিচার */}
                <div className="border border-[#e8dfce] bg-[#fdfaf5] rounded-sm overflow-hidden min-h-[300px]">
                   <div className="flex justify-center items-center py-4 border-b-2 border-[#d4b072]">
                      <a href="/?category=ফিচার" className="text-[26px] font-bold text-[#966b22] tracking-wider hover:text-yellow-700">ফিচার</a>
                   </div>
-                  {magNews.length === 0 ? (
+                  {featureNews.length === 0 ? (
                      <div className="text-gray-400 text-center py-20">খবর আপডেট হচ্ছে...</div>
                   ) : (
                      <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="sm:border-r border-[#e8dfce] sm:pr-6">
-                           {magNews[0] && (
-                              <a href={magNews[0].is_custom ? `/news/${magNews[0].id}` : magNews[0].source_url} target="_blank" className="group block">
-                                 <SafeImage src={magNews[0].image_url} alt={magNews[0].title} className="w-full h-[200px] object-cover mb-3 rounded-sm shadow-sm" />
-                                 <h3 className="text-[20px] font-bold text-gray-900 group-hover:text-[#966b22] leading-snug">{magNews[0].title}</h3>
-                                 <p className="text-[14px] text-gray-500 mt-2 line-clamp-2">ম্যাগাজিনের বিশেষ আয়োজন সম্পর্কে বিস্তারিত পড়তে ক্লিক করুন।</p>
+                           {featureNews[0] && (
+                              <a href={featureNews[0].is_custom ? `/news/${featureNews[0].id}` : featureNews[0].source_url} target="_blank" className="group block">
+                                 <SafeImage src={featureNews[0].image_url} alt={featureNews[0].title} className="w-full h-[200px] object-cover mb-3 rounded-sm shadow-sm" />
+                                 <h3 className="text-[20px] font-bold text-gray-900 group-hover:text-[#966b22] leading-snug">{featureNews[0].title}</h3>
+                                 <p className="text-[14px] text-gray-500 mt-2 line-clamp-2">ফিচারের বিশেষ আয়োজন সম্পর্কে বিস্তারিত পড়তে ক্লিক করুন।</p>
                               </a>
                            )}
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#e8dfce] justify-center">
-                           {magNews.slice(1, 4).map((news, idx) => (
+                           {featureNews.slice(1, 4).map((news, idx) => (
                               <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
                                     <h3 className="text-[16px] font-bold text-gray-800 group-hover:text-[#966b22] leading-snug">{news.title}</h3>
