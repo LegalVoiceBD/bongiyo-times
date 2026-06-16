@@ -150,7 +150,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   <input type="text" name="q" defaultValue={searchQuery} placeholder="খবর খুঁজুন..." className="border border-gray-300 px-2 py-1 text-sm rounded outline-none focus:border-blue-500 w-28 lg:w-32 font-normal"/>
                   <button type="submit" className="hover:text-blue-600 flex items-center gap-1 cursor-pointer"><span className="text-lg">🔍</span> খুঁজুন</button>
                </form>
-               <div className="border-l border-gray-300 h-6 mx-1"></div>
+               <div className="border-l border-gray-300 h-3 mx-1"></div>
                <a href="https://www.bongiyotimes.com/bongiyo-secret-panel" className="hover:text-blue-600 flex items-center gap-1 transition-colors"><span className="text-lg">👤</span> Login</a>
             </div>
             
