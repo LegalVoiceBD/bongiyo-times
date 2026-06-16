@@ -51,7 +51,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const headerNews = allNews.slice(0, 3); // লোগোর পাশে ৩টি নিউজ
   const leadNews = allNews[3];            // বড় লিড নিউজ (১টি)
   const subLeadGridNews = allNews.slice(4, 10); // লিডের পাশে ছোট গ্রিড (৪টি)
-  const leftSideNews = allNews.slice(10, 16);   // একদম বামের লিস্ট নিউজ (৩টি)
+  const leftSideNews = allNews.slice(10, 17);   // একদম বামের লিস্ট নিউজ (৩টি)
   
   // --- Category Data Mapping ---
   // (এখানে ক্যাটাগরির নাম এবং নিউজের সংখ্যা কন্ট্রোল করবেন)
