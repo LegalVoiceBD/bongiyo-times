@@ -699,13 +699,13 @@ export default async function Home({ searchParams }: { searchParams: { category?
           {/* Editor and Address Info */}
           <div className="mb-6 space-y-2">
              <p className="text-[18px] font-bold text-gray-900">
-               সম্পাদক ও প্রকাশক : মো: আজাদুর রহমান
+               সম্পাদক ও প্রকাশক : অ্যাডভোকেট মো: আজাদুর রহমান
              </p>
              <p className="text-[15px] text-gray-700">
                প্রধান কার্যালয়: ২৫/১ কোর্ট হাউজ স্ট্রিট, নাহার কমপ্লেক্স, রুম নং ডি-৬, কোতয়ালী, ঢাকা-১১০০।
              </p>
              <p className="text-[15px] text-gray-700 font-bold mt-1">
-               মোবাইল: <a href="tel:09696790279" className="text-red-700 hover:underline">০৯৬৯৬ ৭৯০২৭৯</a> <span className="mx-2 text-gray-300">|</span> ইমেইল: <a href="mailto:news@bongiyotimes.com" className="hover:underline text-blue-600">news@bongiyotimes.com</a>
+               মোবাইল: <a href="tel:09696790279" className="text-red-700 hover:underline">০৯৬৯৬ ৭৯০২৭৯</a> <span className="mx-2 text-gray-300">|</span> ইমেইল: <a href="mailto:bongiyotimes@gmail.com" className="hover:underline text-blue-600">news@bongiyotimes.com</a>
              </p>
           </div>
 
