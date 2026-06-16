@@ -67,18 +67,32 @@ export default async function Home({ searchParams }: { searchParams: { category?
      return allNews.filter(n => n.category === catName).slice(0, count);
   };
 
-  const bdNews = getCategoryNews('বাংলাদেশ', 8);
-  const intlNews = getCategoryNews('আন্তর্জাতিক', 6);
-  const politicsNews = getCategoryNews('রাজনীতি', 4); 
-  const opinionNews = getCategoryNews('মতামত', 5); 
-  const sportsNews = getCategoryNews('খেলাধুলা', 5); 
-  const businessNews = getCategoryNews('বাণিজ্য', 4); 
-  const entertainmentNews = getCategoryNews('বিনোদন', 4); 
-  const lawNews = getCategoryNews('আইন-আদালত', 4);
-  const lifestyleNews = getCategoryNews('জীবনযাপন', 4);
-  const eduNews = getCategoryNews('শিক্ষা', 4);
-  const jobsNews = getCategoryNews('চাকরি', 4);
-  const techNews = getCategoryNews('প্রযুক্তি', 4);
+ // ডাটাবেস থেকে সরাসরি নির্দিষ্ট ক্যাটেগরির নিউজ তুলে আনার জন্য ফাংশন
+  const fetchDirectCategory = async (catName: string, amt: number) => {
+    const { data } = await supabase
+      .from('news')
+      .select('*')
+      .eq('category', catName)
+      .order('created_at', { ascending: false })
+      .limit(amt);
+    return data || [];
+  };
+
+  // এবার প্রতিটি ক্যাটেগরি আলাদাভাবে লাইভ ডেটা টানবে, ফলে কোনো সেকশন আর ফাঁকা থাকবে না
+  const bdNews = await fetchDirectCategory('বাংলাদেশ', 8);
+  const intlNews = await fetchDirectCategory('আন্তর্জাতিক', 6);
+  const politicsNews = await fetchDirectCategory('রাজনীতি', 4); 
+  const opinionNews = await fetchDirectCategory('মতামত', 5); 
+  const sportsNews = await fetchDirectCategory('খেলাধুলা', 5); 
+  const businessNews = await fetchDirectCategory('বাণিজ্য', 4); 
+  const entertainmentNews = await fetchDirectCategory('বিনোদন', 4); 
+  const lawNews = await fetchDirectCategory('আইন-আদালত', 4);
+  const lifestyleNews = await fetchDirectCategory('জীবনযাপন', 4);
+  const eduNews = await fetchDirectCategory('শিক্ষা', 4);
+  const jobsNews = await fetchDirectCategory('চাকরি', 4);
+  const techNews = await fetchDirectCategory('প্রযুক্তি', 4);
+  const featureNews = await fetchDirectCategory('ফিচার', 4); 
+  const hasyroshNews = await fetchDirectCategory('হাস্যরস', 4);
   
   // Custom design categories fixed
   const featureNews = getCategoryNews('ফিচার', 4); 
