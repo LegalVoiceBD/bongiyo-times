@@ -589,7 +589,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                {/* 1. ফিচার */}
                <div className="border border-[#c1dff0] bg-white rounded-sm overflow-hidden min-h-[300px]">
                   <div className="bg-[#eef6fc] px-4 py-3 flex items-center border-b border-[#c1dff0]">
-                     <a href="/?category=ফিচার" className="text-[26px] font-black text-[#006699] hover:text-blue-800">ফি<span className="text-red-500">+</span>চার</a>
+                     <a href="/?category=হাস্যরস" className="text-[26px] font-black text-[#006699] hover:text-blue-800">হাস্য<span className="text-red-500">+</span>রস</a>
                   </div>
                   {featureNews.length === 0 ? (
                      <div className="text-gray-400 text-center py-20">খবর আপডেট হচ্ছে...</div>
@@ -621,7 +621,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                {/* 2. ম্যাগাজিন */}
                <div className="border border-[#e8dfce] bg-[#fdfaf5] rounded-sm overflow-hidden min-h-[300px]">
                   <div className="flex justify-center items-center py-4 border-b-2 border-[#d4b072]">
-                     <a href="/?category=ম্যাগাজিন" className="text-[26px] font-bold text-[#966b22] tracking-wider hover:text-yellow-700">ম্যাগাজিন</a>
+                     <a href="/?category=ফিচার" className="text-[26px] font-bold text-[#966b22] tracking-wider hover:text-yellow-700">ফিচার</a>
                   </div>
                   {magNews.length === 0 ? (
                      <div className="text-gray-400 text-center py-20">খবর আপডেট হচ্ছে...</div>
