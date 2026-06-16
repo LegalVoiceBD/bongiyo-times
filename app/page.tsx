@@ -336,7 +336,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                            </a>
                         )}
                         <div className="flex flex-col gap-4 divide-y divide-[#bbf2d8]">
-                           {intlNews.slice(1, 3).map((news, idx) => (
+                           {intlNews.slice(1, 4).map((news, idx) => (
                               <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
                                     <h3 className="text-[16px] sm:text-[15px] font-bold group-hover:text-[#2db97a] leading-snug">{news.title}</h3>
