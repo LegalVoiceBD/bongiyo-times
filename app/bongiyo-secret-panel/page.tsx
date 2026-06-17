@@ -20,6 +20,7 @@ export default function AdminDashboard() {
   const [category, setCategory] = useState('মতামত');
   const [sourceName, setSourceName] = useState('বঙ্গীয় টাইমস');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageSource, setImageSource] = useState(''); // ছবির উৎসের নতুন স্টেট
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -77,6 +78,7 @@ export default function AdminDashboard() {
     setCategory(newsItem.category);
     setSourceName(newsItem.source_name || '');
     setImageUrl(newsItem.image_url || '');
+    setImageSource(newsItem.image_source || ''); // এডিট করার সময় ছবির উৎস লোড হবে
     setActiveTab('add'); // ফর্ম ট্যাবে নিয়ে যাবে
     setMessage('');
   };
@@ -84,7 +86,7 @@ export default function AdminDashboard() {
   // ফর্ম রিসেট করার ফাংশন
   const resetForm = () => {
     setEditingId(null);
-    setTitle(''); setSnippet(''); setContent(''); setImageUrl('');
+    setTitle(''); setSnippet(''); setContent(''); setImageUrl(''); setImageSource('');
     setSourceName('বঙ্গীয় টাইমস'); setCategory('মতামত');
     setMessage('');
   };
@@ -128,19 +130,19 @@ export default function AdminDashboard() {
     if (editingId) {
       // ডেটা আপডেট লজিক
       const { error } = await supabase.from('news').update({
-        title, snippet, content, category, source_name: sourceName, image_url: imageUrl
+        title, snippet, content, category, source_name: sourceName, image_url: imageUrl, image_source: imageSource
       }).eq('id', editingId);
 
       if (error) {
         setMessage('এরর: ' + error.message);
       } else {
         setMessage('✅ সফলভাবে আপডেট হয়েছে!');
-        resetForm(); // এডিট শেষে ফর্ম ক্লিয়ার
+        resetForm(); // এডিট শেষে ফর্ম ক্লিয়ার
       }
     } else {
       // নতুন ডেটা ইনসার্ট লজিক
       const { data, error } = await supabase.from('news').insert([{
-        title, snippet, content, category, source_name: sourceName, image_url: imageUrl, source_url: '#', is_custom: true
+        title, snippet, content, category, source_name: sourceName, image_url: imageUrl, image_source: imageSource, source_url: '#', is_custom: true
       }]).select();
 
       if (error) {
@@ -213,11 +215,14 @@ export default function AdminDashboard() {
             <input required type="text" placeholder="শিরোনাম" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border p-3 rounded font-bold focus:outline-none focus:ring-2 focus:ring-red-200" />
             <textarea required placeholder="হোমপেজের জন্য সারাংশ স্নিপেট" value={snippet} onChange={(e) => setSnippet(e.target.value)} className="w-full border p-3 rounded h-16 focus:outline-none focus:ring-2 focus:ring-red-200" />
             <textarea required placeholder="খবরের পুরো বিস্তারিত বিবরণ (এখানে প্যারাগ্রাফ করে লিখুন)" value={content} onChange={(e) => setContent(e.target.value)} className="w-full border p-3 rounded h-40 focus:outline-none focus:ring-2 focus:ring-red-200" />
-            <div className="grid grid-cols-2 gap-4">
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="border p-3 rounded font-bold">
+            
+            {/* ৩টি কলামের গ্রিড (ক্যাটাগরি, সূত্র এবং ছবির উৎস) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className="border p-3 rounded font-bold bg-white w-full">
                 {allCategories.map((cat, idx) => <option key={idx}>{cat}</option>)}
               </select>
-              <input required type="text" placeholder="সূত্র/লেখক" value={sourceName} onChange={(e) => setSourceName(e.target.value)} className="border p-3 rounded font-bold" />
+              <input required type="text" placeholder="সূত্র/লেখক" value={sourceName} onChange={(e) => setSourceName(e.target.value)} className="border p-3 rounded font-bold w-full" />
+              <input type="text" placeholder="ছবির ক্যাপশন/উৎস (যেমন: সংগৃহীত)" value={imageSource} onChange={(e) => setImageSource(e.target.value)} className="border p-3 rounded font-bold w-full" />
             </div>
             
             <div className="border border-gray-300 p-6 rounded bg-gray-50 text-center">
@@ -252,7 +257,7 @@ export default function AdminDashboard() {
         {activeTab === 'manage' && (
           <div className="space-y-4">
              <div className="mb-4">
-                <input type="text" placeholder="আপনার আপলোড করা নিউজের শিরোনাম টাইপ করে খুঁজুন..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full border-2 border-red-700 p-3 rounded font-bold focus:outline-none bg-red-50/30" />
+                <input type="text" placeholder="আপনার আপলোড করা নিউজের শিরোনাম汤 টাইপ করে খুঁজুন..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full border-2 border-red-700 p-3 rounded font-bold focus:outline-none bg-red-50/30" />
              </div>
              {filteredNews.length === 0 ? <p className="text-center text-gray-500 py-10 font-bold">কোনো ম্যাচিং খবর পাওয়া যায়নি।</p> : null}
              {filteredNews.map(news => (
