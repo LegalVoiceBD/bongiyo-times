@@ -91,9 +91,21 @@ export default function AdminDashboard() {
     setMessage('');
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // --- নতুন যুক্ত করা কোড (File Size Validation) ---
+    const maxFileSizeMB = 1; // সর্বোচ্চ ১ এমবি (1 MB) সেট করা হলো
+    const fileSizeInMB = file.size / (1024 * 1024);
+
+    if (fileSizeInMB > maxFileSizeMB) {
+      alert(`❌ ছবির সাইজ অনেক বড়!\n\nআপনার ছবির সাইজ: ${fileSizeInMB.toFixed(2)} MB.\nদয়া করে ${maxFileSizeMB} MB এর চেয়ে ছোট ছবি আপলোড করুন।`);
+      e.target.value = ''; // ইনপুট ফিল্ডটি খালি করে দেওয়া হলো
+      return; // আপলোড প্রসেস এখানেই থামিয়ে দেওয়া হলো
+    }
+    // ---------------------------------------------------
+
     setIsUploading(true);
     setMessage('ছবি আপলোড হচ্ছে...');
     
