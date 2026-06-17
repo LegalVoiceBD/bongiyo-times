@@ -227,7 +227,12 @@ export default async function NewsDetail({ params }: { params: { id: string } })
             
             <figure className="mb-8">
                <img src={news.image_url} alt={news.title} className="w-full h-auto max-h-[550px] object-cover rounded-sm shadow-sm border border-gray-100" />
-               <figcaption className="text-sm text-gray-500 mt-2 italic text-center">ছবি: সংগৃহীত</figcaption>
+               {/* এখানে পরিবর্তন করা হয়েছে */}
+               {news.image_source && (
+                  <figcaption className="text-sm text-gray-500 mt-2 italic text-center">
+                     ছবি: {news.image_source}
+                  </figcaption>
+               )}
             </figure>
             
             <div className="text-[19px] md:text-[21px] leading-loose text-[#2b2b2b] whitespace-pre-wrap font-medium">
