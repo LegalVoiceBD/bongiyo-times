@@ -875,9 +875,10 @@ export default async function Home({ searchParams }: { searchParams: { category?
         )}
       </main>
 
-      {/* Footer Section */}
+          {/* Footer Section */}
       <footer className="bg-white border-t-4 border-red-700 mt-12 pt-8 pb-6 text-black text-center shadow-inner">
         <div className="max-w-[1200px] mx-auto px-4">
+          
           <div className="flex flex-wrap justify-center items-center gap-3 md:gap-5 text-[15px] md:text-[17px] font-bold mb-6 border-b border-gray-300 pb-4">
              <a href="/" className="hover:text-red-700 transition">প্রচ্ছদ</a> <span className="text-gray-300">|</span>
              <a href="/privacy" className="hover:text-red-700 transition">গোপনীয়তার নীতি</a> <span className="text-gray-300">|</span>
@@ -885,18 +886,26 @@ export default async function Home({ searchParams }: { searchParams: { category?
              <a href="/contact" className="hover:text-red-700 transition text-[#104f96]">বিজ্ঞাপন</a> <span className="text-gray-300">|</span>
              <a href="/contact" className="hover:text-red-700 transition">যোগাযোগ</a>
           </div>
-          <div className="mb-6 space-y-2">
-             <p className="text-[18px] font-bold text-gray-900">সম্পাদক ও প্রকাশক : অ্যাডভোকেট মো: আজাদুর রহমান</p>
-             <p className="text-[15px] text-gray-700 font-bold mt-1">
-               মোবাইল: <a href="tel:09696790279" className="text-red-700 hover:underline">০৯৬৯৬ ৭৯০২৭৯</a> <span className="mx-2 text-gray-300">|</span> ইমেইল: <a href="mailto:bongiyotimes@gmail.com" className="hover:underline text-[#104f96]">bongiyotimes@gmail.com</a>
+
+          <div className="mb-6">
+             <p className="text-[17px] md:text-[18px] font-bold text-gray-900 leading-snug">
+               <span className="block md:inline">সম্পাদক ও প্রকাশক :</span> 
+               <span className="block md:inline md:ml-1">অ্যাডভোকেট মো: আজাদুর রহমান</span>
              </p>
+             <div className="text-[14px] md:text-[15px] text-gray-700 font-bold mt-3 flex flex-col md:flex-row justify-center items-center gap-1.5 md:gap-3">
+               <span>মোবাইল: <a href="tel:09696790279" className="text-red-700 hover:underline">০৯৬৯৬ ৭৯০২৭৯</a></span> 
+               <span className="hidden md:inline text-gray-300">|</span> 
+               <span>ইমেইল: <a href="mailto:bongiyotimes@gmail.com" className="hover:underline text-[#104f96]">bongiyotimes@gmail.com</a></span>
+             </div>
           </div>
+
           <div className="border-t border-gray-300 pt-5">
-             <p className="text-sm md:text-[16px] leading-relaxed text-gray-800 font-medium max-w-4xl mx-auto mb-3">
+             <p className="text-[13px] md:text-[15px] leading-relaxed text-gray-800 font-medium max-w-4xl mx-auto mb-3">
                বাংলাদেশ ও বিশ্বের সকল খবর, ব্রেকিং নিউজ, লাইভ নিউজ, রাজনীতি, বাণিজ্য, খেলা, বিনোদনসহ সকল সর্বশেষ সংবাদ সবার আগে পড়তে ক্লিক করুন বঙ্গীয় টাইমস ডট কম।
              </p>
-             <p className="text-sm text-gray-500 font-bold">&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
+             <p className="text-[13px] md:text-[14px] text-gray-500 font-bold">&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
           </div>
+          
         </div>
       </footer>
     </div>
