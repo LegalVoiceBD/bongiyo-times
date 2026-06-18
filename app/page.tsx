@@ -193,11 +193,11 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   )}
                </div>
                
+             {/* Google AdSense Space */}
                <div className="lg:col-span-3 hidden lg:block">
-                  <div className="w-full h-[400px] bg-[#0c2a52] text-white flex flex-col items-center justify-center rounded-sm font-bold p-4 text-center">
-                     <span className="text-3xl mb-2">WALTON</span>
-                     <span>Smart Fridge</span><br/>
-                     <span className="text-yellow-400 mt-4 text-xl border-2 border-yellow-400 px-4 py-2 rounded-full">ফ্রিজ একটাই<br/>ওয়ালটন</span>
+                  <div className="w-full min-h-[400px] flex items-center justify-center bg-gray-50 border border-gray-200 rounded-sm">
+                     <span className="text-sm font-bold text-gray-400">বিজ্ঞাপন</span>
+                     {/* অ্যাডসেন্স অটো-অ্যাড এখানে স্বয়ংক্রিয়ভাবে শো করবে */}
                   </div>
                </div>
             </div>
