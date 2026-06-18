@@ -110,27 +110,44 @@ export default async function NewsDetail({ params }: { params: { id: string } })
           </div>
         </div>
 
+        {/* Navigation Bar */}
         <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
           <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12 relative overflow-hidden">
+            
             <div className="flex-1 min-w-0 h-full flex items-center pr-4">
                <nav className="flex items-center gap-5 md:gap-6 lg:gap-7 overflow-x-auto text-[17px] lg:text-[19px] font-bold text-black w-full pb-1 custom-scrollbar tracking-wide">
                  <a href="/" className="h-12 flex items-center transition-colors hover:text-[#104f96] whitespace-nowrap shrink-0">প্রচ্ছদ</a>
                  {menuCategories.map((cat, index) => (
-                   <a key={index} href={`/?category=${cat}`} className="hover:text-[#104f96] whitespace-nowrap shrink-0 h-12 flex items-center transition-colors">
+                   <a 
+                     key={index} 
+                     href={`/?category=${cat}`} 
+                     className={`hover:text-[#104f96] whitespace-nowrap shrink-0 ${news.category === cat ? 'text-[#104f96] border-b-[3px] border-[#104f96] h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}
+                   >
                       {cat}
                    </a>
                  ))}
                </nav>
             </div>
             
-            <div className="hidden md:flex items-center gap-3 lg:gap-4 border-l border-gray-300 pl-4 h-full text-[14px] lg:text-[15px] font-bold shrink-0 bg-white z-10">
-               <form action="/" method="GET" className="flex items-center gap-2">
-                  <input type="text" name="q" placeholder="খবর খুঁজুন..." className="border border-gray-300 px-2 py-1 text-sm rounded outline-none focus:border-[#104f96] w-28 lg:w-32 font-normal" required/>
-                  <button type="submit" className="hover:text-[#104f96] flex items-center gap-1 cursor-pointer"><span className="text-lg">🔍</span> খুঁজুন</button>
+            {/* প্রফেশনাল সার্চ অপশন */}
+            <div className="hidden md:flex items-center border-l border-gray-200 pl-5 h-full shrink-0 bg-white z-10">
+               <form action="/" method="GET" className="relative flex items-center group">
+                  <input 
+                     type="text" 
+                     name="q" 
+                     placeholder="খবর খুঁজুন..." 
+                     className="w-48 lg:w-64 pl-4 pr-10 py-1.5 bg-[#f4f7fc] border border-transparent focus:border-[#104f96] focus:bg-white text-[15px] rounded-full outline-none transition-all duration-300 placeholder-gray-500 font-normal text-gray-800 shadow-inner" 
+                     required
+                  />
+                  <button type="submit" className="absolute right-3 text-gray-400 group-hover:text-[#104f96] focus:text-[#104f96] transition-colors flex items-center justify-center cursor-pointer">
+                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                     </svg>
+                  </button>
                </form>
-               <div className="border-l border-gray-300 h-6 mx-1"></div>
-               <a href="https://www.bongiyotimes.com/bongiyo-secret-panel" className="hover:text-[#104f96] flex items-center gap-1 transition-colors"><span className="text-lg">👤</span> Login</a>
             </div>
+            
           </div>
         </div>
       </header>
@@ -192,7 +209,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
 
          {/* Sidebar Content */}
          <aside className="lg:col-span-4 lg:pl-4">
-            <div className="w-full h-[250px] bg-gray-50 border border-gray-200 flex flex-col items-center justify-center mb-8 text-gray-400 font-bold">
+            <div className="w-full min-h-[250px] bg-gray-50 border border-gray-200 flex flex-col items-center justify-center mb-8 text-gray-400 font-bold">
                <span className="text-xs mb-2">বিজ্ঞাপন</span>
             </div>
 
