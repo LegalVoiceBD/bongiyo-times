@@ -94,33 +94,41 @@ export default async function Home({ searchParams }: { searchParams: { category?
           <div className="shrink-0 flex items-center md:gap-4">
              <a href="/" className="group flex flex-col justify-center">
                
-               {/* কাস্টমাইজড লোগো সেকশন - ফেভিকনের হুবহু ডিজাইন */}
-<div className="flex items-end justify-center mt-2 md:mt-3">
+              {/* কাস্টমাইজড লোগো সেকশন - মডার্ন ও ইউনিক গোল্ডেন-ইয়েলো ডিজাইন */}
+<div className="flex items-center justify-center mt-2 md:mt-3">
   
   {/* প্রথম শব্দ: বঙ্গীয় */}
-  <span className="text-[38px] md:text-[48px] font-black text-[#111] leading-none tracking-tighter z-10 relative" style={{ textShadow: '2px 0 0 #fff' }}>
+  <span className="text-[38px] md:text-[48px] font-black text-[#111] leading-none tracking-tighter z-10 relative">
     বঙ্গীয়
   </span>
 
-  {/* মাঝখানের আইকন (ফেভিকনের মতো শুধু লাল বৃত্ত ও ঘড়ি, কোনো রশ্মি ছাড়া) */}
-  <div className="relative -mx-[2px] md:-mx-[4px] mb-[18px] md:mb-[22px] z-0">
-    <div className="w-[26px] h-[26px] md:w-[32px] md:h-[32px] bg-[#ef3324] rounded-full flex items-center justify-center relative">
+  {/* মাঝখানের আইকন (মডার্ন ডায়মন্ড শেপ ও অ্যাবস্ট্রাক্ট ঘড়ি) */}
+  <div className="relative mx-1.5 md:mx-2.5 mb-[10px] md:mb-[14px] z-0 flex items-center justify-center">
+    
+    {/* লোগোর বাইরের রিং (Abstract Shape - Diamond) */}
+    <div className="relative w-[28px] h-[28px] md:w-[34px] md:h-[34px]">
       
-      {/* ঘড়ির সাদা কাঁটা ও কেন্দ্র (White Clock Hands & Center) */}
-      {/* ঘড়ির মাঝখানের বিন্দু */}
-      <div className="absolute w-[3px] md:w-[4px] h-[3px] md:h-[4px] bg-white rounded-full z-10"></div>
+      {/* ব্যাকগ্রাউন্ড স্কয়ার (৪৫ ডিগ্রি ঘোরানো - গোল্ডেন ইয়েলো গ্রেডিয়েন্ট) */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-[#f59e0b] to-[#fcd34d] rounded-[8px] md:rounded-[10px] shadow-sm rotate-45"></div>
       
-      {/* মিনিটের কাঁটা */}
-      <div className="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-[1.5px] md:w-[2px] h-[35%] bg-white origin-bottom animate-[spin_4s_linear_infinite] z-10 rounded-t-sm"></div>
-      
-      {/* ঘণ্টার কাঁটা */}
-      <div className="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-[2px] md:w-[2.5px] h-[25%] bg-white origin-bottom rotate-[60deg] animate-[spin_24s_linear_infinite] z-10 rounded-t-sm"></div>
-      
+      {/* ভেতরের ফাঁকা বৃত্ত (যাতে ঘড়ির লুক এবং ডেপথ আসে) */}
+      <div className="absolute inset-[3px] md:inset-[4px] bg-white rounded-full flex items-center justify-center shadow-inner">
+        
+        {/* ঘড়ির কেন্দ্র (সেন্টার ডট - গাঢ় কমলা/হলুদ) */}
+        <div className="absolute w-[4px] md:w-[5px] h-[4px] md:h-[5px] bg-[#d97706] rounded-full z-10"></div>
+        
+        {/* মিনিটের কাঁটা (মডার্ন, চিকন ও লম্বা) */}
+        <div className="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-[2px] h-[45%] bg-[#d97706] origin-bottom rounded-t-full animate-[spin_4s_linear_infinite] z-10"></div>
+        
+        {/* ঘণ্টার কাঁটা (একটু মোটা, ভিন্ন শেপ) */}
+        <div className="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-[3px] h-[25%] bg-[#f59e0b] origin-bottom rotate-[75deg] animate-[spin_24s_linear_infinite] z-10"></div>
+        
+      </div>
     </div>
   </div>
 
   {/* দ্বিতীয় শব্দ: টাইমস */}
-  <span className="text-[38px] md:text-[48px] font-black text-[#111] leading-none tracking-tighter z-10 relative" style={{ textShadow: '-2px 0 0 #fff' }}>
+  <span className="text-[38px] md:text-[48px] font-black text-[#111] leading-none tracking-tighter z-10 relative">
     টাইমস
   </span>
 
