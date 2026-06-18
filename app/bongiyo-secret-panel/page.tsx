@@ -42,12 +42,25 @@ export default function AdminDashboard() {
     if (loggedInUser) setUser(JSON.parse(loggedInUser));
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data } = await supabase.from('editors').select('*').eq('email', email).eq('password', password).single();
-    if (data) {
-      localStorage.setItem('bongiyo_admin', JSON.stringify(data));
-      setUser(data);
+    
+    // সরাসরি টেবিল খোঁজার বদলে আমাদের তৈরি করা সিকিউর ফাংশন (RPC) কল করা হচ্ছে
+    const { data, error } = await supabase.rpc('admin_login', { 
+        p_email: email, 
+        p_password: password 
+    });
+
+    if (error) {
+      console.error("লগিন এরর:", error.message);
+      alert('সার্ভার সমস্যা, আবার চেষ্টা করুন।');
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const loggedInUser = data[0];
+      localStorage.setItem('bongiyo_admin', JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
     } else {
       alert('ভুল ইমেইল বা পাসওয়ার্ড!');
     }
