@@ -11,6 +11,10 @@ const notoSerifBengali = Noto_Serif_Bengali({
 export const metadata: Metadata = {
   title: "বঙ্গীয় টাইমস - সত্য ও সাহসের প্রতিচ্ছবি",
   description: "বাংলাদেশের শীর্ষস্থানীয় ডিজিটাল নিউজ পোর্টাল",
+  // ফেভিকন যুক্ত করা হয়েছে
+  icons: {
+    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='240' fill='%23ffffff' /%3E%3Ccircle cx='256' cy='256' r='180' fill='none' stroke='%23dc2626' stroke-width='48' /%3E%3Ccircle cx='256' cy='256' r='32' fill='%23dc2626' /%3E%3Cline x1='256' y1='256' x2='256' y2='120' stroke='%23dc2626' stroke-width='36' stroke-linecap='round' /%3E%3Cline x1='256' y1='256' x2='330' y2='182' stroke='%23dc2626' stroke-width='36' stroke-linecap='round' /%3E%3C/svg%3E",
+  },
 };
 
 export default function RootLayout({
