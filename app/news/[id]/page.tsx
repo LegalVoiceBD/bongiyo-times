@@ -150,15 +150,15 @@ export default async function NewsDetail({ params }: { params: { id: string } })
           </div>
         </div>
 
-        {/* Navigation Bar */}
+        {/* Navigation Bar (Updated Font Size & Spacing) */}
         <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
           <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12 relative overflow-hidden">
             
             <div className="flex-1 min-w-0 h-full flex items-center pr-4">
-               <nav className="flex items-center gap-4 lg:gap-5 overflow-x-auto text-[15px] font-bold text-black w-full pb-1 custom-scrollbar">
-                 <a href="/" className="h-11 flex items-center transition-colors hover:text-blue-600 whitespace-nowrap shrink-0">প্রচ্ছদ</a>
+               <nav className="flex items-center gap-5 md:gap-6 lg:gap-7 overflow-x-auto text-[17px] lg:text-[19px] font-bold text-black w-full pb-1 custom-scrollbar tracking-wide">
+                 <a href="/" className="h-12 flex items-center transition-colors hover:text-blue-600 whitespace-nowrap shrink-0">প্রচ্ছদ</a>
                  {menuCategories.map((cat, index) => (
-                   <a key={index} href={`/?category=${cat}`} className="hover:text-blue-600 whitespace-nowrap shrink-0 h-11 flex items-center transition-colors">
+                   <a key={index} href={`/?category=${cat}`} className="hover:text-blue-600 whitespace-nowrap shrink-0 h-12 flex items-center transition-colors">
                       {cat}
                    </a>
                  ))}
@@ -191,7 +191,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
       <main className="max-w-[1200px] mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-10">
          
          <article className="lg:col-span-8">
-            <h1 className="text-[32px] md:text-[42px] font-extrabold leading-tight text-gray-900 mb-6">{news.title}</h1>
+            <h1 className="text-3xl md:text-4xl lg:text-[42px] font-extrabold leading-[1.3] text-gray-900 mb-6">{news.title}</h1>
             
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-y border-gray-200 py-3 mb-6 bg-gray-50 px-2 rounded-sm">
                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm font-bold text-gray-600">
@@ -227,7 +227,6 @@ export default async function NewsDetail({ params }: { params: { id: string } })
             
             <figure className="mb-8">
                <img src={news.image_url} alt={news.title} className="w-full h-auto max-h-[550px] object-cover rounded-sm shadow-sm border border-gray-100" />
-               {/* এখানে পরিবর্তন করা হয়েছে */}
                {news.image_source && (
                   <figcaption className="text-sm text-gray-500 mt-2 italic text-center">
                      ছবি: {news.image_source}
@@ -235,7 +234,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                )}
             </figure>
             
-            <div className="text-[19px] md:text-[21px] leading-loose text-[#2b2b2b] whitespace-pre-wrap font-medium">
+            <div className="text-[20px] md:text-[22px] leading-[1.8] text-[#2b2b2b] whitespace-pre-wrap font-medium">
                {news.content || news.snippet}
                {!news.content && (
                   <p className="mt-8 font-bold text-red-700">
@@ -265,7 +264,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                   {relatedNews.map((rel: any) => (
                      <a href={`/news/${rel.id}`} key={rel.id} className="group flex gap-4 items-start border-b border-gray-100 pb-5 last:border-0 last:pb-0">
                         <div className="flex-1">
-                           <h4 className="text-[17px] font-bold text-gray-800 group-hover:text-red-700 leading-snug">
+                           <h4 className="text-[17px] md:text-[18px] font-bold text-gray-800 group-hover:text-red-700 leading-snug">
                               {rel.title}
                            </h4>
                            <p className="text-[12px] text-gray-500 mt-2 font-bold">{formatDateTime(rel.created_at)}</p>
