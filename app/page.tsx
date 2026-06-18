@@ -2,7 +2,7 @@ import React from 'react';
 import { createClient } from '@supabase/supabase-js';
 import ClientTabs from './components/ClientTabs';
 import SafeImage from './components/SafeImage';
-
+import LocationFilter from './components/LocationFilter';
 export const revalidate = 60;
 
 function formatDateTime(dateString: string) {
@@ -163,7 +163,91 @@ export default async function Home({ searchParams }: { searchParams: { category?
       {/* Main Content Body */}
       <main className="max-w-[1200px] mx-auto px-4 mt-6 pb-10">
         
-        {(activeCategory || searchQuery) ? (
+        {activeCategory === 'বাংলাদেশ' && searchQuery ? (
+            /* --- প্রথম আলোর মতো এলাকার খবরের সার্চ রেজাল্ট পেজ --- */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+               <div className="lg:col-span-3">
+                  <h1 className="text-[32px] md:text-[36px] font-bold text-red-600 mb-6 border-b border-gray-200 pb-2">{searchQuery}</h1>
+                  <div className="mb-6">
+                     <h3 className="text-[18px] font-bold text-[#104f96] mb-4">আমার এলাকার খবর</h3>
+                     <LocationFilter layout="vertical" />
+                  </div>
+               </div>
+               
+               <div className="lg:col-span-6">
+                  {allNews.length === 0 ? (
+                     <div className="text-gray-400 py-10 text-center font-bold">এই এলাকার কোনো খবর পাওয়া যায়নি।</div>
+                  ) : (
+                     <div className="flex flex-col gap-6">
+                        {allNews.map(news => (
+                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-6 last:border-0">
+                              <div className="flex-1">
+                                 <h3 className="text-xl font-bold group-hover:text-[#104f96] leading-snug text-gray-900">{news.title}</h3>
+                                 <p className="text-[14px] text-gray-600 mt-2 line-clamp-2">{news.snippet}</p>
+                                 <p className="text-[13px] text-gray-500 mt-3">{formatDateTime(news.created_at)}</p>
+                              </div>
+                              <SafeImage src={news.image_url} alt={news.title} className="w-[120px] h-[90px] md:w-[200px] md:h-[130px] object-cover rounded-sm border border-gray-100 shrink-0" />
+                           </a>
+                        ))}
+                     </div>
+                  )}
+               </div>
+               
+               <div className="lg:col-span-3 hidden lg:block">
+                  <div className="w-full h-[400px] bg-[#0c2a52] text-white flex flex-col items-center justify-center rounded-sm font-bold p-4 text-center">
+                     <span className="text-3xl mb-2">WALTON</span>
+                     <span>Smart Fridge</span><br/>
+                     <span className="text-yellow-400 mt-4 text-xl border-2 border-yellow-400 px-4 py-2 rounded-full">ফ্রিজ একটাই<br/>ওয়ালটন</span>
+                  </div>
+               </div>
+            </div>
+            
+        ) : activeCategory === 'বাংলাদেশ' ? (
+            /* --- বাংলাদেশ ক্যাটাগরির মূল পেজ --- */
+            <div className="mb-10 border-b border-gray-300 pb-8">
+               <div className="flex items-center mb-5 border-b-[2px] border-gray-200 pb-2">
+                  <h2 className="text-[22px] font-bold text-gray-900">বাংলাদেশ</h2>
+               </div>
+
+               <div className="bg-[#f4f7fc] border border-[#e2e8f0] p-4 sm:p-5 rounded-sm mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                     <h3 className="text-[18px] font-bold text-[#104f96]">আমার এলাকার খবর</h3>
+                  </div>
+                  <LocationFilter layout="horizontal" />
+               </div>
+
+               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                  {bdNews.length === 0 ? (
+                     <div className="text-gray-400 text-center py-10 col-span-4">খবর আপডেট হচ্ছে...</div>
+                  ) : (
+                     <>
+                        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                           {bdNews.slice(0, 6).map((news) => (
+                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col">
+                                 <div className="overflow-hidden mb-3">
+                                    <SafeImage src={news.image_url} alt={news.title} className="w-full h-[150px] object-cover group-hover:scale-105 transition duration-300 border border-gray-100" />
+                                 </div>
+                                 <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-[#104f96] leading-snug">{news.title}</h3>
+                                 <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
+                              </a>
+                           ))}
+                        </div>
+                        <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-gray-200 pt-5 lg:pt-0 lg:pl-6 flex flex-col gap-5">
+                           {bdNews.slice(6, 10).map((news) => (
+                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
+                                 <h3 className="text-[16px] font-bold text-gray-900 group-hover:text-[#104f96] leading-snug">{news.title}</h3>
+                                 <p className="text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
+                              </a>
+                           ))}
+                        </div>
+                     </>
+                  )}
+               </div>
+            </div>
+            
+        ) : (activeCategory || searchQuery) ? (
+            /* --- অন্যান্য সাধারণ সার্চ রেজাল্ট --- */
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="col-span-1 md:col-span-3">
                  <div className="border-b-[3px] border-black mb-4 pb-1">
@@ -198,7 +282,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
             {/* Top Hero Section */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 border-b border-gray-300 pb-6 mb-8">
               
-              {/* বাম পাশের খবর (মোবাইলে ২য় পজিশনে, পিসিতে ১ম পজিশনে) */}
+              {/* বাম পাশের খবর (মোবাইলে ২য় পজিশনে, পিসিতে ১ম পজিশনে) */}
               <div className="order-2 lg:order-1 lg:col-span-3 flex flex-col divide-y divide-gray-200 lg:pr-4 border-b lg:border-b-0 pb-6 lg:pb-0 lg:border-r border-gray-300">
                 {leftSideNews.map((news, idx) => (
                   <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group block ${idx !== 0 ? 'pt-3' : 'pb-3'}`}>
@@ -210,7 +294,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                 ))}
               </div>
 
-              {/* লিড নিউজ বা বড় খবর (মোবাইলে ১ম পজিশনে, পিসিতে ২য় পজিশনে) */}
+              {/* লিড নিউজ বা বড় খবর (মোবাইলে ১ম পজিশনে, পিসিতে ২য় পজিশনে) */}
               <div className="order-1 lg:order-2 lg:col-span-6 lg:px-4 border-b lg:border-b-0 pb-6 lg:pb-0 lg:border-r border-gray-300">
                 {leadNews && (
                   <a href={leadNews.is_custom ? `/news/${leadNews.id}` : leadNews.source_url} target="_blank" className="group block border-b border-gray-200 pb-4 mb-4">
@@ -233,7 +317,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                 </div>
               </div>
 
-              {/* ডানপাশের সেকশন (সর্বশেষ/জনপ্রিয় এবং বিজ্ঞাপন) */}
+              {/* ডানপাশের সেকশন (সর্বশেষ/জনপ্রিয় এবং বিজ্ঞাপন) */}
               <div className="order-3 lg:order-3 lg:col-span-3">
                  <div className="w-full h-[250px] bg-gray-100 border border-gray-200 flex flex-col justify-center items-center text-gray-400 mb-6">
                     <span className="text-xs">বিজ্ঞাপন</span>
@@ -243,7 +327,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
               </div>
             </div>
 
-         {/* বাংলাদেশ ক্যাটাগরি - প্রথম আলোর মতো লেআউট */}
+            {/* বাংলাদেশ ক্যাটাগরি - প্রথম আলোর মতো লেআউট */}
             <div className="mb-10 border-b border-gray-300 pb-8">
                <div className="flex items-center mb-5 border-b-[2px] border-gray-200 pb-2">
                   <a href="/?category=বাংলাদেশ" className="text-[22px] font-bold text-gray-900 hover:text-[#104f96]">বাংলাদেশ</a>
@@ -255,44 +339,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                      <h3 className="text-[18px] font-bold text-[#104f96]">আমার এলাকার খবর</h3>
                   </div>
-                  
-                  {/* Form: name="q" ব্যবহার করা হয়েছে যাতে এটি আপনার ডিফল্ট সার্চ লজিকের সাথে অটোমেটিক কাজ করে! */}
-                  <form action="/" method="GET" className="flex flex-col md:flex-row gap-3">
-                     <input type="hidden" name="category" value="বাংলাদেশ" />
-                     
-                     <select name="q" className="flex-1 border border-[#cbd5e1] p-2.5 text-[15px] font-medium rounded-sm focus:outline-none focus:border-[#104f96] bg-white cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5%22%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_10px_center]">
-                        <option value="">বিভাগ</option>
-                        <option value="ঢাকা">ঢাকা বিভাগ</option>
-                        <option value="চট্টগ্রাম">চট্টগ্রাম বিভাগ</option>
-                        <option value="রাজশাহী">রাজশাহী বিভাগ</option>
-                        <option value="খুলনা">খুলনা বিভাগ</option>
-                        <option value="বরিশাল">বরিশাল বিভাগ</option>
-                        <option value="সিলেট">সিলেট বিভাগ</option>
-                        <option value="রংপুর">রংপুর বিভাগ</option>
-                        <option value="ময়মনসিংহ">ময়মনসিংহ বিভাগ</option>
-                     </select>
-                     
-                     <select className="flex-1 border border-[#cbd5e1] p-2.5 text-[15px] font-medium rounded-sm bg-white focus:outline-none appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5%22%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_10px_center]">
-                        <option value="">জেলা</option>
-                        <option value="গাজীপুর">গাজীপুর</option>
-                        <option value="নারায়ণগঞ্জ">নারায়ণগঞ্জ</option>
-                        <option value="বগুড়া">বগুড়া</option>
-                        <option value="কুমিল্লা">কুমিল্লা</option>
-                        <option value="যশোর">যশোর</option>
-                        {/* প্রয়োজনে আরও জেলার নাম এখানে যোগ করতে পারবেন */}
-                     </select>
-                     
-                     <select className="flex-1 border border-[#cbd5e1] p-2.5 text-[15px] font-medium rounded-sm bg-white focus:outline-none appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5%22%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_10px_center]">
-                        <option value="">উপজেলা</option>
-                        <option value="সদর">সদর উপজেলা</option>
-                        {/* প্রয়োজনে আরও উপজেলার নাম এখানে যোগ করতে পারবেন */}
-                     </select>
-                     
-                     <button type="submit" className="bg-[#104f96] hover:bg-[#0c3e78] text-white font-bold py-2.5 px-6 rounded-sm transition flex items-center justify-center gap-2 shrink-0">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> 
-                        খুঁজুন
-                     </button>
-                  </form>
+                  <LocationFilter layout="horizontal" />
                </div>
 
                {/* নিউজ গ্রিড */}
