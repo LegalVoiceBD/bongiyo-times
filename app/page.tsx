@@ -81,37 +81,55 @@ export default async function Home({ searchParams }: { searchParams: { category?
   return (
     <div className="min-h-screen bg-white text-[#333] tracking-tight">
       
-      {/* Header Section */}
+     {/* Header Section */}
       <header className="bg-white">
         <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-10px] font-bold">
+          
+          <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-5px] font-bold">
             {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
           </div>
 
-          <div className="shrink-0 flex items-center">
-             <a href="/" className="group">
-               <h1 className="text-4xl md:text-[42px] font-extrabold text-black flex items-center tracking-tighter">
-                 বঙ্গীয়
-                 <div className="relative flex items-center justify-center w-[36px] h-[36px] md:w-[44px] md:h-[44px] mx-1">
-                   <div className="absolute inset-0 rounded-full border-[2.5px] md:border-[3px] border-red-600"></div>
-                   <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="absolute w-[5px] h-[5px] bg-red-600 rounded-full"></div>
-                      <div className="absolute w-[2px] h-[35%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite]"></div>
-                      <div className="absolute w-[2.5px] h-[25%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_24s_linear_infinite] rotate-[45deg]"></div>
-                   </div>
-                   <span 
-                     className="relative z-10 text-black text-[26px] md:text-[32px] font-black leading-none pt-1"
-                     style={{ textShadow: '1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff' }}
-                   >
-                     টা
-                   </span>
+          {/* লোগো, স্লোগান ও তারিখ সেকশন */}
+          <div className="shrink-0 flex items-center md:gap-4">
+             <a href="/" className="group flex flex-col justify-center">
+               <div className="relative inline-block mt-2 md:mt-3">
+                 
+                 {/* প্রথম আলোর স্টাইলে কাস্টম ঘড়ি-সূর্য (Sun-Clock) লোগো */}
+                 <div className="absolute -top-[14px] md:-top-[18px] left-[38%] md:left-[41%] w-[24px] h-[24px] md:w-[30px] md:h-[30px] bg-[#ef3324] rounded-full flex items-center justify-center z-0">
+                    {/* সূর্যের ৫টি রশ্মি (Sun Rays) */}
+                    <div className="absolute -top-[4px] md:-top-[5px] w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rounded-t-full"></div>
+                    <div className="absolute -top-[2px] md:-top-[3px] -right-[4px] md:-right-[5px] w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[45deg] rounded-t-full"></div>
+                    <div className="absolute -top-[2px] md:-top-[3px] -left-[4px] md:-left-[5px] w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[-45deg] rounded-t-full"></div>
+                    <div className="absolute top-[4px] md:top-[5px] -right-[6px] md:-right-[7px] w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[75deg] rounded-t-full"></div>
+                    <div className="absolute top-[4px] md:top-[5px] -left-[6px] md:-left-[7px] w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[-75deg] rounded-t-full"></div>
+                    
+                    {/* ঘড়ির সাদা কাঁটা (White Clock Hands) */}
+                    <div className="absolute w-[3px] h-[3px] md:w-[4px] md:h-[4px] bg-white rounded-full z-10"></div>
+                    <div className="absolute w-[1.5px] md:w-[2px] h-[40%] bg-white origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite] z-10"></div>
+                    <div className="absolute w-[2px] md:w-[2.5px] h-[25%] bg-white origin-bottom bottom-1/2 rounded-t-full rotate-[45deg] animate-[spin_24s_linear_infinite] z-10"></div>
                  </div>
-                 ইমস
-               </h1>
+
+                 {/* বঙ্গীয় টাইমস লেখা (সাদা টেক্সট শ্যাডো সহ, যাতে লোগোর ওপর অক্ষরগুলো স্পষ্ট ভাসে) */}
+                 <h1 className="relative text-[36px] md:text-[44px] font-black text-[#111] leading-none tracking-tighter z-10">
+                    <span style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff' }}>বঙ্গীয় টাইমস</span>
+                 </h1>
+               </div>
+               
+               {/* স্লোগান (শুধুমাত্র পিসিতে দেখাবে) */}
+               <span className="hidden md:block text-[14px] font-bold text-gray-600 tracking-wide mt-1 pl-1">
+                 সত্য ও সাহসের প্রতিচ্ছবি
+               </span>
              </a>
-             <span className="hidden md:block text-[14px] text-gray-500 border-l-[2px] border-gray-300 pl-3 ml-3 mt-1 font-bold">
-                {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
-             </span>
+             
+             {/* তারিখ (প্রথম আলোর মতো দুই লাইনে, শুধুমাত্র পিসিতে দেখাবে) */}
+             <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-4 justify-center h-12 mt-1">
+                <span className="text-[13.5px] text-gray-600 font-bold leading-tight">
+                   {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}
+                </span>
+                <span className="text-[13.5px] text-gray-600 font-bold leading-tight mt-0.5">
+                   {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
+                </span>
+             </div>
           </div>
           
           <div className="hidden lg:flex divide-x divide-gray-300">
