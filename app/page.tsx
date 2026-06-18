@@ -81,7 +81,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   return (
     <div className="min-h-screen bg-white text-[#333] tracking-tight">
       
-  {/* Header Section */}
+ {/* Header Section */}
 <header className="bg-white">
   <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
     
@@ -90,7 +90,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
       {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
     </div>
 
-    {/* লোগো ও তারিখ সেকশন (আপনার দেওয়া আগের স্টাইল) */}
+    {/* লোগো ও তারিখ সেকশন */}
     <div className="shrink-0 flex items-center">
        <a href="/" className="group flex flex-col">
          <h1 className="text-4xl md:text-[42px] font-extrabold text-black flex items-center tracking-tighter">
@@ -118,38 +118,31 @@ export default async function Home({ searchParams }: { searchParams: { category?
        </a>
        
        {/* ডেস্কটপ তারিখ */}
-       <span className="hidden md:block text-[14px] text-gray-500 border-l-[2px] border-gray-300 pl-3 ml-3 mt-1 font-bold flex-col justify-center">
-          {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
-       </span>
+       <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-4 justify-center h-12 mt-1">
+         <span className="text-[13.5px] text-gray-600 font-bold leading-tight">
+            {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}
+         </span>
+         <span className="text-[13.5px] text-gray-600 font-bold leading-tight mt-0.5">
+            {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
+         </span>
+       </div>
     </div>
-               {/* স্লোগান (শুধুমাত্র পিসিতে দেখাবে) */}
-               <span className="hidden md:block text-[14px] font-bold text-gray-600 tracking-wide mt-1 text-center">
-                 সত্য ও সাহসের প্রতিচ্ছবি
-               </span>
-             </a>
-             
-             {/* তারিখ (প্রথম আলোর মতো দুই লাইনে, শুধুমাত্র পিসিতে দেখাবে) */}
-             <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-4 justify-center h-12 mt-1">
-                <span className="text-[13.5px] text-gray-600 font-bold leading-tight">
-                   {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}
-                </span>
-                <span className="text-[13.5px] text-gray-600 font-bold leading-tight mt-0.5">
-                   {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
-                </span>
+
+    {/* রাইট সাইড মেনু / Header News */}
+    <div className="hidden lg:flex divide-x divide-gray-300">
+       {headerNews.map((news, index) => (
+          <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" rel="noreferrer" key={index} className="flex gap-3 px-4 w-[250px] group">
+             <div className="flex-1">
+                <p className="text-xs text-red-600 mb-1">■ {news.category}</p>
+                <h3 className="text-[15px] leading-tight font-semibold group-hover:text-blue-600 line-clamp-2">{news.title}</h3>
              </div>
-          </div>
-          <div className="hidden lg:flex divide-x divide-gray-300">
-             {headerNews.map((news, index) => (
-                <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={index} className="flex gap-3 px-4 w-[250px] group">
-                   <div className="flex-1">
-                      <p className="text-xs text-red-600 mb-1">■ {news.category}</p>
-                      <h3 className="text-[15px] leading-tight font-semibold group-hover:text-blue-600 line-clamp-2">{news.title}</h3>
-                   </div>
-                   <SafeImage src={news.image_url} alt={news.title} className="w-16 h-16 object-cover border border-gray-100" />
-                </a>
-             ))}
-          </div>
-        </div>
+             <SafeImage src={news.image_url} alt={news.title} className="w-16 h-16 object-cover border border-gray-100" />
+          </a>
+       ))}
+    </div>
+
+  </div>
+
 
         {/* Navigation Bar */}
         <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
