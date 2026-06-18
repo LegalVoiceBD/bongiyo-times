@@ -81,57 +81,54 @@ export default async function Home({ searchParams }: { searchParams: { category?
   return (
     <div className="min-h-screen bg-white text-[#333] tracking-tight">
       
-     {/* Header Section */}
+   {/* Header Section */}
       <header className="bg-white">
         <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
           
+          {/* Mobile Date */}
           <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-5px] font-bold">
             {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
           </div>
 
-    {/* লোগো, স্লোগান ও তারিখ সেকশন (প্রথম আলোর আদলে শতভাগ নিখুঁত পজিশন) */}
+          {/* লোগো, স্লোগান ও তারিখ সেকশন */}
           <div className="shrink-0 flex items-center md:gap-4">
              <a href="/" className="group flex flex-col justify-center">
                
-               {/* ফ্লেক্সবক্সের মাধ্যমে শব্দ দুটি কাছাকাছি এনে মাঝে সূর্য-ঘড়ি লোগো বসানো হয়েছে */}
-               <div className="relative flex items-center mt-2 md:mt-3">
+               {/* কাস্টমাইজড লোগো সেকশন - প্রথম আলোর হুবহু স্টাইল */}
+               <div className="flex items-end justify-center mt-2 md:mt-3">
                  
-                 {/* 'বঙ্গীয়' লেখা */}
-                 <h1 className="text-[38px] md:text-[48px] font-extrabold text-[#111] leading-none tracking-tight relative z-10"
-                     style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
-                    বঙ্গীয়
-                 </h1>
+                 {/* প্রথম শব্দ: বঙ্গীয় */}
+                 <span className="text-[38px] md:text-[48px] font-black text-[#111] leading-none tracking-tighter z-10 relative" style={{ textShadow: '2px 0 0 #fff' }}>
+                   বঙ্গীয়
+                 </span>
 
-                 {/* মাঝখানের কাস্টম ঘড়ি-সূর্য (Sun-Clock) লোগো - পারফেক্ট পজিশন */}
-                 {/* w-0 ব্যবহার করা হয়েছে যাতে এটি কোনো জায়গা না নেয় এবং শব্দ দুটি কাছাকাছি থাকে */}
-                 <div className="relative flex items-center justify-center w-0 z-0 mx-1.5 md:mx-2">
-                    
-                    {/* -translate-y-[45%] দিয়ে ঘড়িটিকে একদম প্রথম আলোর সূর্যের মতো অক্ষরের লেভেলে বসানো হয়েছে */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[45%] w-[30px] h-[30px] md:w-[36px] md:h-[36px] bg-[#ef3324] rounded-full flex items-center justify-center">
-                       
-                       {/* সূর্যের ৫টি রশ্মি (Sun Rays) */}
-                       <div className="absolute -top-[5px] md:-top-[7px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rounded-t-full"></div>
-                       <div className="absolute -top-[4px] md:-top-[5px] -right-[6px] md:-right-[8px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[45deg] rounded-t-full"></div>
-                       <div className="absolute -top-[4px] md:-top-[5px] -left-[6px] md:-left-[8px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[-45deg] rounded-t-full"></div>
-                       <div className="absolute top-[6px] md:top-[7px] -right-[8px] md:-right-[10px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[75deg] rounded-t-full"></div>
-                       <div className="absolute top-[6px] md:top-[7px] -left-[8px] md:-left-[10px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[-75deg] rounded-t-full"></div>
-                       
-                       {/* ঘড়ির সাদা কাঁটা (White Clock Hands) */}
-                       <div className="absolute w-[3px] h-[3px] md:w-[4px] md:h-[4px] bg-white rounded-full z-10"></div>
-                       <div className="absolute w-[1.5px] md:w-[2px] h-[40%] bg-white origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite] z-10"></div>
-                       <div className="absolute w-[2px] md:w-[2.5px] h-[25%] bg-white origin-bottom bottom-1/2 rounded-t-full rotate-[45deg] animate-[spin_24s_linear_infinite] z-10"></div>
-                    </div>
+                 {/* মাঝখানের লাল বৃত্ত (সূর্য-ঘড়ি) */}
+                 <div className="relative -mx-[2px] md:-mx-[4px] mb-[18px] md:mb-[22px] z-0">
+                   <div className="w-[26px] h-[26px] md:w-[32px] md:h-[32px] bg-[#ef3324] rounded-full flex items-center justify-center relative">
+                     
+                     {/* সূর্যের ৫টি রশ্মি (Sun Rays) */}
+                     <div className="absolute -top-[4px] md:-top-[5px] left-1/2 -translate-x-1/2 w-[2px] md:w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rounded-t-sm"></div>
+                     <div className="absolute -top-[1px] md:-top-[2px] -right-[3px] md:-right-[4px] w-[2px] md:w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[45deg] rounded-t-sm"></div>
+                     <div className="absolute -top-[1px] md:-top-[2px] -left-[3px] md:-left-[4px] w-[2px] md:w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[-45deg] rounded-t-sm"></div>
+                     <div className="absolute top-[7px] md:top-[8px] -right-[4px] md:-right-[5px] w-[2px] md:w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[75deg] rounded-t-sm"></div>
+                     <div className="absolute top-[7px] md:top-[8px] -left-[4px] md:-left-[5px] w-[2px] md:w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[-75deg] rounded-t-sm"></div>
+                     
+                     {/* ঘড়ির সাদা কাঁটা (White Clock Hands) */}
+                     <div className="absolute w-[3px] md:w-[4px] h-[3px] md:h-[4px] bg-white rounded-full z-10"></div>
+                     <div className="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-[1.5px] md:w-[2px] h-[35%] bg-white origin-bottom animate-[spin_4s_linear_infinite] z-10"></div>
+                     <div className="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-[2px] md:w-[2.5px] h-[25%] bg-white origin-bottom rotate-[60deg] animate-[spin_24s_linear_infinite] z-10"></div>
+                   </div>
                  </div>
 
-                 {/* 'টাইমস' লেখা */}
-                 <h1 className="text-[38px] md:text-[48px] font-extrabold text-[#111] leading-none tracking-tight relative z-10"
-                     style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
-                    টাইমস
-                 </h1>
+                 {/* দ্বিতীয় শব্দ: টাইমস */}
+                 <span className="text-[38px] md:text-[48px] font-black text-[#111] leading-none tracking-tighter z-10 relative" style={{ textShadow: '-2px 0 0 #fff' }}>
+                   টাইমস
+                 </span>
+
                </div>
                
                {/* স্লোগান (শুধুমাত্র পিসিতে দেখাবে) */}
-               <span className="hidden md:block text-[14.5px] font-bold text-gray-600 tracking-[0.02em] mt-1 pl-1">
+               <span className="hidden md:block text-[14px] font-bold text-gray-600 tracking-wide mt-1 text-center">
                  সত্য ও সাহসের প্রতিচ্ছবি
                </span>
              </a>
