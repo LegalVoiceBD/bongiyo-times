@@ -76,7 +76,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const hasyroshNews = await fetchDirectCategory('হাস্যরস', 4);
   const religionNews = await fetchDirectCategory('ধর্ম', 8);
 
-  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস"];
+  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্র প্রযুক্তি", "ফিচার", "হাস্যরস"];
 
   return (
     <div className="min-h-screen bg-white text-[#333] tracking-tight">
@@ -282,8 +282,9 @@ export default async function Home({ searchParams }: { searchParams: { category?
                  )}
               </div>
               <div className="hidden md:block col-span-1">
-                 <div className="w-[300px] h-[600px] bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 text-sm sticky top-20">
-                    <span>Sidebar Ad (300x600)</span>
+                 {/* Google AdSense Space */}
+                 <div className="w-full min-h-[600px] flex items-center justify-center bg-gray-50 border border-gray-200 rounded-sm sticky top-20">
+                    <span className="text-sm font-bold text-gray-400">বিজ্ঞাপন</span>
                  </div>
               </div>
            </div>
@@ -335,6 +336,51 @@ export default async function Home({ searchParams }: { searchParams: { category?
                  </div>
                  <ClientTabs latestList={allNews.slice(0, 5)} popularList={allNews.slice(5, 10)} />
               </div>
+            </div>
+
+            {/* বাংলাদেশ ক্যাটাগরি - প্রথম আলোর মতো লেআউট */}
+            <div className="mb-10 border-b border-gray-300 pb-8">
+               <div className="flex items-center mb-5 border-b-[2px] border-gray-200 pb-2">
+                  <a href="/?category=বাংলাদেশ" className="text-[22px] font-bold text-gray-900 hover:text-[#104f96]">বাংলাদেশ</a>
+               </div>
+
+               {/* আমার এলাকার খবর - ফিল্টার (Prothom Alo Style) */}
+               <div className="bg-[#f4f7fc] border border-[#e2e8f0] p-4 sm:p-5 rounded-sm mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                     <h3 className="text-[18px] font-bold text-[#104f96]">আমার এলাকার খবর</h3>
+                  </div>
+                  <LocationFilter layout="horizontal" />
+               </div>
+
+               {/* নিউজ গ্রিড */}
+               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                  {bdNews.length === 0 ? (
+                     <div className="text-gray-400 text-center py-10 col-span-4">খবর আপডেট হচ্ছে...</div>
+                  ) : (
+                     <>
+                        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                           {bdNews.slice(0, 6).map((news) => (
+                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col">
+                                 <div className="overflow-hidden mb-3">
+                                    <SafeImage src={news.image_url} alt={news.title} className="w-full h-[150px] object-cover group-hover:scale-105 transition duration-300 border border-gray-100" />
+                                 </div>
+                                 <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-[#104f96] leading-snug">{news.title}</h3>
+                                 <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
+                              </a>
+                           ))}
+                        </div>
+                        <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-gray-200 pt-5 lg:pt-0 lg:pl-6 flex flex-col gap-5">
+                           {bdNews.slice(6, 10).map((news) => (
+                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
+                                 <h3 className="text-[16px] font-bold text-gray-900 group-hover:text-[#104f96] leading-snug">{news.title}</h3>
+                                 <p className="text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
+                              </a>
+                           ))}
+                        </div>
+                     </>
+                  )}
+               </div>
             </div>
 
             {/* আন্তর্জাতিক ও আইন-আদালত (৭টি করে নিউজ) */}
@@ -832,7 +878,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
       {/* Footer Section */}
       <footer className="bg-white border-t-4 border-red-700 mt-12 pt-8 pb-6 text-black text-center shadow-inner">
         <div className="max-w-[1200px] mx-auto px-4">
-          
           <div className="flex flex-wrap justify-center items-center gap-3 md:gap-5 text-[15px] md:text-[17px] font-bold mb-6 border-b border-gray-300 pb-4">
              <a href="/" className="hover:text-red-700 transition">প্রচ্ছদ</a> <span className="text-gray-300">|</span>
              <a href="/privacy" className="hover:text-red-700 transition">গোপনীয়তার নীতি</a> <span className="text-gray-300">|</span>
@@ -840,23 +885,18 @@ export default async function Home({ searchParams }: { searchParams: { category?
              <a href="/contact" className="hover:text-red-700 transition text-[#104f96]">বিজ্ঞাপন</a> <span className="text-gray-300">|</span>
              <a href="/contact" className="hover:text-red-700 transition">যোগাযোগ</a>
           </div>
-
           <div className="mb-6 space-y-2">
-             <p className="text-[18px] font-bold text-gray-900">
-               সম্পাদক ও প্রকাশক : অ্যাডভোকেট মো: আজাদুর রহমান
-             </p>
+             <p className="text-[18px] font-bold text-gray-900">সম্পাদক ও প্রকাশক : অ্যাডভোকেট মো: আজাদুর রহমান</p>
              <p className="text-[15px] text-gray-700 font-bold mt-1">
                মোবাইল: <a href="tel:09696790279" className="text-red-700 hover:underline">০৯৬৯৬ ৭৯০২৭৯</a> <span className="mx-2 text-gray-300">|</span> ইমেইল: <a href="mailto:bongiyotimes@gmail.com" className="hover:underline text-[#104f96]">bongiyotimes@gmail.com</a>
              </p>
           </div>
-
           <div className="border-t border-gray-300 pt-5">
              <p className="text-sm md:text-[16px] leading-relaxed text-gray-800 font-medium max-w-4xl mx-auto mb-3">
                বাংলাদেশ ও বিশ্বের সকল খবর, ব্রেকিং নিউজ, লাইভ নিউজ, রাজনীতি, বাণিজ্য, খেলা, বিনোদনসহ সকল সর্বশেষ সংবাদ সবার আগে পড়তে ক্লিক করুন বঙ্গীয় টাইমস ডট কম।
              </p>
              <p className="text-sm text-gray-500 font-bold">&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
           </div>
-          
         </div>
       </footer>
     </div>
