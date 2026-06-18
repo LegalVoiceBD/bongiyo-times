@@ -4,6 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* পুরো সাইটে জোরপূর্বক কালপুরুষ ফন্ট বসানো হলো */
 body {
   font-family: 'Kalpurush', Arial, sans-serif !important;
   background-color: #ffffff;
