@@ -243,38 +243,85 @@ export default async function Home({ searchParams }: { searchParams: { category?
               </div>
             </div>
 
-            {/* বাংলাদেশ */}
-            <div className="mb-8 border-b border-gray-300 pb-8">
-               <div className="bg-[#f2f6fa] rounded-md overflow-hidden shadow-sm border border-[#e2e8f0] min-h-[300px]">
-                  <div className="bg-[#e4ebf3] px-5 py-3 border-b border-[#d1dce7]">
-                     <a href="/?category=বাংলাদেশ" className="text-2xl font-extrabold text-[#1e3a8a] hover:text-blue-600 flex items-center gap-2">
-                        <span className="bg-red-600 text-white px-3 py-1 rounded text-base shadow-sm">বাংলাদেশ</span> এর খবর ❯
-                     </a>
+         {/* বাংলাদেশ ক্যাটাগরি - প্রথম আলোর মতো লেআউট */}
+            <div className="mb-10 border-b border-gray-300 pb-8">
+               <div className="flex items-center mb-5 border-b-[2px] border-gray-200 pb-2">
+                  <a href="/?category=বাংলাদেশ" className="text-[22px] font-bold text-gray-900 hover:text-[#104f96]">বাংলাদেশ</a>
+               </div>
+
+               {/* আমার এলাকার খবর - ফিল্টার (Prothom Alo Style) */}
+               <div className="bg-[#f4f7fc] border border-[#e2e8f0] p-4 sm:p-5 rounded-sm mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                     <h3 className="text-[18px] font-bold text-[#104f96]">আমার এলাকার খবর</h3>
                   </div>
-                  <div className="p-5">
-                     {bdNews.length === 0 ? (
-                        <div className="text-gray-400 text-center py-10">খবর আপডেট হচ্ছে...</div>
-                     ) : (
-                        <>
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                              {bdNews.slice(0, 2).map((news) => (
-                                 <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block bg-white border border-[#e2e8f0] p-4 rounded-sm hover:shadow-md transition">
-                                    <SafeImage src={news.image_url} alt={news.title} className="w-full h-[220px] md:h-[260px] object-cover mb-4 rounded-sm" />
-                                    <h3 className="text-[22px] lg:text-[24px] font-bold group-hover:text-blue-700 leading-snug">{news.title}</h3>
-                                 </a>
-                              ))}
-                           </div>
-                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2 border-t border-[#d1dce7]">
-                              {bdNews.slice(2, 5).map((news) => (
-                                 <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block text-center sm:text-left">
-                                    <SafeImage src={news.image_url} alt={news.title} className="w-full h-[160px] sm:h-[130px] object-cover mb-3 rounded-sm border border-gray-200" />
-                                    <h3 className="text-lg lg:text-[19px] font-bold group-hover:text-blue-700 leading-snug">{news.title}</h3>
-                                 </a>
-                              ))}
-                           </div>
-                        </>
-                     )}
-                  </div>
+                  
+                  {/* Form: name="q" ব্যবহার করা হয়েছে যাতে এটি আপনার ডিফল্ট সার্চ লজিকের সাথে অটোমেটিক কাজ করে! */}
+                  <form action="/" method="GET" className="flex flex-col md:flex-row gap-3">
+                     <input type="hidden" name="category" value="বাংলাদেশ" />
+                     
+                     <select name="q" className="flex-1 border border-[#cbd5e1] p-2.5 text-[15px] font-medium rounded-sm focus:outline-none focus:border-[#104f96] bg-white cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5%22%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_10px_center]">
+                        <option value="">বিভাগ</option>
+                        <option value="ঢাকা">ঢাকা বিভাগ</option>
+                        <option value="চট্টগ্রাম">চট্টগ্রাম বিভাগ</option>
+                        <option value="রাজশাহী">রাজশাহী বিভাগ</option>
+                        <option value="খুলনা">খুলনা বিভাগ</option>
+                        <option value="বরিশাল">বরিশাল বিভাগ</option>
+                        <option value="সিলেট">সিলেট বিভাগ</option>
+                        <option value="রংপুর">রংপুর বিভাগ</option>
+                        <option value="ময়মনসিংহ">ময়মনসিংহ বিভাগ</option>
+                     </select>
+                     
+                     <select className="flex-1 border border-[#cbd5e1] p-2.5 text-[15px] font-medium rounded-sm bg-white focus:outline-none appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5%22%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_10px_center]">
+                        <option value="">জেলা</option>
+                        <option value="গাজীপুর">গাজীপুর</option>
+                        <option value="নারায়ণগঞ্জ">নারায়ণগঞ্জ</option>
+                        <option value="বগুড়া">বগুড়া</option>
+                        <option value="কুমিল্লা">কুমিল্লা</option>
+                        <option value="যশোর">যশোর</option>
+                        {/* প্রয়োজনে আরও জেলার নাম এখানে যোগ করতে পারবেন */}
+                     </select>
+                     
+                     <select className="flex-1 border border-[#cbd5e1] p-2.5 text-[15px] font-medium rounded-sm bg-white focus:outline-none appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5%22%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_10px_center]">
+                        <option value="">উপজেলা</option>
+                        <option value="সদর">সদর উপজেলা</option>
+                        {/* প্রয়োজনে আরও উপজেলার নাম এখানে যোগ করতে পারবেন */}
+                     </select>
+                     
+                     <button type="submit" className="bg-[#104f96] hover:bg-[#0c3e78] text-white font-bold py-2.5 px-6 rounded-sm transition flex items-center justify-center gap-2 shrink-0">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> 
+                        খুঁজুন
+                     </button>
+                  </form>
+               </div>
+
+               {/* নিউজ গ্রিড */}
+               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                  {bdNews.length === 0 ? (
+                     <div className="text-gray-400 text-center py-10 col-span-4">খবর আপডেট হচ্ছে...</div>
+                  ) : (
+                     <>
+                        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                           {bdNews.slice(0, 6).map((news) => (
+                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col">
+                                 <div className="overflow-hidden mb-3">
+                                    <SafeImage src={news.image_url} alt={news.title} className="w-full h-[150px] object-cover group-hover:scale-105 transition duration-300 border border-gray-100" />
+                                 </div>
+                                 <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-[#104f96] leading-snug">{news.title}</h3>
+                                 <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
+                              </a>
+                           ))}
+                        </div>
+                        <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-gray-200 pt-5 lg:pt-0 lg:pl-6 flex flex-col gap-5">
+                           {bdNews.slice(6, 10).map((news) => (
+                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
+                                 <h3 className="text-[16px] font-bold text-gray-900 group-hover:text-[#104f96] leading-snug">{news.title}</h3>
+                                 <p className="text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
+                              </a>
+                           ))}
+                        </div>
+                     </>
+                  )}
                </div>
             </div>
 
