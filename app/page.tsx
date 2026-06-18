@@ -89,40 +89,51 @@ export default async function Home({ searchParams }: { searchParams: { category?
             {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
           </div>
 
-          {/* লোগো, স্লোগান ও তারিখ সেকশন */}
+      {/* লোগো, স্লোগান ও তারিখ সেকশন */}
           <div className="shrink-0 flex items-center md:gap-4">
              <a href="/" className="group flex flex-col justify-center">
-               <div className="relative inline-block mt-2 md:mt-3">
+               
+               {/* ফ্লেক্সবক্সের মাধ্যমে শব্দ দুটি আলাদা করে মাঝে সূর্য বসানো হয়েছে */}
+               <div className="relative flex items-center mt-2 md:mt-3">
                  
-                 {/* প্রথম আলোর স্টাইলে কাস্টম ঘড়ি-সূর্য (Sun-Clock) লোগো */}
-                 <div className="absolute -top-[14px] md:-top-[18px] left-[38%] md:left-[41%] w-[24px] h-[24px] md:w-[30px] md:h-[30px] bg-[#ef3324] rounded-full flex items-center justify-center z-0">
-                    {/* সূর্যের ৫টি রশ্মি (Sun Rays) */}
-                    <div className="absolute -top-[4px] md:-top-[5px] w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rounded-t-full"></div>
-                    <div className="absolute -top-[2px] md:-top-[3px] -right-[4px] md:-right-[5px] w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[45deg] rounded-t-full"></div>
-                    <div className="absolute -top-[2px] md:-top-[3px] -left-[4px] md:-left-[5px] w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[-45deg] rounded-t-full"></div>
-                    <div className="absolute top-[4px] md:top-[5px] -right-[6px] md:-right-[7px] w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[75deg] rounded-t-full"></div>
-                    <div className="absolute top-[4px] md:top-[5px] -left-[6px] md:-left-[7px] w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rotate-[-75deg] rounded-t-full"></div>
-                    
-                    {/* ঘড়ির সাদা কাঁটা (White Clock Hands) */}
-                    <div className="absolute w-[3px] h-[3px] md:w-[4px] md:h-[4px] bg-white rounded-full z-10"></div>
-                    <div className="absolute w-[1.5px] md:w-[2px] h-[40%] bg-white origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite] z-10"></div>
-                    <div className="absolute w-[2px] md:w-[2.5px] h-[25%] bg-white origin-bottom bottom-1/2 rounded-t-full rotate-[45deg] animate-[spin_24s_linear_infinite] z-10"></div>
+                 {/* 'বঙ্গীয়' লেখা */}
+                 <h1 className="text-[38px] md:text-[48px] font-extrabold text-[#111] leading-none tracking-tight relative z-10"
+                     style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
+                    বঙ্গীয়
+                 </h1>
+
+                 {/* মাঝখানের কাস্টম ঘড়ি-সূর্য (Sun-Clock) লোগো যা দুই অক্ষরকেই স্পর্শ করবে */}
+                 <div className="relative flex items-center justify-center w-[4px] md:w-[6px] h-full z-0 mx-1.5 md:mx-2">
+                    <div className="absolute -top-[16px] md:-top-[20px] w-[26px] h-[26px] md:w-[32px] md:h-[32px] bg-[#ef3324] rounded-full flex items-center justify-center">
+                       {/* সূর্যের ৫টি রশ্মি (Sun Rays) */}
+                       <div className="absolute -top-[5px] md:-top-[6px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rounded-t-full"></div>
+                       <div className="absolute -top-[3px] md:-top-[4px] -right-[5px] md:-right-[6px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[45deg] rounded-t-full"></div>
+                       <div className="absolute -top-[3px] md:-top-[4px] -left-[5px] md:-left-[6px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[-45deg] rounded-t-full"></div>
+                       <div className="absolute top-[4px] md:top-[6px] -right-[7px] md:-right-[9px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[75deg] rounded-t-full"></div>
+                       <div className="absolute top-[4px] md:top-[6px] -left-[7px] md:-left-[9px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[-75deg] rounded-t-full"></div>
+                       
+                       {/* ঘড়ির সাদা কাঁটা (White Clock Hands) */}
+                       <div className="absolute w-[3px] h-[3px] md:w-[4px] md:h-[4px] bg-white rounded-full z-10"></div>
+                       <div className="absolute w-[1.5px] md:w-[2px] h-[40%] bg-white origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite] z-10"></div>
+                       <div className="absolute w-[2px] md:w-[2.5px] h-[25%] bg-white origin-bottom bottom-1/2 rounded-t-full rotate-[45deg] animate-[spin_24s_linear_infinite] z-10"></div>
+                    </div>
                  </div>
 
-                 {/* বঙ্গীয় টাইমস লেখা (সাদা টেক্সট শ্যাডো সহ, যাতে লোগোর ওপর অক্ষরগুলো স্পষ্ট ভাসে) */}
-                 <h1 className="relative text-[36px] md:text-[44px] font-black text-[#111] leading-none tracking-tighter z-10">
-                    <span style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff' }}>বঙ্গীয় টাইমস</span>
+                 {/* 'টাইমস' লেখা */}
+                 <h1 className="text-[38px] md:text-[48px] font-extrabold text-[#111] leading-none tracking-tight relative z-10"
+                     style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
+                    টাইমস
                  </h1>
                </div>
                
                {/* স্লোগান (শুধুমাত্র পিসিতে দেখাবে) */}
-               <span className="hidden md:block text-[14px] font-bold text-gray-600 tracking-wide mt-1 pl-1">
+               <span className="hidden md:block text-[14.5px] font-bold text-gray-600 tracking-[0.02em] mt-1 pl-1">
                  সত্য ও সাহসের প্রতিচ্ছবি
                </span>
              </a>
              
              {/* তারিখ (প্রথম আলোর মতো দুই লাইনে, শুধুমাত্র পিসিতে দেখাবে) */}
-             <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-4 justify-center h-12 mt-1">
+             <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-3 justify-center h-12 mt-1">
                 <span className="text-[13.5px] text-gray-600 font-bold leading-tight">
                    {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}
                 </span>
@@ -131,7 +142,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                 </span>
              </div>
           </div>
-          
           <div className="hidden lg:flex divide-x divide-gray-300">
              {headerNews.map((news, index) => (
                 <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={index} className="flex gap-3 px-4 w-[250px] group">
