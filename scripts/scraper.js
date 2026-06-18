@@ -8,7 +8,7 @@ async function runBot() {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
-
+/* // ভবিষ্যতে ডাটাবেস ফুল হওয়ার কাছাকাছি এলে এই কমেন্ট উঠিয়ে চালু করতে পারবেন:
   // ৬ মাসের পুরোনো অটো-স্ক্র্যাপ খবর ডিলিট
   try {
     const sixMonthsAgo = new Date();
@@ -17,7 +17,7 @@ async function runBot() {
   } catch (err) {
     console.error("Cleanup error:", err.message);
   }
-
+*/
   const allSources = [
     // --- বাংলাদেশ ---
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
@@ -98,7 +98,7 @@ async function runBot() {
     { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/info-tech', domain: 'kalerkantho.com', defaultCategory: 'প্রযুক্তি' },
     { name: 'Dhaka Post', url: 'https://www.dhakapost.com/technology', domain: 'dhakapost.com', defaultCategory: 'প্রযুক্তি' },
     { name: 'Jagonews24', url: 'https://www.jagonews24.com/technology', domain: 'jagonews24.com', defaultCategory: 'প্রযুক্তি' },
-    
+     { name: 'UNB', url: 'https://unb.com.bd/bangla/category/7/বিজ্ঞান-ও-প্রযুক্তি', domain: 'unb.com.bd', defaultCategory: 'প্রযুক্তি' },
     // --- ধর্ম ---
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/religion', domain: 'prothomalo.com', defaultCategory: 'ধর্ম' },
     { name: 'Jugantor', url: 'https://www.jugantor.com/islam-and-life', domain: 'jugantor.com', defaultCategory: 'ধর্ম' },
@@ -112,13 +112,16 @@ async function runBot() {
     
     // --- জীবনযাপন ---
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/lifestyle', domain: 'prothomalo.com', defaultCategory: 'জীবনযাপন' },
-    
+     { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/life', domain: 'bd-pratidin.com', defaultCategory: 'জীবনযাপন' },
+     { name: 'Jugantor', url: 'https://www.jugantor.com/lifestyle', domain: 'jugantor.com', defaultCategory: 'জীবনযাপন' },
+     { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/lifestyle', domain: 'ittefaq.com.bd', defaultCategory: 'জীবনযাপন' },
+ { name: 'UNB', url: 'https://unb.com.bd/bangla/category/9/লাইফস্টাইল', domain: 'unb.com.bd', defaultCategory: 'জীবনযাপন' },
     // --- চাকরি ---
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/chakri', domain: 'prothomalo.com', defaultCategory: 'চাকরি' },
     { name: 'Manobkantha', url: 'https://manobkantha.com.bd/articlelist/41/job', domain: 'manobkantha.com.bd', defaultCategory: 'চাকরি' },
     { name: 'Kalbela', url: 'https://www.kalbela.com/job-news', domain: 'kalbela.com', defaultCategory: 'চাকরি' },
     { name: 'Shomoyer Alo', url: 'https://www.shomoyeralo.com/menu/296', domain: 'shomoyeralo.com', defaultCategory: 'চাকরি' },
-    
+    { name: 'Jugantor', url: 'https://www.jugantor.com/job-seek', domain: 'jugantor.com', defaultCategory: 'চাকরি' },
     // --- রাজনীতি ---
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/politics', domain: 'prothomalo.com', defaultCategory: 'রাজনীতি' },
     { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/current-politics', domain: 'bd-pratidin.com', defaultCategory: 'রাজনীতি' },
