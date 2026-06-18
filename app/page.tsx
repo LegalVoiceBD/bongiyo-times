@@ -61,7 +61,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
   };
 
   const bdNews = await fetchDirectCategory('বাংলাদেশ', 8);
-  // ৭টি করে নিউজ ফেচ করা হচ্ছে
   const intlNews = await fetchDirectCategory('আন্তর্জাতিক', 7);
   const politicsNews = await fetchDirectCategory('রাজনীতি', 7); 
   const opinionNews = await fetchDirectCategory('মতামত', 5); 
@@ -69,7 +68,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const businessNews = await fetchDirectCategory('বাণিজ্য', 4); 
   const entertainmentNews = await fetchDirectCategory('বিনোদন', 7); 
   const lawNews = await fetchDirectCategory('আইন-আদালত', 7);
-  
   const lifestyleNews = await fetchDirectCategory('জীবনযাপন', 4);
   const eduNews = await fetchDirectCategory('শিক্ষা', 4);
   const jobsNews = await fetchDirectCategory('চাকরি', 4);
@@ -129,33 +127,46 @@ export default async function Home({ searchParams }: { searchParams: { category?
           </div>
         </div>
 
+        {/* Navigation Bar */}
         <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
           <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12 relative overflow-hidden">
+            
+            {/* মেনু লিংকস */}
             <div className="flex-1 min-w-0 h-full flex items-center pr-4">
-              <nav className="flex items-center gap-5 md:gap-6 lg:gap-7 overflow-x-auto text-[17px] lg:text-[19px] font-bold w-full pb-1 custom-scrollbar tracking-wide">
-   <a href="/" className="h-12 flex items-center transition-colors hover:text-blue-600 whitespace-nowrap shrink-0">
-      প্রচ্ছদ
-   </a>
-   {menuCategories.map((cat, index) => (
-     <a 
-       key={index} 
-       href={`/?category=${cat}`} 
-       className={`hover:text-blue-600 whitespace-nowrap shrink-0 ${activeCategory === cat ? 'text-blue-600 border-b-[3px] border-blue-600 h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}
-     >
-        {cat}
-     </a>
-   ))}
-</nav>
+               <nav className="flex items-center gap-5 md:gap-6 lg:gap-7 overflow-x-auto text-[17px] lg:text-[19px] font-bold text-black w-full pb-1 custom-scrollbar tracking-wide">
+                 <a href="/" className="h-12 flex items-center transition-colors hover:text-[#104f96] whitespace-nowrap shrink-0">প্রচ্ছদ</a>
+                 {menuCategories.map((cat, index) => (
+                   <a 
+                     key={index} 
+                     href={`/?category=${cat}`} 
+                     className={`hover:text-[#104f96] whitespace-nowrap shrink-0 ${typeof activeCategory !== 'undefined' && activeCategory === cat ? 'text-[#104f96] border-b-[3px] border-[#104f96] h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}
+                   >
+                      {cat}
+                   </a>
+                 ))}
+               </nav>
             </div>
             
-            <div className="hidden md:flex items-center gap-3 lg:gap-4 border-l border-gray-300 pl-4 h-full text-[14px] lg:text-[15px] font-bold shrink-0 bg-white z-10">
-               <form action="/" method="GET" className="flex items-center gap-2">
-                  <input type="text" name="q" defaultValue={searchQuery} placeholder="খবর খুঁজুন..." className="border border-gray-300 px-2 py-1 text-sm rounded outline-none focus:border-blue-500 w-28 lg:w-32 font-normal" required/>
-                  <button type="submit" className="hover:text-blue-600 flex items-center gap-1 cursor-pointer"><span className="text-lg">🔍</span> খুঁজুন</button>
+            {/* প্রফেশনাল সার্চ অপশন */}
+            <div className="hidden md:flex items-center border-l border-gray-200 pl-5 h-full shrink-0 bg-white z-10">
+               <form action="/" method="GET" className="relative flex items-center group">
+                  <input 
+                     type="text" 
+                     name="q" 
+                     defaultValue={typeof searchQuery !== 'undefined' ? searchQuery : ''} 
+                     placeholder="খবর খুঁজুন..." 
+                     className="w-48 lg:w-64 pl-4 pr-10 py-1.5 bg-[#f4f7fc] border border-transparent focus:border-[#104f96] focus:bg-white text-[15px] rounded-full outline-none transition-all duration-300 placeholder-gray-500 font-normal text-gray-800 shadow-inner" 
+                     required
+                  />
+                  <button type="submit" className="absolute right-3 text-gray-400 group-hover:text-[#104f96] focus:text-[#104f96] transition-colors flex items-center justify-center cursor-pointer">
+                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                     </svg>
+                  </button>
                </form>
-               <div className="border-l border-gray-300 h-6 mx-1"></div>
-               <a href="https://www.bongiyotimes.com/bongiyo-secret-panel" className="hover:text-blue-600 flex items-center gap-1 transition-colors"><span className="text-lg">👤</span> Login</a>
             </div>
+            
           </div>
         </div>
       </header>
@@ -193,11 +204,10 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   )}
                </div>
                
-             {/* Google AdSense Space */}
+               {/* Google AdSense Space */}
                <div className="lg:col-span-3 hidden lg:block">
                   <div className="w-full min-h-[400px] flex items-center justify-center bg-gray-50 border border-gray-200 rounded-sm">
                      <span className="text-sm font-bold text-gray-400">বিজ্ঞাপন</span>
-                     {/* অ্যাডসেন্স অটো-অ্যাড এখানে স্বয়ংক্রিয়ভাবে শো করবে */}
                   </div>
                </div>
             </div>
@@ -262,7 +272,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                        {allNews.map(news => (
                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-4">
                              <div className="flex-1">
-                                <h3 className="text-xl font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
+                                <h3 className="text-xl font-bold group-hover:text-[#104f96] leading-snug">{news.title}</h3>
                                 <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
                              </div>
                              <SafeImage src={news.image_url} alt={news.title} className="w-[100px] h-[75px] sm:w-[120px] sm:h-[80px] object-cover rounded-sm" />
@@ -319,57 +329,12 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
               {/* ডানপাশের সেকশন (সর্বশেষ/জনপ্রিয় এবং বিজ্ঞাপন) */}
               <div className="order-3 lg:order-3 lg:col-span-3">
-                 <div className="w-full h-[250px] bg-gray-100 border border-gray-200 flex flex-col justify-center items-center text-gray-400 mb-6">
-                    <span className="text-xs">বিজ্ঞাপন</span>
-                    <span className="text-lg text-black mt-2 font-bold text-center px-4">KONKA ফ্রিজ<br/>১৪০টিরও বেশি দেশে</span>
+                 {/* Google AdSense Space */}
+                 <div className="w-full min-h-[250px] bg-gray-50 border border-gray-200 flex flex-col justify-center items-center rounded-sm mb-6">
+                    <span className="text-sm font-bold text-gray-400">বিজ্ঞাপন</span>
                  </div>
                  <ClientTabs latestList={allNews.slice(0, 5)} popularList={allNews.slice(5, 10)} />
               </div>
-            </div>
-
-            {/* বাংলাদেশ ক্যাটাগরি - প্রথম আলোর মতো লেআউট */}
-            <div className="mb-10 border-b border-gray-300 pb-8">
-               <div className="flex items-center mb-5 border-b-[2px] border-gray-200 pb-2">
-                  <a href="/?category=বাংলাদেশ" className="text-[22px] font-bold text-gray-900 hover:text-[#104f96]">বাংলাদেশ</a>
-               </div>
-
-               {/* আমার এলাকার খবর - ফিল্টার (Prothom Alo Style) */}
-               <div className="bg-[#f4f7fc] border border-[#e2e8f0] p-4 sm:p-5 rounded-sm mb-6">
-                  <div className="flex items-center gap-2 mb-4">
-                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                     <h3 className="text-[18px] font-bold text-[#104f96]">আমার এলাকার খবর</h3>
-                  </div>
-                  <LocationFilter layout="horizontal" />
-               </div>
-
-               {/* নিউজ গ্রিড */}
-               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  {bdNews.length === 0 ? (
-                     <div className="text-gray-400 text-center py-10 col-span-4">খবর আপডেট হচ্ছে...</div>
-                  ) : (
-                     <>
-                        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
-                           {bdNews.slice(0, 6).map((news) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col">
-                                 <div className="overflow-hidden mb-3">
-                                    <SafeImage src={news.image_url} alt={news.title} className="w-full h-[150px] object-cover group-hover:scale-105 transition duration-300 border border-gray-100" />
-                                 </div>
-                                 <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-[#104f96] leading-snug">{news.title}</h3>
-                                 <p className="text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
-                              </a>
-                           ))}
-                        </div>
-                        <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-gray-200 pt-5 lg:pt-0 lg:pl-6 flex flex-col gap-5">
-                           {bdNews.slice(6, 10).map((news) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
-                                 <h3 className="text-[16px] font-bold text-gray-900 group-hover:text-[#104f96] leading-snug">{news.title}</h3>
-                                 <p className="text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
-                              </a>
-                           ))}
-                        </div>
-                     </>
-                  )}
-               </div>
             </div>
 
             {/* আন্তর্জাতিক ও আইন-আদালত (৭টি করে নিউজ) */}
@@ -864,30 +829,27 @@ export default async function Home({ searchParams }: { searchParams: { category?
         )}
       </main>
 
-      {/* Footer Section (Image Style) */}
+      {/* Footer Section */}
       <footer className="bg-white border-t-4 border-red-700 mt-12 pt-8 pb-6 text-black text-center shadow-inner">
         <div className="max-w-[1200px] mx-auto px-4">
           
-          {/* Horizontal Links */}
           <div className="flex flex-wrap justify-center items-center gap-3 md:gap-5 text-[15px] md:text-[17px] font-bold mb-6 border-b border-gray-300 pb-4">
              <a href="/" className="hover:text-red-700 transition">প্রচ্ছদ</a> <span className="text-gray-300">|</span>
              <a href="/privacy" className="hover:text-red-700 transition">গোপনীয়তার নীতি</a> <span className="text-gray-300">|</span>
              <a href="/terms" className="hover:text-red-700 transition">শর্তাবলি</a> <span className="text-gray-300">|</span>
-             <a href="/contact" className="hover:text-red-700 transition text-blue-600">বিজ্ঞাপন</a> <span className="text-gray-300">|</span>
+             <a href="/contact" className="hover:text-red-700 transition text-[#104f96]">বিজ্ঞাপন</a> <span className="text-gray-300">|</span>
              <a href="/contact" className="hover:text-red-700 transition">যোগাযোগ</a>
           </div>
 
-          {/* Editor and Address Info */}
           <div className="mb-6 space-y-2">
              <p className="text-[18px] font-bold text-gray-900">
                সম্পাদক ও প্রকাশক : অ্যাডভোকেট মো: আজাদুর রহমান
              </p>
              <p className="text-[15px] text-gray-700 font-bold mt-1">
-               মোবাইল: <a href="tel:09696790279" className="text-red-700 hover:underline">০৯৬৯৬ ৭৯০২৭৯</a> <span className="mx-2 text-gray-300">|</span> ইমেইল: <a href="mailto:bongiyotimes@gmail.com" className="hover:underline text-blue-600">bongiyotimes@gmail.com</a>
+               মোবাইল: <a href="tel:09696790279" className="text-red-700 hover:underline">০৯৬৯৬ ৭৯০২৭৯</a> <span className="mx-2 text-gray-300">|</span> ইমেইল: <a href="mailto:bongiyotimes@gmail.com" className="hover:underline text-[#104f96]">bongiyotimes@gmail.com</a>
              </p>
           </div>
 
-          {/* Description & Copyright */}
           <div className="border-t border-gray-300 pt-5">
              <p className="text-sm md:text-[16px] leading-relaxed text-gray-800 font-medium max-w-4xl mx-auto mb-3">
                বাংলাদেশ ও বিশ্বের সকল খবর, ব্রেকিং নিউজ, লাইভ নিউজ, রাজনীতি, বাণিজ্য, খেলা, বিনোদনসহ সকল সর্বশেষ সংবাদ সবার আগে পড়তে ক্লিক করুন বঙ্গীয় টাইমস ডট কম।
