@@ -132,14 +132,20 @@ export default async function Home({ searchParams }: { searchParams: { category?
         <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
           <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12 relative overflow-hidden">
             <div className="flex-1 min-w-0 h-full flex items-center pr-4">
-               <nav className="flex items-center gap-4 lg:gap-5 overflow-x-auto text-[15px] font-bold text-black w-full pb-1 custom-scrollbar">
-                 <a href="/" className="h-11 flex items-center transition-colors hover:text-blue-600 whitespace-nowrap shrink-0">প্রচ্ছদ</a>
-                 {menuCategories.map((cat, index) => (
-                   <a key={index} href={`/?category=${cat}`} className={`hover:text-blue-600 whitespace-nowrap shrink-0 ${activeCategory === cat ? 'text-blue-600 border-b-[3px] border-blue-600 h-11 flex items-center' : 'h-11 flex items-center transition-colors'}`}>
-                      {cat}
-                   </a>
-                 ))}
-               </nav>
+              <nav className="flex items-center gap-5 md:gap-6 lg:gap-7 overflow-x-auto text-[17px] lg:text-[19px] font-bold w-full pb-1 custom-scrollbar tracking-wide">
+   <a href="/" className="h-12 flex items-center transition-colors hover:text-blue-600 whitespace-nowrap shrink-0">
+      প্রচ্ছদ
+   </a>
+   {menuCategories.map((cat, index) => (
+     <a 
+       key={index} 
+       href={`/?category=${cat}`} 
+       className={`hover:text-blue-600 whitespace-nowrap shrink-0 ${activeCategory === cat ? 'text-blue-600 border-b-[3px] border-blue-600 h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}
+     >
+        {cat}
+     </a>
+   ))}
+</nav>
             </div>
             
             <div className="hidden md:flex items-center gap-3 lg:gap-4 border-l border-gray-300 pl-4 h-full text-[14px] lg:text-[15px] font-bold shrink-0 bg-white z-10">
