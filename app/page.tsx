@@ -81,49 +81,47 @@ export default async function Home({ searchParams }: { searchParams: { category?
   return (
     <div className="min-h-screen bg-white text-[#333] tracking-tight">
       
-   {/* Header Section */}
-      <header className="bg-white">
-        <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-          
-          {/* Mobile Date */}
-          <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-5px] font-bold">
-            {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
-          </div>
-
-          {/* লোগো, স্লোগান ও তারিখ সেকশন */}
-          <div className="shrink-0 flex items-center md:gap-4">
-             <a href="/" className="group flex flex-col justify-center">
-               
-              {/* কাস্টমাইজড লোগো সেকশন - লাল বর্ডার ও সাদা ব্যাকগ্রাউন্ডের ঘড়ি */}
-<div className="flex items-end justify-center mt-2 md:mt-3">
-  
-  {/* প্রথম শব্দ: বঙ্গীয় */}
-  <span className="text-[38px] md:text-[48px] font-black text-[#111] leading-none tracking-tighter z-10 relative" style={{ textShadow: '2px 0 0 #fff' }}>
-    বঙ্গীয়
-  </span>
-
-  {/* মাঝখানের ঘড়ি (লাল বর্ডার, সাদা ব্যাকগ্রাউন্ড, লাল কাঁটা) */}
-  <div className="relative -mx-[2px] md:-mx-[4px] mb-[18px] md:mb-[22px] z-20">
-    <div className="w-[26px] h-[26px] md:w-[32px] md:h-[32px] bg-white border-[2.5px] md:border-[3px] border-[#ef3324] rounded-full flex items-center justify-center relative shadow-sm">
-      
-      {/* ঘড়ির মাঝখানের বিন্দু (Red Center Dot) */}
-      <div className="absolute w-[3px] md:w-[4px] h-[3px] md:h-[4px] bg-[#ef3324] rounded-full z-10"></div>
-      
-      {/* মিনিটের কাঁটা (Red Minute Hand) */}
-      <div className="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-[1.5px] md:w-[2px] h-[35%] bg-[#ef3324] origin-bottom animate-[spin_4s_linear_infinite] z-10 rounded-t-sm"></div>
-      
-      {/* ঘণ্টার কাঁটা (Red Hour Hand) */}
-      <div className="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-[2px] md:w-[2.5px] h-[25%] bg-[#ef3324] origin-bottom rotate-[60deg] animate-[spin_24s_linear_infinite] z-10 rounded-t-sm"></div>
-      
+  {/* Header Section */}
+<header className="bg-white">
+  <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+    
+    {/* Mobile Date */}
+    <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-10px] font-bold">
+      {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
     </div>
-  </div>
 
-  {/* দ্বিতীয় শব্দ: টাইমস */}
-  <span className="text-[38px] md:text-[48px] font-black text-[#111] leading-none tracking-tighter z-10 relative" style={{ textShadow: '-2px 0 0 #fff' }}>
-    টাইমস
-  </span>
-
-</div>
+    {/* লোগো ও তারিখ সেকশন (আপনার দেওয়া আগের স্টাইল) */}
+    <div className="shrink-0 flex items-center">
+       <a href="/" className="group flex flex-col">
+         <h1 className="text-4xl md:text-[42px] font-extrabold text-black flex items-center tracking-tighter">
+           বঙ্গীয়
+           <div className="relative flex items-center justify-center w-[36px] h-[36px] md:w-[44px] md:h-[44px] mx-1">
+             <div className="absolute inset-0 rounded-full border-[2.5px] md:border-[3px] border-red-600"></div>
+             <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute w-[5px] h-[5px] bg-red-600 rounded-full"></div>
+                <div className="absolute w-[2px] h-[35%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite]"></div>
+                <div className="absolute w-[2.5px] h-[25%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_24s_linear_infinite] rotate-[45deg]"></div>
+             </div>
+             <span 
+               className="relative z-10 text-black text-[26px] md:text-[32px] font-black leading-none pt-1"
+               style={{ textShadow: '1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff' }}
+             >
+               টা
+             </span>
+           </div>
+           ইমস
+         </h1>
+         {/* স্লোগান */}
+         <span className="hidden md:block text-[14px] font-bold text-gray-600 tracking-wide mt-1">
+           সত্য ও সাহসের প্রতিচ্ছবি
+         </span>
+       </a>
+       
+       {/* ডেস্কটপ তারিখ */}
+       <span className="hidden md:block text-[14px] text-gray-500 border-l-[2px] border-gray-300 pl-3 ml-3 mt-1 font-bold flex-col justify-center">
+          {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
+       </span>
+    </div>
                {/* স্লোগান (শুধুমাত্র পিসিতে দেখাবে) */}
                <span className="hidden md:block text-[14px] font-bold text-gray-600 tracking-wide mt-1 text-center">
                  সত্য ও সাহসের প্রতিচ্ছবি
