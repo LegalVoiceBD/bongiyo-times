@@ -104,7 +104,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
                  {/* মাঝখানের লাল বৃত্ত (সূর্য-ঘড়ি) */}
                  <div className="relative -mx-[2px] md:-mx-[4px] mb-[18px] md:mb-[22px] z-0">
-                   <div className="w-[26px] h-[26px] md:w-[32px] md:h-[32px] bg-[#ef3324] rounded-full flex items-center justify-center relative">
+                   <div className="w-[26px] h-[26px] md:w-[32px] md:h-[32px] bg-[#0b04d6] rounded-full flex items-center justify-center relative">
                      
                      {/* সূর্যের ৫টি রশ্মি (Sun Rays) */}
                      <div className="absolute -top-[4px] md:-top-[5px] left-1/2 -translate-x-1/2 w-[2px] md:w-[2.5px] h-[4px] md:h-[5px] bg-[#ef3324] rounded-t-sm"></div>
