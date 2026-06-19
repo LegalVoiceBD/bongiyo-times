@@ -81,11 +81,10 @@ export default async function NewsDetail({ params }: { params: { id: string } })
             {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
           </div>
 
-       {/* লোগো, স্লোগান ও তারিখ সেকশন (পরিচ্ছন্ন ডিজাইন এবং 'ট' এর ওপর হাফ-সূর্য ঘড়ি) */}
+      {/* লোগো, স্লোগান ও তারিখ সেকশন ('ট' এর মাত্রার সাথে বাঁকা চাঁদের মতো হাফ-সূর্য এবং স্থির ঘড়ি) */}
           <div className="shrink-0 flex items-center md:gap-4">
              <a href="/" className="group flex flex-col justify-center relative py-1 md:py-2">
 
-               {/* মূল টেক্সট এবং ঘড়ি */}
                <div className="relative z-10 flex items-baseline mt-2 md:mt-3">
                  
                  {/* 'বঙ্গীয়' লেখা (গাঢ় লাল) */}
@@ -94,23 +93,29 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                     বঙ্গীয়
                  </h1>
 
-                 {/* 'টাইমস' এবং ঘড়ির কন্টেইনার */}
+                 {/* 'টাইমস' এবং কাস্টম ঘড়ির কন্টেইনার */}
                  <div className="relative ml-2 md:ml-2.5">
                     
-                    {/* হাফ সূর্য ও ঘড়ি ('ট' এর মাথার ওপর, লেখার পেছনে) */}
-                    <div className="absolute -top-[14px] md:-top-[18px] left-[8px] md:left-[12px] w-[26px] h-[26px] md:w-[32px] md:h-[32px] bg-[#ef3324] rounded-full flex items-center justify-center z-0">
-                       
-                       {/* সূর্যের ওপরের দিকের ৫টি রশ্মি */}
-                       <div className="absolute -top-[5px] md:-top-[6px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rounded-t-full"></div>
-                       <div className="absolute -top-[3px] md:-top-[4px] -right-[6px] md:-right-[7px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[45deg] rounded-t-full"></div>
-                       <div className="absolute -top-[3px] md:-top-[4px] -left-[6px] md:-left-[7px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[-45deg] rounded-t-full"></div>
-                       <div className="absolute top-[4px] md:top-[6px] -right-[7px] md:-right-[9px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[75deg] rounded-t-full"></div>
-                       <div className="absolute top-[4px] md:top-[6px] -left-[7px] md:-left-[9px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[-75deg] rounded-t-full"></div>
-                       
-                       {/* ঘড়ির কাঁটা */}
-                       <div className="absolute w-[3px] h-[3px] md:w-[4px] md:h-[4px] bg-white rounded-full z-10"></div>
-                       <div className="absolute w-[1.5px] md:w-[2px] h-[40%] bg-white origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite] z-10"></div>
-                       <div className="absolute w-[2px] md:w-[2.5px] h-[25%] bg-white origin-bottom bottom-1/2 rounded-t-full rotate-[45deg] animate-[spin_24s_linear_infinite] z-10"></div>
+                    {/* বাঁকা চাঁদের মতো হাফ সূর্য ঘড়ি ('ট' এর মাথার ওপর, লেখার পেছনে, অ্যানিমেশন বন্ধ) */}
+                    <div className="absolute -top-[16px] md:-top-[22px] left-[4px] md:left-[6px] w-[35px] md:w-[42px] z-0 opacity-95">
+                       <svg viewBox="0 0 100 70" className="w-full h-auto drop-shadow-sm">
+                          {/* সূর্যের ৫টি রশ্মি */}
+                          <line x1="20" y1="35" x2="8" y2="25" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
+                          <line x1="35" y1="18" x2="24" y2="6" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
+                          <line x1="50" y1="12" x2="50" y2="0" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
+                          <line x1="65" y1="18" x2="76" y2="6" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
+                          <line x1="80" y1="35" x2="92" y2="25" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
+                          
+                          {/* বাঁকা চাঁদের মতো হাফ-সূর্য বডি (ট এর মাত্রার সাথে ভেতর দিকে কার্ভ করা) */}
+                          <path d="M 10 60 A 40 40 0 0 1 90 60 Q 50 42 10 60 Z" fill="#b91c1c"/>
+
+                          {/* ঘড়ির কাঁটা (স্থির / Static) */}
+                          <circle cx="50" cy="51" r="3.5" fill="#ffffff" />
+                          {/* ঘণ্টার কাঁটা (১০ টার দিকে) */}
+                          <line x1="50" y1="51" x2="40" y2="43" stroke="#ffffff" strokeWidth="3.5" strokeLinecap="round"/>
+                          {/* মিনিটের কাঁটা (১ টার দিকে) */}
+                          <line x1="50" y1="51" x2="57" y2="38" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round"/>
+                       </svg>
                     </div>
 
                     {/* 'টাইমস' লেখা (গাঢ় ছাই/কালো) */}
