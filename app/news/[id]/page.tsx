@@ -81,65 +81,41 @@ export default async function NewsDetail({ params }: { params: { id: string } })
             {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
           </div>
 
-      {/* লোগো, স্লোগান ও তারিখ সেকশন ('ট' এর মাত্রার সাথে বাঁকা চাঁদের মতো হাফ-সূর্য এবং স্থির ঘড়ি) */}
-          <div className="shrink-0 flex items-center md:gap-4">
-             <a href="/" className="group flex flex-col justify-center relative py-1 md:py-2">
-
-               <div className="relative z-10 flex items-baseline mt-2 md:mt-3">
-                 
-                 {/* 'বঙ্গীয়' লেখা (গাঢ় লাল) */}
-                 <h1 className="text-[42px] md:text-[54px] font-extrabold text-[#b91c1c] leading-none tracking-tight" 
-                     style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
-                    বঙ্গীয়
-                 </h1>
-
-                 {/* 'টাইমস' এবং কাস্টম ঘড়ির কন্টেইনার */}
-                 <div className="relative ml-2 md:ml-2.5">
-                    
-                    {/* বাঁকা চাঁদের মতো হাফ সূর্য ঘড়ি ('ট' এর মাথার ওপর, লেখার পেছনে, অ্যানিমেশন বন্ধ) */}
-                    <div className="absolute -top-[16px] md:-top-[22px] left-[4px] md:left-[6px] w-[35px] md:w-[42px] z-0 opacity-95">
-                       <svg viewBox="0 0 100 70" className="w-full h-auto drop-shadow-sm">
-                          {/* সূর্যের ৫টি রশ্মি */}
-                          <line x1="20" y1="35" x2="8" y2="25" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
-                          <line x1="35" y1="18" x2="24" y2="6" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
-                          <line x1="50" y1="12" x2="50" y2="0" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
-                          <line x1="65" y1="18" x2="76" y2="6" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
-                          <line x1="80" y1="35" x2="92" y2="25" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
-                          
-                          {/* বাঁকা চাঁদের মতো হাফ-সূর্য বডি (ট এর মাত্রার সাথে ভেতর দিকে কার্ভ করা) */}
-                          <path d="M 10 60 A 40 40 0 0 1 90 60 Q 50 42 10 60 Z" fill="#b91c1c"/>
-
-                          {/* ঘড়ির কাঁটা (স্থির / Static) */}
-                          <circle cx="50" cy="51" r="3.5" fill="#ffffff" />
-                          {/* ঘণ্টার কাঁটা (১০ টার দিকে) */}
-                          <line x1="50" y1="51" x2="40" y2="43" stroke="#ffffff" strokeWidth="3.5" strokeLinecap="round"/>
-                          {/* মিনিটের কাঁটা (১ টার দিকে) */}
-                          <line x1="50" y1="51" x2="57" y2="38" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round"/>
-                       </svg>
-                    </div>
-
-                    {/* 'টাইমস' লেখা (গাঢ় ছাই/কালো) */}
-                    <h1 className="relative z-10 text-[42px] md:text-[54px] font-extrabold text-[#333333] leading-none tracking-tight" 
-                        style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
-                      টাইমস
-                    </h1>
+     {/* লোগো ও তারিখ সেকশন */}
+          <div className="shrink-0 flex items-center">
+             <a href="/" className="group flex flex-col">
+               <h1 className="text-4xl md:text-[42px] font-extrabold text-black flex items-center tracking-tighter">
+                 বঙ্গীয়
+                 <div className="relative flex items-center justify-center w-[36px] h-[36px] md:w-[44px] md:h-[44px] mx-1">
+                   <div className="absolute inset-0 rounded-full border-[2.5px] md:border-[3px] border-red-600"></div>
+                   <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="absolute w-[5px] h-[5px] bg-red-600 rounded-full"></div>
+                      <div className="absolute w-[2px] h-[35%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite]"></div>
+                      <div className="absolute w-[2.5px] h-[25%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_24s_linear_infinite] rotate-[45deg]"></div>
+                   </div>
+                   <span 
+                     className="relative z-10 text-black text-[26px] md:text-[32px] font-black leading-none pt-1"
+                     style={{ textShadow: '1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff' }}
+                   >
+                     টা
+                   </span>
                  </div>
-               </div>
-               
-               {/* স্লোগান (শুধুমাত্র পিসিতে দেখাবে) */}
-               <span className="hidden md:block text-[14px] font-bold text-gray-500 tracking-[0.02em] mt-1 pl-1">
+                 ইমস
+               </h1>
+               {/* স্লোগান */}
+               <span className="hidden md:block text-[14px] font-bold text-gray-600 tracking-wide mt-1">
                  সত্য ও সাহসের প্রতিচ্ছবি
                </span>
              </a>
              
-             {/* তারিখ (দুই লাইনে, শুধুমাত্র পিসিতে দেখাবে) */}
-             <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-4 justify-center h-12 mt-2">
-                <span className="text-[13.5px] text-gray-600 font-bold leading-tight">
-                   {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}
-                </span>
-                <span className="text-[13.5px] text-gray-600 font-bold leading-tight mt-0.5">
-                   {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
-                </span>
+             {/* ডেস্কটপ তারিখ */}
+             <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-4 justify-center h-12 mt-1">
+               <span className="text-[13.5px] text-gray-600 font-bold leading-tight">
+                  {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}
+               </span>
+               <span className="text-[13.5px] text-gray-600 font-bold leading-tight mt-0.5">
+                  {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
+               </span>
              </div>
           </div>
           {/* রাইট সাইড মেনু / Header News */}
