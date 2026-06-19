@@ -68,33 +68,57 @@ export default async function NewsDetail({ params }: { params: { id: string } })
         body { font-family: 'Kalpurush', Arial, sans-serif !important; }
       `}} />
 
-      {/* Header Section */}
+      {/* Professional Header (Prothom Alo Style Logo & Navigation) */}
       <header className="bg-white">
         <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
           
-          <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-10px] font-bold">
+          <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-5px] font-bold">
             {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
           </div>
 
-          <div className="shrink-0 flex items-center">
-             <a href="/" className="group">
-               <h1 className="text-4xl md:text-[42px] font-extrabold text-black flex items-center tracking-tighter">
-                 বঙ্গীয়
-                 <div className="relative flex items-center justify-center w-[36px] h-[36px] md:w-[44px] md:h-[44px] mx-1">
-                   <div className="absolute inset-0 rounded-full border-[2.5px] md:border-[3px] border-red-600"></div>
-                   <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="absolute w-[5px] h-[5px] bg-red-600 rounded-full"></div>
-                      <div className="absolute w-[2px] h-[35%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite]"></div>
-                      <div className="absolute w-[2.5px] h-[25%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_24s_linear_infinite] rotate-[45deg]"></div>
-                   </div>
-                   <span className="relative z-10 text-black text-[26px] md:text-[32px] font-black leading-none pt-1" style={{ textShadow: '1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff' }}>টা</span>
+          {/* লোগো, স্লোগান ও তারিখ সেকশন (প্রথম আলোর আদলে শতভাগ নিখুঁত পজিশন) */}
+          <div className="shrink-0 flex items-center md:gap-4">
+             <a href="/" className="group flex flex-col justify-center">
+               <div className="relative flex items-center mt-2 md:mt-3">
+                 
+                 <h1 className="text-[38px] md:text-[48px] font-extrabold text-[#111] leading-none tracking-tight relative z-10"
+                     style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
+                    বঙ্গীয়
+                 </h1>
+
+                 <div className="relative flex items-center justify-center w-0 z-0 mx-1.5 md:mx-2">
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[45%] w-[30px] h-[30px] md:w-[36px] md:h-[36px] bg-[#ef3324] rounded-full flex items-center justify-center">
+                       <div className="absolute -top-[5px] md:-top-[7px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rounded-t-full"></div>
+                       <div className="absolute -top-[4px] md:-top-[5px] -right-[6px] md:-right-[8px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[45deg] rounded-t-full"></div>
+                       <div className="absolute -top-[4px] md:-top-[5px] -left-[6px] md:-left-[8px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[-45deg] rounded-t-full"></div>
+                       <div className="absolute top-[6px] md:top-[7px] -right-[8px] md:-right-[10px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[75deg] rounded-t-full"></div>
+                       <div className="absolute top-[6px] md:top-[7px] -left-[8px] md:-left-[10px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[-75deg] rounded-t-full"></div>
+                       
+                       <div className="absolute w-[3px] h-[3px] md:w-[4px] md:h-[4px] bg-white rounded-full z-10"></div>
+                       <div className="absolute w-[1.5px] md:w-[2px] h-[40%] bg-white origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite] z-10"></div>
+                       <div className="absolute w-[2px] md:w-[2.5px] h-[25%] bg-white origin-bottom bottom-1/2 rounded-t-full rotate-[45deg] animate-[spin_24s_linear_infinite] z-10"></div>
+                    </div>
                  </div>
-                 ইমস
-               </h1>
+
+                 <h1 className="text-[38px] md:text-[48px] font-extrabold text-[#111] leading-none tracking-tight relative z-10"
+                     style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
+                    টাইমস
+                 </h1>
+               </div>
+               
+               <span className="hidden md:block text-[14.5px] font-bold text-gray-600 tracking-[0.02em] mt-1 pl-1">
+                 সত্য ও সাহসের প্রতিচ্ছবি
+               </span>
              </a>
-             <span className="hidden md:block text-[14px] text-gray-500 border-l-[2px] border-gray-300 pl-3 ml-3 mt-1 font-bold">
-                {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
-             </span>
+             
+             <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-4 justify-center h-12 mt-1">
+                <span className="text-[13.5px] text-gray-600 font-bold leading-tight">
+                   {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}
+                </span>
+                <span className="text-[13.5px] text-gray-600 font-bold leading-tight mt-0.5">
+                   {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
+                </span>
+             </div>
           </div>
           
           <div className="hidden lg:flex divide-x divide-gray-300">
@@ -129,7 +153,6 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                </nav>
             </div>
             
-            {/* প্রফেশনাল সার্চ অপশন */}
             <div className="hidden md:flex items-center border-l border-gray-200 pl-5 h-full shrink-0 bg-white z-10">
                <form action="/" method="GET" className="relative flex items-center group">
                   <input 
@@ -163,40 +186,48 @@ export default async function NewsDetail({ params }: { params: { id: string } })
       <main className="max-w-[1200px] mx-auto px-4 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-10">
          
          <article className="lg:col-span-8">
-            <h1 className="text-[32px] md:text-[44px] font-extrabold leading-[1.25] text-gray-900 mb-5">{news.title}</h1>
+            <h1 className="text-[32px] md:text-[44px] font-extrabold leading-[1.3] text-gray-900 mb-5">{news.title}</h1>
             
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-y border-gray-200 py-3 mb-6">
-               <div className="flex flex-col text-[15px] text-gray-600">
-                  <span className="font-bold text-gray-800">{news.source_name || 'নিজস্ব প্রতিবেদক'}</span>
-                  <span>প্রকাশ: {formatProthomAloDate(news.created_at)}</span>
+            {/* Author and Date Section (National Newspaper Look) */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-y border-gray-200 py-4 mb-8 bg-gray-50/50 px-2 rounded-sm">
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                     <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                  </div>
+                  <div className="flex flex-col text-[15px] text-gray-600">
+                     <span className="font-bold text-gray-900">{news.source_name || 'নিজস্ব প্রতিবেদক'}</span>
+                     <span>প্রকাশ: {formatProthomAloDate(news.created_at)}</span>
+                  </div>
                </div>
                
                {/* Minimal Social Share Buttons */}
                <div className="flex items-center gap-3">
                   <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`} target="_blank" rel="noopener noreferrer" 
-                     className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-500 hover:text-[#1877f2] hover:border-[#1877f2] transition">
-                     <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                     className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-500 hover:text-white hover:bg-[#1877f2] hover:border-[#1877f2] transition">
+                     <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                   </a>
                   <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(news.title + " \n\nবিস্তারিত পড়ুন: " + currentUrl)}`} target="_blank" rel="noopener noreferrer" 
-                     className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-500 hover:text-[#25d366] hover:border-[#25d366] transition">
-                     <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12.031 0C5.383 0 0 5.383 0 12.031c0 2.628.847 5.066 2.274 7.07L.707 23.293l4.316-1.524A11.97 11.97 0 0012.031 24c6.648 0 12.031-5.383 12.031-12.031S18.679 0 12.031 0zm0 21.969c-2.127 0-4.14-.543-5.908-1.503l-.423-.231-3.13 1.104 1.125-3.085-.251-.433A9.92 9.92 0 012.062 12.03C2.062 6.529 6.53 2.063 12.03 2.063c5.501 0 9.969 4.466 9.969 9.968 0 5.502-4.468 9.969-9.969 9.969z"/><path d="M17.472 14.391c-.275-.138-1.625-.802-1.876-.893-.25-.091-.432-.138-.613.138-.182.275-.708.893-.867 1.075-.16.183-.32.206-.594.069-.275-.138-1.158-.427-2.204-1.356-.813-.722-1.36-1.614-1.52-1.89-.16-.275-.017-.425.121-.563.124-.124.275-.321.413-.482.138-.16.184-.275.276-.459.092-.183.046-.344-.023-.482-.069-.138-.613-1.479-.84-2.025-.221-.532-.444-.459-.613-.468-.16-.008-.344-.009-.527-.009-.184 0-.482.069-.733.344-.25.275-.957.935-.957 2.279 0 1.344.98 2.645 1.117 2.828.138.183 1.93 2.946 4.674 4.129 2.744 1.183 2.744.79 3.248.745.503-.046 1.625-.664 1.854-1.308.23-.645.23-1.196.16-1.308-.07-.113-.254-.182-.529-.321z"/></svg>
+                     className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-500 hover:text-white hover:bg-[#25d366] hover:border-[#25d366] transition">
+                     <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12.031 0C5.383 0 0 5.383 0 12.031c0 2.628.847 5.066 2.274 7.07L.707 23.293l4.316-1.524A11.97 11.97 0 0012.031 24c6.648 0 12.031-5.383 12.031-12.031S18.679 0 12.031 0zm0 21.969c-2.127 0-4.14-.543-5.908-1.503l-.423-.231-3.13 1.104 1.125-3.085-.251-.433A9.92 9.92 0 012.062 12.03C2.062 6.529 6.53 2.063 12.03 2.063c5.501 0 9.969 4.466 9.969 9.968 0 5.502-4.468 9.969-9.969 9.969z"/><path d="M17.472 14.391c-.275-.138-1.625-.802-1.876-.893-.25-.091-.432-.138-.613.138-.182.275-.708.893-.867 1.075-.16.183-.32.206-.594.069-.275-.138-1.158-.427-2.204-1.356-.813-.722-1.36-1.614-1.52-1.89-.16-.275-.017-.425.121-.563.124-.124.275-.321.413-.482.138-.16.184-.275.276-.459.092-.183.046-.344-.023-.482-.069-.138-.613-1.479-.84-2.025-.221-.532-.444-.459-.613-.468-.16-.008-.344-.009-.527-.009-.184 0-.482.069-.733.344-.25.275-.957.935-.957 2.279 0 1.344.98 2.645 1.117 2.828.138.183 1.93 2.946 4.674 4.129 2.744 1.183 2.744.79 3.248.745.503-.046 1.625-.664 1.854-1.308.23-.645.23-1.196.16-1.308-.07-.113-.254-.182-.529-.321z"/></svg>
                   </a>
                   <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(news.title)}`} target="_blank" rel="noopener noreferrer" 
-                     className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-500 hover:text-black hover:border-black transition">
+                     className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-500 hover:text-white hover:bg-black hover:border-black transition">
                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                   </a>
                </div>
             </div>
             
+            {/* Feature Image with Centered Caption */}
             <figure className="mb-8">
                <img src={news.image_url} alt={news.title} className="w-full h-auto max-h-[600px] object-cover" />
                {news.image_source && (
-                  <figcaption className="text-[14px] text-gray-500 mt-3 flex items-center gap-1">
+                  <figcaption className="text-[14px] text-gray-500 mt-3 text-center border-b border-gray-100 pb-5 flex justify-center items-center gap-1">
                      <span className="font-bold">ছবি:</span> {news.image_source}
                   </figcaption>
                )}
             </figure>
             
+            {/* Article Content */}
             <div className="text-[20px] md:text-[22px] leading-[1.9] text-[#333333] whitespace-pre-wrap">
                {news.content || news.snippet}
                {!news.content && (
@@ -205,16 +236,35 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                   </p>
                )}
             </div>
+
+            {/* Auto Tags Section */}
+            <div className="mt-12 pt-6 border-t border-gray-200">
+               <h3 className="text-[17px] font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                  বিষয়:
+               </h3>
+               <div className="flex flex-wrap gap-2.5">
+                  <a href={`/?category=${news.category}`} className="bg-[#f4f7fc] hover:bg-red-50 text-[#104f96] hover:text-red-700 border border-transparent hover:border-red-200 px-4 py-2 rounded text-[15px] font-bold transition">
+                     {news.category}
+                  </a>
+                  <a href="/" className="bg-[#f4f7fc] hover:bg-red-50 text-[#104f96] hover:text-red-700 border border-transparent hover:border-red-200 px-4 py-2 rounded text-[15px] font-bold transition">
+                     বঙ্গীয় টাইমস
+                  </a>
+                  <a href="/" className="bg-[#f4f7fc] hover:bg-red-50 text-[#104f96] hover:text-red-700 border border-transparent hover:border-red-200 px-4 py-2 rounded text-[15px] font-bold transition">
+                     সর্বশেষ খবর
+                  </a>
+               </div>
+            </div>
          </article>
 
          {/* Sidebar Content */}
          <aside className="lg:col-span-4 lg:pl-4">
-            <div className="w-full min-h-[250px] bg-gray-50 border border-gray-200 flex flex-col items-center justify-center mb-8 text-gray-400 font-bold">
+            <div className="w-full min-h-[300px] bg-gray-50 border border-gray-200 flex flex-col items-center justify-center mb-10 text-gray-400 font-bold">
                <span className="text-xs mb-2">বিজ্ঞাপন</span>
             </div>
 
             <div className="mt-8">
-               <div className="border-b-[2px] border-black pb-2 mb-5">
+               <div className="border-b-[2px] border-black pb-2 mb-6">
                   <h3 className="text-[20px] font-bold text-gray-900">আরও খবর</h3>
                </div>
                <div className="flex flex-col gap-5">
@@ -226,7 +276,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                            </h4>
                            <p className="text-[13px] text-gray-500 mt-2">{formatProthomAloDate(rel.created_at).split(' •')[0]}</p>
                         </div>
-                        <img src={rel.image_url} alt={rel.title} className="w-[110px] h-[75px] object-cover shrink-0 border border-gray-100" />
+                        <img src={rel.image_url} alt={rel.title} className="w-[110px] h-[75px] object-cover shrink-0 border border-gray-100 rounded-sm" />
                      </a>
                   ))}
                </div>
@@ -235,7 +285,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
 
       </main>
 
-     {/* Footer Section */}
+      {/* Footer Section */}
       <footer className="bg-white border-t-4 border-red-700 mt-12 pt-8 pb-6 text-black text-center shadow-inner">
         <div className="max-w-[1200px] mx-auto px-4">
           
