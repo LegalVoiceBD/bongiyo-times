@@ -81,43 +81,31 @@ export default async function NewsDetail({ params }: { params: { id: string } })
             {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
           </div>
 
-         {/* নতুন প্রফেশনাল লোগো সেকশন (বইয়ের থিম এবং 'ট' এর ওপর ঘড়ি) */}
+       {/* লোগো, স্লোগান ও তারিখ সেকশন (পরিচ্ছন্ন ডিজাইন এবং 'ট' এর ওপর হাফ-সূর্য ঘড়ি) */}
           <div className="shrink-0 flex items-center md:gap-4">
              <a href="/" className="group flex flex-col justify-center relative py-1 md:py-2">
-               
-               {/* ব্যাকগ্রাউন্ডের জলছাপ: বইয়ের পাতা এবং বড় 'ব' */}
-               <div className="absolute top-[-5px] md:top-[-10px] left-1/2 -translate-x-[65%] w-[90px] h-[90px] md:w-[120px] md:h-[120px] text-[#900010] z-0 flex flex-col items-center opacity-90 select-none">
-                  {/* বইয়ের পাতা (SVG) */}
-                  <svg viewBox="0 0 100 40" className="w-[75%] h-auto fill-current mb-[-12px] md:mb-[-15px]">
-                     <path d="M50,35 C30,25 10,25 0,20 C15,35 35,38 48,40 Z" />
-                     <path d="M50,25 C30,15 10,15 5,10 C20,25 35,28 48,30 Z" />
-                     <path d="M50,35 C70,25 90,25 100,20 C85,35 65,38 52,40 Z" />
-                     <path d="M50,25 C70,15 90,15 95,10 C80,25 65,28 52,30 Z" />
-                  </svg>
-                  {/* বড় 'ব' */}
-                  <span className="text-[70px] md:text-[95px] font-extrabold leading-none tracking-tighter" style={{ transform: 'scaleX(1.2)' }}>ব</span>
-               </div>
 
                {/* মূল টেক্সট এবং ঘড়ি */}
-               <div className="relative z-10 flex items-baseline mt-7 md:mt-10">
+               <div className="relative z-10 flex items-baseline mt-2 md:mt-3">
                  
                  {/* 'বঙ্গীয়' লেখা (গাঢ় লাল) */}
-                 <h1 className="text-[42px] md:text-[54px] font-extrabold text-[#900010] leading-none tracking-tight" 
+                 <h1 className="text-[42px] md:text-[54px] font-extrabold text-[#b91c1c] leading-none tracking-tight" 
                      style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
                     বঙ্গীয়
                  </h1>
 
                  {/* 'টাইমস' এবং ঘড়ির কন্টেইনার */}
-                 <div className="relative ml-2.5 md:ml-3">
+                 <div className="relative ml-2 md:ml-2.5">
                     
-                    {/* লাল ঘড়ি (এটি 'ট' এর ঠিক মাথার ওপর এবং লেখার পেছনে z-0 তে বসানো হয়েছে) */}
-                    <div className="absolute -top-[12px] md:-top-[16px] left-[6px] md:left-[8px] w-[24px] h-[24px] md:w-[30px] md:h-[30px] bg-[#ef3324] rounded-full flex items-center justify-center z-0">
-                       {/* সূর্যের ৫টি রশ্মি */}
-                       <div className="absolute -top-[4px] md:-top-[6px] w-[2.5px] md:w-[3px] h-[4px] md:h-[6px] bg-[#ef3324] rounded-t-full"></div>
-                       <div className="absolute -top-[3px] md:-top-[4px] -right-[5px] md:-right-[7px] w-[2.5px] md:w-[3px] h-[4px] md:h-[6px] bg-[#ef3324] rotate-[45deg] rounded-t-full"></div>
-                       <div className="absolute -top-[3px] md:-top-[4px] -left-[5px] md:-left-[7px] w-[2.5px] md:w-[3px] h-[4px] md:h-[6px] bg-[#ef3324] rotate-[-45deg] rounded-t-full"></div>
-                       <div className="absolute top-[4px] md:top-[6px] -right-[6px] md:-right-[9px] w-[2.5px] md:w-[3px] h-[4px] md:h-[6px] bg-[#ef3324] rotate-[75deg] rounded-t-full"></div>
-                       <div className="absolute top-[4px] md:top-[6px] -left-[6px] md:-left-[9px] w-[2.5px] md:w-[3px] h-[4px] md:h-[6px] bg-[#ef3324] rotate-[-75deg] rounded-t-full"></div>
+                    {/* হাফ সূর্য ও ঘড়ি ('ট' এর মাথার ওপর, লেখার পেছনে) */}
+                    <div className="absolute -top-[14px] md:-top-[18px] left-[8px] md:left-[12px] w-[26px] h-[26px] md:w-[32px] md:h-[32px] bg-[#ef3324] rounded-full flex items-center justify-center z-0">
+                       
+                       {/* সূর্যের ওপরের দিকের ৫টি রশ্মি */}
+                       <div className="absolute -top-[5px] md:-top-[6px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rounded-t-full"></div>
+                       <div className="absolute -top-[3px] md:-top-[4px] -right-[6px] md:-right-[7px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[45deg] rounded-t-full"></div>
+                       <div className="absolute -top-[3px] md:-top-[4px] -left-[6px] md:-left-[7px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[-45deg] rounded-t-full"></div>
+                       <div className="absolute top-[4px] md:top-[6px] -right-[7px] md:-right-[9px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[75deg] rounded-t-full"></div>
+                       <div className="absolute top-[4px] md:top-[6px] -left-[7px] md:-left-[9px] w-[2.5px] md:w-[3px] h-[5px] md:h-[6px] bg-[#ef3324] rotate-[-75deg] rounded-t-full"></div>
                        
                        {/* ঘড়ির কাঁটা */}
                        <div className="absolute w-[3px] h-[3px] md:w-[4px] md:h-[4px] bg-white rounded-full z-10"></div>
@@ -126,7 +114,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                     </div>
 
                     {/* 'টাইমস' লেখা (গাঢ় ছাই/কালো) */}
-                    <h1 className="relative z-10 text-[42px] md:text-[54px] font-extrabold text-[#2a2a2a] leading-none tracking-tight" 
+                    <h1 className="relative z-10 text-[42px] md:text-[54px] font-extrabold text-[#333333] leading-none tracking-tight" 
                         style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
                       টাইমস
                     </h1>
@@ -134,7 +122,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                </div>
                
                {/* স্লোগান (শুধুমাত্র পিসিতে দেখাবে) */}
-               <span className="hidden md:block text-[14.5px] font-bold text-gray-500 tracking-[0.02em] mt-1 pl-1">
+               <span className="hidden md:block text-[14px] font-bold text-gray-500 tracking-[0.02em] mt-1 pl-1">
                  সত্য ও সাহসের প্রতিচ্ছবি
                </span>
              </a>
