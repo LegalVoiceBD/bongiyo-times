@@ -68,76 +68,74 @@ export default async function NewsDetail({ params }: { params: { id: string } })
         body { font-family: 'Kalpurush', Arial, sans-serif !important; }
       `}} />
 
-      {/* Professional Header (Prothom Alo Style Logo & Navigation) */}
-      <header className="bg-white">
-        <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-          
-          <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-5px] font-bold">
-            {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
-          </div>
+      {/* Header Section */}
+<header className="bg-white">
+  <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+    
+    {/* Mobile Date */}
+    <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-10px] font-bold">
+      {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
+    </div>
 
-          {/* লোগো, স্লোগান ও তারিখ সেকশন (প্রথম আলোর আদলে শতভাগ নিখুঁত পজিশন) */}
-          <div className="shrink-0 flex items-center md:gap-4">
-             <a href="/" className="group flex flex-col justify-center">
-               <div className="relative flex items-center mt-2 md:mt-3">
-                 
-                 <h1 className="text-[38px] md:text-[48px] font-extrabold text-[#111] leading-none tracking-tight relative z-10"
-                     style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
-                    বঙ্গীয়
-                 </h1>
-
-                 <div className="relative flex items-center justify-center w-0 z-0 mx-1.5 md:mx-2">
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[45%] w-[30px] h-[30px] md:w-[36px] md:h-[36px] bg-[#ef3324] rounded-full flex items-center justify-center">
-                       <div className="absolute -top-[5px] md:-top-[7px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rounded-t-full"></div>
-                       <div className="absolute -top-[4px] md:-top-[5px] -right-[6px] md:-right-[8px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[45deg] rounded-t-full"></div>
-                       <div className="absolute -top-[4px] md:-top-[5px] -left-[6px] md:-left-[8px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[-45deg] rounded-t-full"></div>
-                       <div className="absolute top-[6px] md:top-[7px] -right-[8px] md:-right-[10px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[75deg] rounded-t-full"></div>
-                       <div className="absolute top-[6px] md:top-[7px] -left-[8px] md:-left-[10px] w-[2.5px] md:w-[3.5px] h-[5px] md:h-[7px] bg-[#ef3324] rotate-[-75deg] rounded-t-full"></div>
-                       
-                       <div className="absolute w-[3px] h-[3px] md:w-[4px] md:h-[4px] bg-white rounded-full z-10"></div>
-                       <div className="absolute w-[1.5px] md:w-[2px] h-[40%] bg-white origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite] z-10"></div>
-                       <div className="absolute w-[2px] md:w-[2.5px] h-[25%] bg-white origin-bottom bottom-1/2 rounded-t-full rotate-[45deg] animate-[spin_24s_linear_infinite] z-10"></div>
-                    </div>
-                 </div>
-
-                 <h1 className="text-[38px] md:text-[48px] font-extrabold text-[#111] leading-none tracking-tight relative z-10"
-                     style={{ textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 0px 2px 0 #fff, 0px -2px 0 #fff, 2px 0px 0 #fff, -2px 0px 0 #fff', transform: 'scaleY(1.05)' }}>
-                    টাইমস
-                 </h1>
-               </div>
-               
-               <span className="hidden md:block text-[14.5px] font-bold text-gray-600 tracking-[0.02em] mt-1 pl-1">
-                 সত্য ও সাহসের প্রতিচ্ছবি
-               </span>
-             </a>
-             
-             <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-4 justify-center h-12 mt-1">
-                <span className="text-[13.5px] text-gray-600 font-bold leading-tight">
-                   {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}
-                </span>
-                <span className="text-[13.5px] text-gray-600 font-bold leading-tight mt-0.5">
-                   {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
-                </span>
+    {/* লোগো ও তারিখ সেকশন */}
+    <div className="shrink-0 flex items-center">
+       <a href="/" className="group flex flex-col">
+         <h1 className="text-4xl md:text-[42px] font-extrabold text-black flex items-center tracking-tighter">
+           বঙ্গীয়
+           <div className="relative flex items-center justify-center w-[36px] h-[36px] md:w-[44px] md:h-[44px] mx-1">
+             <div className="absolute inset-0 rounded-full border-[2.5px] md:border-[3px] border-red-600"></div>
+             <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute w-[5px] h-[5px] bg-red-600 rounded-full"></div>
+                <div className="absolute w-[2px] h-[35%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_4s_linear_infinite]"></div>
+                <div className="absolute w-[2.5px] h-[25%] bg-red-600 origin-bottom bottom-1/2 rounded-t-full animate-[spin_24s_linear_infinite] rotate-[45deg]"></div>
              </div>
-          </div>
-          
-          <div className="hidden lg:flex divide-x divide-gray-300">
-             {headerNews.map((hn: any, index: number) => (
-                <a href={hn.is_custom ? `/news/${hn.id}` : hn.source_url} target="_blank" key={index} className="flex gap-3 px-4 w-[250px] group">
-                   <div className="flex-1">
-                      <p className="text-xs text-red-600 mb-1">■ {hn.category}</p>
-                      <h3 className="text-[15px] leading-tight font-semibold group-hover:text-[#104f96] line-clamp-2">{hn.title}</h3>
-                   </div>
-                   <img src={hn.image_url} alt={hn.title} className="w-16 h-16 object-cover border border-gray-100" />
-                </a>
-             ))}
-          </div>
-        </div>
+             <span 
+               className="relative z-10 text-black text-[26px] md:text-[32px] font-black leading-none pt-1"
+               style={{ textShadow: '1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff' }}
+             >
+               টা
+             </span>
+           </div>
+           ইমস
+         </h1>
+         {/* স্লোগান */}
+         <span className="hidden md:block text-[14px] font-bold text-gray-600 tracking-wide mt-1">
+           সত্য ও সাহসের প্রতিচ্ছবি
+         </span>
+       </a>
+       
+       {/* ডেস্কটপ তারিখ */}
+       <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-4 justify-center h-12 mt-1">
+         <span className="text-[13.5px] text-gray-600 font-bold leading-tight">
+            {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}
+         </span>
+         <span className="text-[13.5px] text-gray-600 font-bold leading-tight mt-0.5">
+            {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
+         </span>
+       </div>
+    </div>
+
+    {/* রাইট সাইড মেনু / Header News */}
+    <div className="hidden lg:flex divide-x divide-gray-300">
+       {headerNews.map((news, index) => (
+          <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" rel="noreferrer" key={index} className="flex gap-3 px-4 w-[250px] group">
+             <div className="flex-1">
+                <p className="text-xs text-red-600 mb-1">■ {news.category}</p>
+                <h3 className="text-[15px] leading-tight font-semibold group-hover:text-blue-600 line-clamp-2">{news.title}</h3>
+             </div>
+             <SafeImage src={news.image_url} alt={news.title} className="w-16 h-16 object-cover border border-gray-100" />
+          </a>
+       ))}
+    </div>
+
+  </div>
+
 
         {/* Navigation Bar */}
         <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
           <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12 relative overflow-hidden">
             
+            {/* মেনু লিংকস */}
             <div className="flex-1 min-w-0 h-full flex items-center pr-4">
                <nav className="flex items-center gap-5 md:gap-6 lg:gap-7 overflow-x-auto text-[17px] lg:text-[19px] font-bold text-black w-full pb-1 custom-scrollbar tracking-wide">
                  <a href="/" className="h-12 flex items-center transition-colors hover:text-[#104f96] whitespace-nowrap shrink-0">প্রচ্ছদ</a>
@@ -145,7 +143,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                    <a 
                      key={index} 
                      href={`/?category=${cat}`} 
-                     className={`hover:text-[#104f96] whitespace-nowrap shrink-0 ${news.category === cat ? 'text-[#104f96] border-b-[3px] border-[#104f96] h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}
+                     className={`hover:text-[#104f96] whitespace-nowrap shrink-0 ${typeof activeCategory !== 'undefined' && activeCategory === cat ? 'text-[#104f96] border-b-[3px] border-[#104f96] h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}
                    >
                       {cat}
                    </a>
@@ -153,11 +151,13 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                </nav>
             </div>
             
+            {/* প্রফেশনাল সার্চ অপশন */}
             <div className="hidden md:flex items-center border-l border-gray-200 pl-5 h-full shrink-0 bg-white z-10">
                <form action="/" method="GET" className="relative flex items-center group">
                   <input 
                      type="text" 
                      name="q" 
+                     defaultValue={typeof searchQuery !== 'undefined' ? searchQuery : ''} 
                      placeholder="খবর খুঁজুন..." 
                      className="w-48 lg:w-64 pl-4 pr-10 py-1.5 bg-[#f4f7fc] border border-transparent focus:border-[#104f96] focus:bg-white text-[15px] rounded-full outline-none transition-all duration-300 placeholder-gray-500 font-normal text-gray-800 shadow-inner" 
                      required
