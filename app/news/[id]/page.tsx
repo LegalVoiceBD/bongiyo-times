@@ -59,6 +59,10 @@ export default async function NewsDetail({ params }: { params: { id: string } })
 
   const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস"];
   const currentUrl = `https://www.bongiyotimes.com/news/${news.id}`;
+  
+  // যুক্ত করা ভেরিয়েবল (এরর ফিক্স করার জন্য)
+  const activeCategory = news.category;
+  const searchQuery = "";
 
   return (
     <div className="min-h-screen bg-white text-black tracking-tight">
