@@ -16,7 +16,7 @@ export default function Contact() {
           <div className="bg-gray-100 p-6 rounded-md inline-block text-left border border-gray-200 mt-6">
             <h3 className="font-bold text-2xl mb-4 text-red-700 border-b-2 border-red-200 pb-2 inline-block">প্রধান কার্যালয়</h3>
             <p className="font-bold text-xl mb-2">অ্যাডভোকেট মো: আজাদুর রহমান</p>
-            <p className="text-gray-600 mb-4">সম্পাদক ও প্রকাশক</p>
+            <p className="text-gray-600 mb-4">সম্পাদক</p>
             
             <div className="space-y-3 text-lg">
                <p><span className="font-bold mr-2">ঠিকানা:</span> ২৫/১ কোর্ট হাউজ স্ট্রিট, নাহার কমপ্লেক্স, <br/>রুম নং ডি-৬, কোতয়ালী, ঢাকা-১১০০।</p>
