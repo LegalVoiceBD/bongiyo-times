@@ -301,7 +301,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
 
           <div className="mb-6">
              <p className="text-[17px] md:text-[18px] font-bold text-gray-900 leading-snug">
-               <span className="block md:inline">সম্পাদক ও প্রকাশক :</span> 
+               <span className="block md:inline">সম্পাদক:</span> 
                <span className="block md:inline md:ml-1">অ্যাডভোকেট মো: আজাদুর রহমান</span>
              </p>
              <div className="text-[14px] md:text-[15px] text-gray-700 font-bold mt-3 flex flex-col md:flex-row justify-center items-center gap-1.5 md:gap-3">
