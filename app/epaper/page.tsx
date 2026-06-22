@@ -1,133 +1,148 @@
 import React from 'react';
+import { createClient } from '@supabase/supabase-js';
+import type { Viewport } from 'next';
 
-export default function Home() {
-  // উদাহরণস্বরূপ ডাইনামিক ডেটা (যা পরবর্তীতে সুপাবেজ থেকে fetch করা যাবে)
-  const leadNews = {
-    title: "নেইমার! কোনো ব্যাপারই না: হুংকার স্কটল্যান্ডের ডিফেন্ডারের",
-    category: "খেলাধুলা",
-    source: "BD Pratidin",
-    imageUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=60", // স্যাম্পল ইমেজ
-    summary: "আসন্ন ম্যাচে নেইমারকে আটকানো কোনো কঠিন কাজ হবে না বলে মন্তব্য করেছেন স্কটল্যান্ডের তারকা ডিফেন্ডার। তিনি জানান, দলগত প্রচেষ্টায় যেকোনো আক্রমণভাগের খেলোয়াড়কে প্রতিহত করা সম্ভব..."
-  };
+export const revalidate = 60; 
 
-  const otherNews = [
-    { id: 1, title: "প্রধানমন্ত্রীকে লালগালিচা সংবর্ধনা: আনোয়ার ইব্রাহিমের সাথে বৈঠক", category: "জাতীয়" },
-    { id: 2, title: "ইলিয়াসকে 'হজমের' কথা ফোনে জানান জিয়াউল: চাঞ্চল্যকর জবানবন্দি", category: "রাজনীতি" },
-    { id: 3, title: "বছরে এলএনজি আমদানিতে ব্যয় ৪৭ হাজার কোটি টাকা", category: "অর্থনীতি" },
-    { id: 4, title: "মধ্যপ্রাচ্যে শ্রমবাজারের সঙ্গে গুরুত্ব পাবে বিনিয়োগ ও বাণিজ্য", category: "আন্তর্জাতিক" }
-  ];
+// ১. এই কমান্ডটি মোবাইল ব্রাউজারকে বাধ্য করবে পাতাকে ১১৫০ পিক্সেল হিসেবে রেন্ডার করতে।
+export const viewport: Viewport = {
+  width: 1150,
+};
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+);
+
+export default async function EPaperPage() {
+  const { data: newsItems } = await supabase
+    .from('news')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(14);
+
+  const news = newsItems || [];
+  
+  const leadNews = news.slice(0, 2);
+  const gridNews = news.slice(2, 14);
 
   return (
-    <div className="min-h-screen bg-[#f7f7f7] text-[#111111] antialiased">
+    // overflow-x-auto দেওয়া হয়েছে যাতে জুম বা স্ক্রোল করা যায়
+    <div className="min-h-screen bg-[#d1d5db] print:bg-white overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
       
-      {/* ক্লাসিক নিউজপেপার হেডার সেকশন */}
-      <header className="bg-white border-b-4 border-double border-black max-w-7xl mx-auto px-4 py-4 mt-2">
-        
-        {/* টপ মেটা ইনফো (মোবাইলে সিঙ্গেল কলাম, ডেক্সটপে ৩ কলামে ভাগ হবে) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 items-center border-b border-gray-300 pb-3 text-xs md:text-sm text-gray-600 gap-4 text-center md:text-left">
-          
-          {/* বাম কলাম: স্থান ও তারিখ */}
-          <div>
-            <p className="font-bold text-gray-800 text-sm">ঢাকা</p>
-            <p className="font-medium">সোমবার, ২২ জুন, ২০২৬</p>
-            <p className="text-gray-400 text-[10px] mt-0.5">এক নজরে শিরোনাম সংস্করণ</p>
-          </div>
-          
-          {/* মাঝের কলাম: লোগো (প্রথম আলোর আদলে ক্লাসিক টেক্সট বা ইমেজ) */}
-          <div className="text-center">
-            <a href="/" className="text-3xl md:text-5xl font-black tracking-tight block select-none">
-              <span className="text-black">বঙ্গীয়</span> <span className="text-[#b30000]">টাইমস</span>
-            </a>
-          </div>
-          
-          {/* ডান কলাম: সম্পাদক পরিচিতি */}
-          <div className="md:text-right text-xs">
-            <p className="font-medium text-gray-500">সম্পাদক ও প্রকাশক</p>
-            <p className="font-bold text-gray-900 text-sm">এডভোকেট মো: আজাদুর রহমান</p>
-            <p className="text-[#b30000] font-bold text-[10px] tracking-widest mt-0.5 uppercase">হেডলাইন ডাইজেস্ট</p>
-          </div>
-        </div>
-        
-        {/* ব্ল্যাক ব্যানার নিউজ টিকার */}
-        <div className="bg-black text-white text-center py-2 px-4 mt-3 text-xs md:text-sm font-semibold tracking-wide flex flex-col sm:flex-row justify-between items-center gap-2">
-          <span>আজকের শীর্ষ সংবাদ: ছবি ও শিরোনামে</span>
-          <span className="text-gray-400 text-xs hover:text-white transition-colors">www.bongiyotimes.com</span>
-        </div>
-      </header>
+      {/* প্রিন্ট ও ডাউনলোড বাটন */}
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 print:hidden">
+        <a 
+          href="javascript:window.print()" 
+          className="bg-[#b91c1c] text-white px-6 py-3 rounded-full shadow-[0_10px_25px_rgba(185,28,28,0.4)] font-bold text-[16px] flex items-center gap-2 hover:bg-red-800 transition whitespace-nowrap border-[2px] border-white"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+          ই-পেপার সেভ / ডাউনলোড করুন
+        </a>
+      </div>
 
-      {/* মূল নিউজ গ্রিড লেআউট */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 bg-white p-4 md:p-6 border border-gray-200 shadow-sm">
-          
-          {/* লিড নিউজ এরিয়া (ডেক্সটপে ৪ ভাগের ৩ ভাগ জায়গা নেবে) */}
-          <div className="lg:col-span-3 border-b lg:border-b-0 lg:border-r border-gray-200 pb-6 lg:pb-0 lg:pr-6">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="bg-[#b30000] text-white px-2 py-0.5 text-xs font-bold rounded-sm">
-                {leadNews.category}
-              </span>
-              <span className="text-gray-500 text-xs font-medium">উৎস: {leadNews.source}</span>
-            </div>
-            
-            <h1 className="text-2xl md:text-4xl font-black leading-tight text-black mb-4 hover:text-[#0056b3] cursor-pointer transition-colors">
-              {leadNews.title}
-            </h1>
-            
-            {/* ইমেজ কন্টেইনার (মোবাইলে ওভারফ্লো বা জুম রোধ করতে aspect-ratio সেট করা) */}
-            <div className="relative w-full aspect-video md:aspect-[21/9] overflow-hidden bg-gray-100 border border-gray-200 mb-4 rounded-sm">
-              <img 
-                src={leadNews.imageUrl} 
-                alt="Lead Feature" 
-                className="w-full h-full object-cover block hover:scale-101 transition-transform duration-300"
-              />
-            </div>
-            
-            <p className="text-gray-700 text-sm md:text-base leading-relaxed font-normal text-justify">
-              {leadNews.summary}
-            </p>
-          </div>
+      {/* --- ই-পেপার মূল ক্যানভাস (পাথরের মতো ফিক্সড ১১৫০ পিক্সেল) --- */}
+      {/* inline CSS ব্যবহার করা হয়েছে যাতে কোনো গ্লোবাল ডিজাইন এটিকে ভাঙতে না পারে */}
+      <div 
+        style={{ width: '1150px', minWidth: '1150px', margin: '30px auto', backgroundColor: 'white' }} 
+        className="p-10 shadow-[0_0_40px_rgba(0,0,0,0.15)] print:shadow-none print:w-full print:min-w-0 print:my-0 print:p-0 shrink-0"
+      >
+        
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          @import url('https://fonts.maateen.me/kalpurush/font.css');
+          body { font-family: 'Kalpurush', Arial, sans-serif !important; }
+          @page { size: A3; margin: 10mm; }
+        `}} />
 
-          {/* সাইডবার: অন্যান্য এগ্রিগেটেড নিউজ (১ ভাগ জায়গা নেবে) */}
-          <div className="flex flex-col justify-between space-y-6">
-            <div>
-              <h2 className="text-base font-black border-b-2 border-black pb-1 text-black tracking-wide uppercase mb-3">
-                সর্বশেষ আপডেট
-              </h2>
-              
-              {/* নিউজ লিস্ট */}
-              <div className="divide-y divide-gray-100">
-                {otherNews.map((news) => (
-                  <div key={news.id} className="py-3 first:pt-0 last:pb-0 group cursor-pointer">
-                    <span className="text-[10px] font-bold text-[#b30000] block uppercase tracking-wide mb-1">
-                      {news.category}
-                    </span>
-                    <h3 className="text-sm md:text-base font-bold text-gray-950 group-hover:text-[#0056b3] transition-colors leading-snug">
-                      {news.title}
-                    </h3>
+        {/* --- পত্রিকার হেডার --- */}
+        <header className="border-b-[4px] border-double border-black pb-3 mb-6">
+          <div className="flex justify-between items-end mb-3">
+            
+            {/* বাম দিকের তথ্য (ফিক্সড সাইজ) */}
+            <div style={{ width: '250px' }} className="text-[14px] font-bold text-gray-700 leading-tight shrink-0">
+              <p>ঢাকা</p>
+              <p>{new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}, {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}</p>
+              <p className="mt-0.5 text-[#b91c1c]">এক নজরে শিরোনাম সংস্করণ</p>
+            </div>
+
+            {/* কাস্টম হাফ-সূর্য লোগো */}
+            <div className="shrink-0 flex items-baseline justify-center px-4">
+               <h1 className="text-[65px] font-extrabold text-[#b91c1c] leading-none tracking-tight" style={{ transform: 'scaleY(1.05)' }}>
+                  বঙ্গীয়
+               </h1>
+               <div className="relative ml-3">
+                  <div className="absolute -top-[22px] left-[6px] w-[45px] z-0 opacity-95">
+                     <svg viewBox="0 0 100 70" className="w-full h-auto">
+                        <line x1="20" y1="35" x2="8" y2="25" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
+                        <line x1="35" y1="18" x2="24" y2="6" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
+                        <line x1="50" y1="12" x2="50" y2="0" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
+                        <line x1="65" y1="18" x2="76" y2="6" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
+                        <line x1="80" y1="35" x2="92" y2="25" stroke="#b91c1c" strokeWidth="4.5" strokeLinecap="round"/>
+                        <path d="M 10 60 A 40 40 0 0 1 90 60 Q 50 42 10 60 Z" fill="#b91c1c"/>
+                        <circle cx="50" cy="51" r="3.5" fill="#ffffff" />
+                        <line x1="50" y1="51" x2="40" y2="43" stroke="#ffffff" strokeWidth="3.5" strokeLinecap="round"/>
+                        <line x1="50" y1="51" x2="57" y2="38" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round"/>
+                     </svg>
                   </div>
-                ))}
-              </div>
+                  <h1 className="relative z-10 text-[65px] font-extrabold text-[#333333] leading-none tracking-tight" style={{ transform: 'scaleY(1.05)' }}>
+                    টাইমস
+                  </h1>
+               </div>
+            </div>
+
+            {/* ডান দিকের তথ্য (ফিক্সড সাইজ) */}
+            <div style={{ width: '250px' }} className="text-[14px] font-bold text-gray-700 text-right leading-tight shrink-0">
+              <p>সম্পাদক ও প্রকাশক</p>
+              <p className="text-black text-[16px]">অ্যাডভোকেট মো: আজাদুর রহমান</p>
+              <p className="mt-0.5 text-[#b91c1c]">হেডলাইন ডাইজেস্ট</p>
             </div>
             
-            {/* ডাউনলোড/সেভ অ্যাকশন বক্স */}
-            <div className="bg-[#b30000] text-white p-4 text-center rounded-sm shadow-sm mt-auto">
-              <p className="text-xs font-medium mb-2.5">আজকের সংস্করণটি অফলাইনে সংরক্ষণ করুন</p>
-              <button className="w-full bg-white text-[#b30000] font-bold text-xs py-2 px-4 rounded-sm shadow-sm hover:bg-gray-50 active:scale-98 transition-all flex items-center justify-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                ই-পেপার সেভ / ডাউনলোড করুন
-              </button>
-            </div>
           </div>
+          
+          <div className="bg-black text-white text-[15px] py-1 px-4 flex justify-between font-bold">
+            <span>আজকের শীর্ষ সংবাদ: ছবি ও শিরোনামে</span>
+            <span>www.bongiyotimes.com</span>
+          </div>
+        </header>
 
+        {/* --- টপ সেকশন: ২টি বড় খবর (সবসময় ২ কলাম থাকবে) --- */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '32px' }} className="mb-8 border-b-[2px] border-black pb-8">
+          {leadNews.map((item: any) => (
+            <div key={item.id} className="flex flex-col group border border-gray-100 p-2 shadow-sm bg-gray-50/50">
+               <img src={item.image_url} alt={item.title} className="w-full h-[320px] object-cover mb-3 border border-gray-300 grayscale print:grayscale-0" />
+               <div className="flex justify-between items-center mb-2">
+                  <span className="text-[#b91c1c] font-bold text-[14px] uppercase tracking-wider">■ {item.category || 'সর্বশেষ'}</span>
+                  <span className="text-gray-500 text-[12px] font-bold bg-gray-200 px-2 py-0.5 rounded-full">{item.source_name || 'সংগৃহীত'}</span>
+               </div>
+               <h2 className="text-[36px] font-extrabold text-black leading-[1.15] group-hover:text-[#104f96]">
+                  <a href={item.is_custom ? `/news/${item.id}` : item.source_url} target="_blank">{item.title}</a>
+               </h2>
+            </div>
+          ))}
         </div>
-      </main>
 
-      {/* ফুটার সেকশন */}
-      <footer className="bg-white border-t border-gray-200 py-6 mt-12 text-center text-xs text-gray-400">
-        <p>© {new Date().getFullYear()} বঙ্গীয় টাইমস. সর্বস্বত্ব সংরক্ষিত।</p>
-        <p className="mt-1 text-[10px] text-gray-300">Powered by Next.js, Supabase & Vercel</p>
-      </footer>
+        {/* --- গ্রিড সেকশন: ১২টি ছোট খবর (সবসময় ৪ কলাম থাকবে) --- */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+          {gridNews.map((item: any) => (
+            <div key={item.id} className="flex flex-col group">
+               <img src={item.image_url} alt={item.title} className="w-full h-[150px] object-cover mb-3 border border-gray-200 grayscale print:grayscale-0" />
+               <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[#b91c1c] font-bold text-[12px] uppercase tracking-wider">■ {item.category || 'সর্বশেষ'}</span>
+               </div>
+               <h3 className="text-[22px] font-extrabold text-[#222] leading-[1.2] group-hover:text-[#104f96]">
+                  <a href={item.is_custom ? `/news/${item.id}` : item.source_url} target="_blank">{item.title}</a>
+               </h3>
+            </div>
+          ))}
+        </div>
+
+        {/* প্রিন্ট ফুটার */}
+        <div className="mt-12 border-t-[2px] border-black pt-3 text-center text-[13.5px] font-bold text-gray-500 pb-2">
+          বঙ্গীয় টাইমস হেডলাইন ডাইজেস্ট কর্তৃক সংকলিত ও প্রকাশিত। বিস্তারিত খবর পড়তে ভিজিট করুন: <span className="text-black">www.bongiyotimes.com</span>
+        </div>
+
+      </div>
     </div>
   );
 }
