@@ -55,7 +55,7 @@ export default async function EPaperPage() {
                
                const btn = document.getElementById('download-btn');
                const originalText = btn.innerHTML;
-               btn.innerHTML = 'ইমেজ তৈরি হচ্ছে... ⏳';
+               btn.innerHTML = 'উচ্চ মানের ইমেজ তৈরি হচ্ছে... ⏳';
                
                const element = document.getElementById('epaper-canvas');
                
@@ -63,6 +63,7 @@ export default async function EPaperPage() {
                window.html2canvas(element, { 
                   scale: 2, 
                   useCORS: true,
+                  allowTaint: false,
                   backgroundColor: '#ffffff'
                }).then(canvas => {
                   const link = document.createElement('a');
@@ -115,30 +116,30 @@ export default async function EPaperPage() {
 
         {/* --- পত্রিকার হেডার --- */}
         <header className="border-b-[4px] border-double border-black pb-3 mb-6">
-          <div className="flex justify-between items-end mb-3">
+          {/* ফিক্সড লেআউট: ২৫% - ৫০% - ২৫% অনুপাতে ভাগ করা হয়েছে যাতে ক্যানভাসে না ভাঙে */}
+          <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '12px' }}>
             
             {/* বাম দিকের তথ্য */}
-            <div style={{ width: '250px' }} className="text-[14px] font-bold text-gray-700 leading-tight shrink-0">
+            <div style={{ width: '25%' }} className="text-[14px] font-bold text-gray-700 leading-tight">
               <p className="text-black text-[15px]">ঢাকা</p>
               <p>{dayName}, {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(today)}</p>
               <p className="mt-0.5 text-[#b91c1c]">৮ আষাঢ় ১৪৩৩ • ৬ মহররম ১৪৪৮</p>
             </div>
 
-            {/* লোগো এবং অটোমেটিক বারের নাম */}
-            <div className="shrink-0 flex flex-col items-center justify-center px-4">
-               {/* দিনের নামসহ অটোমেটিক ডায়নামিক টেক্সট */}
-               <span className="text-gray-600 font-bold text-[14px] tracking-[0.15em] mb-1.5 uppercase">
+            {/* লোগো এবং অটোমেটিক বারের নাম (মাঝখানে) */}
+            <div style={{ width: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyItems: 'center' }}>
+               <span className="text-gray-600 font-bold text-[14px] tracking-[0.12em] mb-1.5 uppercase text-center w-full">
                   {dayName}ের প্রধান প্রধান খবরের শিরোনাম
                </span>
-               <h1 className="text-[65px] font-black leading-none tracking-tight" style={{ transform: 'scaleY(1.05)' }}>
+               <h1 className="text-[65px] font-black leading-none tracking-tight flex justify-center w-full" style={{ transform: 'scaleY(1.05)' }}>
                   <span className="text-[#b91c1c]">বঙ্গীয়</span>
                   <span className="text-[#111827] ml-3">টাইমস</span>
                </h1>
             </div>
 
             {/* ডান দিকের তথ্য */}
-            <div style={{ width: '250px' }} className="text-[14px] font-bold text-gray-700 text-right leading-tight shrink-0">
-              <p>সম্পাদক</p>
+            <div style={{ width: '25%', textAlign: 'right' }} className="text-[14px] font-bold text-gray-700 leading-tight">
+              <p>সম্পাদক ও প্রকাশক</p>
               <p className="text-black text-[16px]">অ্যাডভোকেট মো: আজাদুর রহমান</p>
               <p className="mt-0.5 text-[#b91c1c]">হেডলাইন ডাইজেস্ট</p>
             </div>
@@ -155,7 +156,8 @@ export default async function EPaperPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '32px' }} className="mb-8 border-b-[2px] border-black pb-8">
           {leadNews.map((item: any) => (
             <div key={item.id} className="flex flex-col group border border-gray-100 p-2 shadow-sm bg-gray-50/50">
-               <img src={item.image_url} alt={item.title} crossOrigin="anonymous" loading="eager" className="w-full h-[320px] object-cover mb-3 border border-gray-300 grayscale print:grayscale-0" />
+               {/* Image Proxy যুক্ত করা হয়েছে যাতে CORS ব্লক না হয় এবং ছবি সাদা না আসে */}
+               <img src={item.image_url ? `https://wsrv.nl/?url=${encodeURIComponent(item.image_url)}` : ''} alt={item.title} crossOrigin="anonymous" loading="eager" className="w-full h-[320px] object-cover mb-3 border border-gray-300 grayscale print:grayscale-0" />
                <div className="flex justify-between items-center mb-2">
                   <span className="text-[#b91c1c] font-bold text-[14px] uppercase tracking-wider">■ {item.category || 'সর্বশেষ'}</span>
                   <span className="text-gray-500 text-[12px] font-bold bg-gray-200 px-2 py-0.5 rounded-full">{item.source_name || 'সংগৃহীত'}</span>
@@ -171,7 +173,8 @@ export default async function EPaperPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
           {gridNews.map((item: any) => (
             <div key={item.id} className="flex flex-col group">
-               <img src={item.image_url} alt={item.title} crossOrigin="anonymous" loading="eager" className="w-full h-[150px] object-cover mb-3 border border-gray-200 grayscale print:grayscale-0" />
+               {/* Image Proxy যুক্ত করা হয়েছে যাতে CORS ব্লক না হয় এবং ছবি সাদা না আসে */}
+               <img src={item.image_url ? `https://wsrv.nl/?url=${encodeURIComponent(item.image_url)}` : ''} alt={item.title} crossOrigin="anonymous" loading="eager" className="w-full h-[150px] object-cover mb-3 border border-gray-200 grayscale print:grayscale-0" />
                <div className="flex justify-between items-center mb-1.5">
                   <span className="text-[#b91c1c] font-bold text-[12px] uppercase tracking-wider">■ {item.category || 'সর্বশেষ'}</span>
                </div>
