@@ -5,9 +5,9 @@ import Script from 'next/script';
 
 export const revalidate = 60; 
 
-// ক্যানভাস সাইজ: ৯২২ x ১১৫২ (Scale x2 করলে ১৮৪৪ x ২৩০৪ পিক্সেল হবে)
+// মোবাইল ব্রাউজারকে বাধ্য করবে পাতাকে ১১৫০ পিক্সেল হিসেবে রেন্ডার করতে (যাতে জুম করে পড়া যায়)
 export const viewport: Viewport = {
-  width: 922,
+  width: 1150,
 };
 
 const supabase = createClient(
@@ -15,27 +15,21 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
 );
 
-// লেখা কাটার হাত থেকে বাঁচানোর জন্য কাস্টম ট্রাঙ্কেট ফাংশন
-const truncateText = (str: string, maxLen: number) => {
-  if (!str) return '';
-  return str.length > maxLen ? str.substring(0, maxLen) + '...' : str;
-};
-
 export default async function EPaperPage() {
+  // মোট ১৪টি খবর আনা হচ্ছে (২টি লিড + ১২টি গ্রিড)
   const { data: newsItems } = await supabase
     .from('news')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(18);
+    .limit(14);
 
   const news = newsItems || [];
   
-  const topStripNews = news.slice(0, 4);
-  const leadNews = news.slice(4, 6);
-  const gridNews = news.slice(6, 18);
+  const leadNews = news.slice(0, 2);
+  const gridNews = news.slice(2, 14);
 
   return (
-    <div className="min-h-screen bg-[#d1d5db] print:bg-white flex justify-center py-8 print:py-0 overflow-x-auto">
+    <div className="min-h-screen bg-[#d1d5db] print:bg-white flex justify-center py-8 print:py-0 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
       
       {/* html2canvas লাইব্রেরি */}
       <Script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" strategy="lazyOnload" />
@@ -43,13 +37,15 @@ export default async function EPaperPage() {
       <Script id="download-handler" strategy="lazyOnload">
         {`
           setTimeout(() => {
+            // প্রিন্ট বাটন
             document.getElementById('print-btn')?.addEventListener('click', () => {
                window.print();
             });
 
+            // হাই-রেজ্যুলেশন ইমেজ ডাউনলোড বাটন
             document.getElementById('download-btn')?.addEventListener('click', () => {
                if (typeof window.html2canvas === 'undefined') {
-                 alert('সিস্টেম প্রস্তুত হচ্ছে... একটু পর আবার ক্লিক করুন।');
+                 alert('সিস্টেম প্রস্তুত হচ্ছে... ২ সেকেন্ড পর আবার ক্লিক করুন।');
                  return;
                }
                
@@ -59,7 +55,7 @@ export default async function EPaperPage() {
                
                const element = document.getElementById('epaper-canvas');
                
-               // ইমেজ প্রসেসিং কনফিগারেশন (CORS এনাবল করা হয়েছে যাতে ছবি সাদা না আসে)
+               // ইমেজ প্রসেসিং কনফিগারেশন (Scale 2 মানে অত্যন্ত ক্লিয়ার ছবি)
                window.html2canvas(element, { 
                   scale: 2, 
                   useCORS: true,
@@ -68,7 +64,7 @@ export default async function EPaperPage() {
                }).then(canvas => {
                   const link = document.createElement('a');
                   const dateInfo = new Date().toISOString().split('T')[0];
-                  link.download = 'Bongiyo-Times-' + dateInfo + '.jpg';
+                  link.download = 'Bongiyo-Times-ePaper-' + dateInfo + '.jpg';
                   link.href = canvas.toDataURL('image/jpeg', 0.95);
                   link.click();
                   btn.innerHTML = originalText;
@@ -90,15 +86,15 @@ export default async function EPaperPage() {
         </button>
         <button id="download-btn" className="bg-[#b91c1c] text-white px-6 py-2.5 rounded-full font-bold text-[14px] flex items-center gap-2 hover:bg-red-800 transition">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          ফেসবুক সাইজ ইমেজ ডাউনলোড (1844x2304)
+          ই-পেপার ইমেজ ডাউনলোড
         </button>
       </div>
 
-      {/* --- ই-পেপার মূল ক্যানভাস (Perfect 4:5 Aspect Ratio for Facebook) --- */}
+      {/* --- ই-পেপার মূল ক্যানভাস (অরিজিনাল ১১৫০ পিক্সেল) --- */}
       <div 
         id="epaper-canvas"
-        style={{ width: '922px', height: '1152px', backgroundColor: '#ffffff', boxSizing: 'border-box', padding: '24px', display: 'flex', flexDirection: 'column' }} 
-        className="shadow-[0_0_40px_rgba(0,0,0,0.15)] print:shadow-none shrink-0"
+        style={{ width: '1150px', backgroundColor: '#ffffff', boxSizing: 'border-box' }} 
+        className="p-10 shadow-[0_0_40px_rgba(0,0,0,0.15)] print:shadow-none shrink-0"
       >
         <style dangerouslySetInnerHTML={{
           __html: `
@@ -106,90 +102,80 @@ export default async function EPaperPage() {
           body { font-family: 'Kalpurush', Arial, sans-serif !important; }
         `}} />
 
-        {/* --- ১. হেডারের ওপরের ৪টি নিউজের স্ট্রিপ --- */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', height: '75px', borderBottom: '2px solid black', paddingBottom: '12px', marginBottom: '16px' }}>
-          {topStripNews.map((item: any) => (
-            <div key={item.id} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-               <img src={item.image_url} alt="" loading="eager" style={{ width: '65px', height: '45px', objectFit: 'cover', border: '1px solid #d1d5db', filter: 'grayscale(100%)' }} />
-               <div style={{ flex: 1 }}>
-                  <span style={{ color: '#b91c1c', fontSize: '10px', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>■ {item.category || 'সর্বশেষ'}</span>
-                  <h3 style={{ fontSize: '12px', fontWeight: 'bold', color: '#111827', lineHeight: '1.3', margin: 0 }}>
-                    {truncateText(item.title, 45)}
-                  </h3>
-               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* --- ২. মূল পত্রিকার হেডার --- */}
-        <header style={{ height: '100px', borderBottom: '4px double black', paddingBottom: '10px', marginBottom: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        {/* --- ১. মূল পত্রিকার হেডার --- */}
+        <header className="border-b-[4px] border-double border-black pb-3 mb-6">
+          <div className="flex justify-between items-end mb-3">
             
-            <div style={{ width: '240px', fontSize: '12px', fontWeight: 'bold', color: '#374151', lineHeight: '1.4' }}>
-              <p style={{ color: 'black', fontSize: '14px', margin: 0 }}>ঢাকা</p>
-              <p style={{ margin: 0 }}>{new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}</p>
-              <p style={{ margin: 0 }}>৮ আষাঢ় ১৪৩৩ • ৬ মহররম ১৪৪৮</p>
+            {/* বাম দিকের তথ্য (পরিপূর্ণ তারিখ) */}
+            <div style={{ width: '280px' }} className="text-[14.5px] font-bold text-gray-700 leading-snug shrink-0">
+              <p className="text-black text-[16px]">ঢাকা</p>
+              <p>{new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}, {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}</p>
+              <p className="text-gray-500 mt-0.5">৮ আষাঢ় ১৪৩৩ • ৬ মহররম ১৪৪৮</p>
             </div>
 
-            {/* লোগো: Bulletproof ফ্লেক্সবক্স ডিজাইন (কখনো ভাঙবে না) */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-               <span style={{ fontSize: '50px', fontWeight: 'bold', color: '#b91c1c', letterSpacing: '-1px' }}>বঙ্গীয়</span>
-               
-               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', border: '4px solid #b91c1c', margin: '0 10px', backgroundColor: 'white' }}>
-                  <span style={{ fontSize: '32px', fontWeight: '900', color: 'black', paddingTop: '4px' }}>টা</span>
-               </div>
-               
-               <span style={{ fontSize: '50px', fontWeight: 'bold', color: 'black', letterSpacing: '-1px' }}>ইমস</span>
+            {/* সলিড লোগো: কোনো আইকন বা ঘড়ি নেই, শুধু মোটা টেক্সট */}
+            <div className="shrink-0 flex items-center justify-center px-4">
+               <h1 className="text-[75px] font-black tracking-tighter" style={{ transform: 'scaleY(1.1)' }}>
+                 <span className="text-[#b91c1c]">বঙ্গীয়</span>
+                 <span className="text-black ml-4">টাইমস</span>
+               </h1>
             </div>
 
-            <div style={{ width: '240px', fontSize: '12px', fontWeight: 'bold', color: '#374151', textAlign: 'right', lineHeight: '1.4' }}>
-              <p style={{ color: 'black', fontSize: '14px', margin: 0 }}>অ্যাডভোকেট মো: আজাদুর রহমান</p>
-              <p style={{ margin: 0 }}>সম্পাদক ও প্রকাশক</p>
-              <p style={{ margin: 0 }}>অনলাইন ডাইজেস্ট সংস্করণ</p>
+            {/* ডান দিকের তথ্য */}
+            <div style={{ width: '280px' }} className="text-[14.5px] font-bold text-gray-700 text-right leading-snug shrink-0">
+              <p className="text-black text-[16px]">অ্যাডভোকেট মো: আজাদুর রহমান</p>
+              <p>সম্পাদক ও প্রকাশক</p>
+              <p className="mt-0.5 text-gray-500">অনলাইন ডাইজেস্ট সংস্করণ</p>
             </div>
             
           </div>
           
-          <div style={{ backgroundColor: 'black', color: 'white', fontSize: '13px', padding: '4px 16px', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '10px' }}>
+          <div className="bg-black text-white text-[15px] py-1.5 px-4 flex justify-between items-center font-bold">
             <span>আজকের শীর্ষ সংবাদ: ছবি ও শিরোনামে</span>
             <span>www.bongiyotimes.com</span>
           </div>
         </header>
 
-        {/* --- ৩. লিড সেকশন: ২টি বড় খবর --- */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px', height: '320px', borderBottom: '2px solid black', paddingBottom: '16px', marginBottom: '16px' }}>
+        {/* --- ২. লিড সেকশন: ২টি বড় খবর --- */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '32px' }} className="mb-8 border-b-[2px] border-black pb-8">
           {leadNews.map((item: any) => (
-            <div key={item.id} style={{ display: 'flex', flexDirection: 'column', padding: '10px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
-               <div style={{ position: 'relative' }}>
-                 <img src={item.image_url} alt="" loading="eager" style={{ width: '100%', height: '190px', objectFit: 'cover', marginBottom: '10px', border: '1px solid #d1d5db', filter: 'grayscale(100%)' }} />
-                 <span style={{ position: 'absolute', top: '8px', right: '8px', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', fontSize: '10px', fontWeight: 'bold', padding: '2px 6px' }}>
+            <div key={item.id} className="flex flex-col group p-3 bg-gray-50 border border-gray-200 shadow-sm">
+               <div className="relative">
+                 <img src={item.image_url} alt="" crossOrigin="anonymous" loading="eager" className="w-full h-[320px] object-cover mb-3 border border-gray-300 grayscale print:grayscale-0" />
+                 <span className="absolute top-2 right-2 bg-black/70 text-white text-[12px] font-bold px-2 py-1 rounded-sm">
                    ছবি: {item.source_name || 'সংগৃহীত'}
                  </span>
                </div>
-               <span style={{ color: '#b91c1c', fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>■ {item.category || 'সর্বশেষ'}</span>
-               <h2 style={{ fontSize: '26px', fontWeight: '800', color: 'black', lineHeight: '1.2', margin: 0 }}>
-                  {truncateText(item.title, 65)}
+               <div className="flex justify-between items-center mb-2">
+                  <span className="text-[#b91c1c] font-bold text-[14px] uppercase tracking-wider">■ {item.category || 'সর্বশেষ'}</span>
+               </div>
+               {/* ফুল নিউজ টাইটেল (কোনো ট্রাঙ্কেশন নেই) */}
+               <h2 className="text-[36px] font-extrabold text-black leading-[1.15] group-hover:text-gray-600">
+                  {item.title}
                </h2>
             </div>
           ))}
         </div>
 
-        {/* --- ৪. গ্রিড সেকশন: ১২টি ছোট খবর (৪ কলামে) --- */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px 24px', flex: 1 }}>
+        {/* --- ৩. গ্রিড সেকশন: ১২টি ছোট খবর (৪ কলামে) --- */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
           {gridNews.map((item: any) => (
-            <div key={item.id} style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid #f3f4f6', paddingBottom: '8px' }}>
-               <img src={item.image_url} alt="" loading="eager" style={{ width: '100%', height: '100px', objectFit: 'cover', marginBottom: '8px', border: '1px solid #e5e7eb', filter: 'grayscale(100%)' }} />
-               <span style={{ color: '#b91c1c', fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>■ {item.category || 'সর্বশেষ'}</span>
-               <h3 style={{ fontSize: '15.5px', fontWeight: '800', color: '#111827', lineHeight: '1.3', margin: 0 }}>
-                  {truncateText(item.title, 55)}
+            <div key={item.id} className="flex flex-col group border-b border-gray-100 pb-3">
+               <img src={item.image_url} alt="" crossOrigin="anonymous" loading="eager" className="w-full h-[160px] object-cover mb-3 border border-gray-200 shadow-sm grayscale print:grayscale-0" />
+               <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[#b91c1c] font-bold text-[12px] uppercase tracking-wider">■ {item.category || 'সর্বশেষ'}</span>
+               </div>
+               {/* ফুল নিউজ টাইটেল (কোনো ট্রাঙ্কেশন নেই) */}
+               <h3 className="text-[22px] font-extrabold text-[#222] leading-[1.25] group-hover:text-gray-600">
+                  {item.title}
                </h3>
             </div>
           ))}
         </div>
 
-        {/* --- ৫. সেন্ট্রাল ফুটার --- */}
-        <div style={{ height: '25px', marginTop: '12px', borderTop: '2px solid black', paddingTop: '8px', textAlign: 'center', fontSize: '11.5px', fontWeight: 'bold', color: '#6b7280' }}>
-          বঙ্গীয় টাইমস অনলাইন ডাইজেস্ট সংস্করণ কর্তৃক সংকলিত ও প্রকাশিত। বিস্তারিত খবর পড়তে ভিজিট করুন: <span style={{ color: 'black' }}>www.bongiyotimes.com</span>
+        {/* --- ৪. সেন্ট্রাল ফুটার (স্ক্রিনশটের মতো এক লাইনে) --- */}
+        <div className="mt-10 border-t-[2px] border-black pt-3 text-center text-[13px] font-bold text-gray-500 pb-2">
+          বঙ্গীয় টাইমস অনলাইন ডাইজেস্ট সংস্করণ কর্তৃক সংকলিত ও প্রকাশিত। বিস্তারিত খবর পড়তে ভিজিট করুন: <span className="text-black">www.bongiyotimes.com</span>
         </div>
 
       </div>
