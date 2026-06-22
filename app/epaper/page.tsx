@@ -55,13 +55,14 @@ export default async function EPaperPage() {
           @page { size: A3; margin: 10mm; }
         `}} />
 
-        {/* --- ১. হেডারের ওপরের ৪টি নিউজের স্ট্রিপ (গ্রে থিম) --- */}
+        {/* --- ১. হেডারের ওপরের ৪টি নিউজের স্ট্রিপ (গ্রে থিম কিন্তু ক্যাটাগরিতে লাল ডট) --- */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }} className="mb-4 pb-4 border-b-[2px] border-black">
           {topStripNews.map((item: any) => (
             <a href={item.is_custom ? `/news/${item.id}` : item.source_url} target="_blank" key={item.id} className="flex gap-3 items-center group">
                <img src={item.image_url} alt={item.title} className="w-[85px] h-[60px] object-cover border border-gray-300 shadow-sm grayscale print:grayscale-0" />
                <div className="flex-1">
-                  <span className="text-gray-600 text-[11px] font-bold uppercase block mb-0.5">■ {item.category || 'সর্বশেষ'}</span>
+                  {/* স্ক্রিনশটের মতো লাল ডট ও ক্যাটাগরি */}
+                  <span className="text-[#b91c1c] text-[11px] font-bold uppercase block mb-0.5">■ {item.category || 'সর্বশেষ'}</span>
                   <h3 className="text-[14px] font-bold text-gray-900 leading-tight group-hover:text-gray-500 line-clamp-2">{item.title}</h3>
                </div>
             </a>
@@ -102,14 +103,14 @@ export default async function EPaperPage() {
             <div style={{ width: '280px' }} className="text-[14.5px] font-bold text-gray-700 text-right leading-snug shrink-0">
               <p className="text-black text-[16px]">অ্যাডভোকেট মো: আজাদুর রহমান</p>
               <p>সম্পাদক ও প্রকাশক</p>
-              <p className="mt-0.5 text-gray-500">ই-পেপার ডাইজেস্ট সংস্করণ</p>
+              <p className="mt-0.5 text-gray-500">অনলাইন ডাইজেস্ট সংস্করণ</p>
             </div>
             
           </div>
           
           {/* কালো স্ট্রিপ এবং ওয়েবসাইট লিংক */}
           <div className="bg-black text-white text-[15px] py-1.5 px-4 flex justify-between items-center font-bold">
-            <span>আজকের প্রধান সংবাদ ও হেডলাইন ডাইজেস্ট</span>
+            <span>আজকের শীর্ষ সংবাদ: ছবি ও শিরোনামে</span>
             <span>www.bongiyotimes.com</span>
           </div>
         </header>
@@ -125,7 +126,8 @@ export default async function EPaperPage() {
                  </span>
                </div>
                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-800 font-bold text-[14px] uppercase tracking-wider">■ {item.category || 'সর্বশেষ'}</span>
+                  {/* স্ক্রিনশটের মতো লাল ডট ও ক্যাটাগরি */}
+                  <span className="text-[#b91c1c] font-bold text-[14px] uppercase tracking-wider">■ {item.category || 'সর্বশেষ'}</span>
                </div>
                <h2 className="text-[38px] font-extrabold text-black leading-[1.15] group-hover:text-gray-600">
                   <a href={item.is_custom ? `/news/${item.id}` : item.source_url} target="_blank">{item.title}</a>
@@ -134,13 +136,14 @@ export default async function EPaperPage() {
           ))}
         </div>
 
-        {/* --- ৪. গ্রিড সেকশন: ১২টি ছোট খবর (৪ কলামে) --- */}
+        {/* --- ۴. গ্রিড সেকশন: ১২টি ছোট খবর (৪ কলামে) --- */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
           {gridNews.map((item: any) => (
             <div key={item.id} className="flex flex-col group border-b border-gray-100 pb-3">
                <img src={item.image_url} alt={item.title} className="w-full h-[160px] object-cover mb-3 border border-gray-200 shadow-sm grayscale print:grayscale-0" />
                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-gray-800 font-bold text-[12px] uppercase tracking-wider">■ {item.category || 'সর্বশেষ'}</span>
+                  {/* স্ক্রিনশটের মতো লাল ডট ও ক্যাটাগরি */}
+                  <span className="text-[#b91c1c] font-bold text-[12px] uppercase tracking-wider">■ {item.category || 'সর্বশেষ'}</span>
                </div>
                <h3 className="text-[22px] font-extrabold text-[#222] leading-[1.25] group-hover:text-gray-600">
                   <a href={item.is_custom ? `/news/${item.id}` : item.source_url} target="_blank">{item.title}</a>
@@ -149,10 +152,9 @@ export default async function EPaperPage() {
           ))}
         </div>
 
-        {/* --- ৫. অরিজিনাল গ্রে ফুটার --- */}
-        <div className="mt-12 border-t-[2px] border-black pt-3 text-center text-[13.5px] font-bold text-gray-500 pb-2 flex justify-between px-2">
-          <span>বঙ্গীয় টাইমস পাবলিকেশন্স কর্তৃক সংকলিত ও প্রকাশিত। সর্বস্বত্ব সংরক্ষিত।</span>
-          <span>বিস্তারিত খবর পড়তে ভিজিট করুন: <strong className="text-black">www.bongiyotimes.com</strong></span>
+        {/* --- ৫. সেন্ট্রাল ফুটার (স্ক্রিনশটের মতো এক লাইনে) --- */}
+        <div className="mt-12 border-t-[2px] border-black pt-3 text-center text-[12.5px] font-bold text-gray-500 pb-2">
+          বঙ্গীয় টাইমস অনলাইন ডাইজেস্ট সংস্করণ কর্তৃক সংকলিত ও প্রকাশিত। বিস্তারিত খবর পড়তে ভিজিট করুন: <span className="text-black">www.bongiyotimes.com</span>
         </div>
 
       </div>
