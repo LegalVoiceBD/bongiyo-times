@@ -126,12 +126,12 @@ export default async function EPaperPage() {
               <p className="mt-0.5 text-[#b91c1c]">৮ আষাঢ় ১৪৩৩ • ৬ মহররম ১৪৪৮</p>
             </div>
 
-            {/* লোগো এবং অটোমেটিক বারের নাম (মাঝখানে) - html2canvas এর জন্য flex বাদ দিয়ে block/center করা হয়েছে */}
-            <div style={{ width: '50%', textAlign: 'center' }}>
-               <div className="text-gray-600 font-bold text-[14px] tracking-[0.12em] mb-1 uppercase block">
+            {/* লোগো এবং অটোমেটিক বারের নাম (মাঝখানে) */}
+            <div style={{ width: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyItems: 'center' }}>
+               <span className="text-gray-600 font-bold text-[14px] tracking-[0.12em] mb-1.5 uppercase text-center w-full">
                   {dayName}ের প্রধান প্রধান খবরের শিরোনাম
-               </div>
-               <h1 className="text-[65px] font-black leading-none tracking-tight block" style={{ transform: 'scaleY(1.05)', margin: 0 }}>
+               </span>
+               <h1 className="text-[65px] font-black leading-none tracking-tight flex justify-center w-full" style={{ transform: 'scaleY(1.05)' }}>
                   <span className="text-[#b91c1c]">বঙ্গীয়</span>
                   <span className="text-[#111827] ml-3">টাইমস</span>
                </h1>
@@ -139,15 +139,14 @@ export default async function EPaperPage() {
 
             {/* ডান দিকের তথ্য */}
             <div style={{ width: '25%', textAlign: 'right' }} className="text-[14px] font-bold text-gray-700 leading-tight">
-              <p>সম্পাদক ও প্রকাশক</p>
+              <p>সম্পাদক</p>
               <p className="text-black text-[16px]">অ্যাডভোকেট মো: আজাদুর রহমান</p>
               <p className="mt-0.5 text-[#b91c1c]">হেডলাইন ডাইজেস্ট</p>
             </div>
             
           </div>
           
-          {/* কালো বার - align-items: center দিয়ে ফিক্সড করা হয়েছে */}
-          <div style={{ backgroundColor: 'black', color: 'white', fontSize: '15px', padding: '6px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold' }}>
+          <div className="bg-black text-white text-[15px] py-1 px-4 flex justify-between font-bold">
             <span>আজকের শীর্ষ সংবাদ: ছবি ও শিরোনামে</span>
             <span>www.bongiyotimes.com</span>
           </div>
@@ -188,7 +187,7 @@ export default async function EPaperPage() {
 
         {/* প্রিন্ট ফুটার */}
         <div className="mt-12 border-t-[2px] border-black pt-3 text-center text-[13.5px] font-bold text-gray-500 pb-2">
-          বঙ্গীয় টাইমস হেডলাইন ডাইজেস্ট কর্তৃক সংকলিত ও প্রকাশিত। বিস্তারিত খবর পড়তে ভিজিট করুন: <span className="text-black">www.bongiyotimes.com</span>
+          বঙ্গীয় টাইমস হেডলাইন ডাইজেস্ট কর্তৃক সংকলিত। বিস্তারিত খবর পড়তে ভিজিট করুন: <span className="text-black">www.bongiyotimes.com</span>
         </div>
 
       </div>
