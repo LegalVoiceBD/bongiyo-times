@@ -155,12 +155,10 @@ async function runBot() {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
   };
 
-  // টাইটেল থেকে পত্রিকার নাম রিমুভ করার ফাংশন
   function cleanTitle(rawTitle) {
     if (!rawTitle) return '';
     let text = rawTitle;
     
-    // UNB এবং অন্যান্য ব্র্যান্ড নাম যুক্ত করা হলো
     const brandNames = [
       'প্রথম আলো', 'Prothom Alo', 'যুগান্তর', 'Jugantor', 'ইত্তেফাক', 'Ittefaq',
       'কালের কণ্ঠ', 'কালের কন্ঠ', 'Kaler Kantho', 'সমকাল', 'Samakal',
@@ -181,36 +179,41 @@ async function runBot() {
     return text.replace(/[\s\|\-\–\\—]+$/, '').trim();
   }
 
-  // স্ট্রিক্ট ইউআরএল ব্ল্যাকলিস্ট
+  // স্ট্রিক্ট ইউআরএল ভ্যালিডেশন (Whitelist + Blacklist)
   function isStrictlyValid(url, expectedCategory) {
     const lowerUrl = url.toLowerCase();
     
-    const generalBadWords = ['tag', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo', 'gallery', 'country', 'city', 'probash', 'editorial', 'opinion'];
+    const generalBadWords = ['tag', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo', 'gallery', 'city', 'probash', 'editorial', 'opinion'];
     if (generalBadWords.some(word => lowerUrl.includes(`/${word}`))) return false;
     
     if (!/\d/.test(lowerUrl)) return false;
 
-    if (expectedCategory === 'ধর্ম') {
-       if (!lowerUrl.includes('islam') && !lowerUrl.includes('religion')) {
-          return false;
-       }
+    // ১. হোয়াইটলিস্ট চেক: এই ক্যাটাগরিগুলোর লিংকে অবশ্যই সংশ্লিষ্ট শব্দ থাকতে হবে।
+    // এতে সাইডবারের অন্য ক্যাটাগরির লিংকগুলো অটোমেটিক বাদ পড়ে যাবে।
+    const categoryWhitelist = {
+        'খেলাধুলা': ['sport', 'khela', 'cricket', 'football'],
+        'বিনোদন': ['entertainment', 'binodon', 'showbiz'],
+        'বাণিজ্য': ['business', 'economy', 'economics', 'banijjo', 'trade'],
+        'আইন-আদালত': ['law', 'court', 'crime', 'justice', 'legal'],
+        'শিক্ষা': ['education', 'campus', 'shikkha'],
+        'প্রযুক্তি': ['tech', 'science', 'it', 'info-tech'],
+        'ধর্ম': ['religion', 'islam', 'islamic'],
+        'জীবনযাপন': ['lifestyle', 'life', 'jibonjapon'],
+        'চাকরি': ['chakri', 'job'],
+        'হাস্যরস': ['fun', 'hasyorosh'],
+        'ফিচার': ['feature', 'treatise', 'onnoalo']
+    };
+
+    if (categoryWhitelist[expectedCategory]) {
+        const hasWhitelistedWord = categoryWhitelist[expectedCategory].some(word => lowerUrl.includes(word));
+        if (!hasWhitelistedWord) return false;
     }
 
+    // ২. ব্ল্যাকলিস্ট চেক (বিশেষ করে বাংলাদেশ, আন্তর্জাতিক ও রাজনীতির জন্য)
     const categoryBlacklist = {
       'বাংলাদেশ': ['world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'politics', 'fun', 'chakri'],
-      'আন্তর্জাতিক': ['bangladesh', 'national', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'politics', 'fun', 'chakri'],
-      'খেলাধুলা': ['bangladesh', 'national', 'world', 'international', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'politics', 'fun', 'chakri'],
-      'বিনোদন': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'politics', 'fun', 'chakri'],
-      'বাণিজ্য': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'politics', 'fun', 'chakri'],
-      'আইন-আদালত': ['sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'fun', 'chakri'],
-      'শিক্ষা': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'lifestyle', 'politics', 'fun', 'chakri'],
-      'প্রযুক্তি': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'politics', 'fun', 'chakri'],
-      'ধর্ম': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'campus', 'education', 'lifestyle', 'politics', 'fun', 'chakri'],
-      'জীবনযাপন': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'politics', 'fun', 'chakri'],
-      'চাকরি': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'islam', 'religion', 'lifestyle', 'politics', 'fun'],
-      'রাজনীতি': ['world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'fun', 'chakri'],
-      'হাস্যরস': ['bangladesh', 'national', 'world', 'international', 'sport', 'khela', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'politics', 'chakri'],
-      'ফিচার': ['world', 'international', 'sport', 'khela', 'tech', 'business', 'economy', 'islam', 'religion', 'politics', 'fun', 'chakri']
+      'আন্তর্জাতিক': ['bangladesh', 'national', 'country', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'politics', 'fun', 'chakri'],
+      'রাজনীতি': ['world', 'international', 'sport', 'khela', 'entertainment', 'binodon', 'tech', 'business', 'economy', 'islam', 'religion', 'campus', 'education', 'lifestyle', 'fun', 'chakri']
     };
 
     const blockedWords = categoryBlacklist[expectedCategory] || [];
@@ -246,10 +249,8 @@ async function runBot() {
         const articleHtml = await articleRes.text();
         const article$ = cheerio.load(articleHtml);
 
-        // H1 ট্যাগ যোগ করা হলো, কারণ অনেক সাইটে (যেমন UNB) og:title এ ডিফল্ট স্লোগান থাকে
         let rawTitle = article$('meta[property="og:title"]').attr('content') || article$('h1').first().text().trim() || article$('title').text();
         
-        // --- UNB বা অন্য কোনো সাইটের ডিফল্ট স্লোগান ব্লকার ---
         const invalidTitlePhrases = [
            'United News Bangladesh',
            'Latest online Bangladesh news',
@@ -258,11 +259,9 @@ async function runBot() {
         ];
         
         if (invalidTitlePhrases.some(phrase => rawTitle.includes(phrase))) {
-           continue; // এটি কোনো খবর নয়, তাই পরের লিংকে চলে যাবে
+           continue; 
         }
-        // --------------------------------------------------------
 
-        // এখানে title ক্লিন করা হচ্ছে
         let title = cleanTitle(rawTitle);
         
         let snippet = article$('meta[property="og:description"]').attr('content') || article$('meta[name="description"]').attr('content') || "বিস্তারিত পড়তে মূল খবরে ক্লিক করুন...";
