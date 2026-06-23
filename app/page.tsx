@@ -23,8 +23,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
   );
 
-  const activeCategory = searchParams.category || '';
-  const searchQuery = searchParams.q || '';
+  const activeCategory = searchParams.category ? searchParams.category.trim() : '';
+  const searchQuery = searchParams.q ? searchParams.q.trim() : '';
   const currentPage = parseInt(searchParams.page || '1');
   const limitPerPage = 20; 
   const startRow = (currentPage - 1) * limitPerPage;
@@ -40,8 +40,9 @@ export default async function Home({ searchParams }: { searchParams: { category?
     query = query.limit(150); 
   }
 
-  const { data: newsItems } = await query;
+  const { data: newsItems, count } = await query;
   const allNews = newsItems || [];
+  const totalPages = count ? Math.ceil(count / limitPerPage) : 1;
 
   // --- Hero Section Data ---
   const headerNews = allNews.slice(0, 3);
@@ -76,7 +77,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const hasyroshNews = await fetchDirectCategory('হাস্যরস', 4);
   const religionNews = await fetchDirectCategory('ধর্ম', 8);
 
-  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্র প্রযুক্তি", "ফিচার", "হাস্যরস"];
+  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস"];
 
   return (
     <div className="min-h-screen bg-white text-[#333] tracking-tight">
@@ -155,7 +156,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                  {menuCategories.map((cat, index) => (
                    <a 
                      key={index} 
-                     href={`/?category=${cat}`} 
+                     href={cat === "সর্বশেষ" ? "/" : `/?category=${cat}`} 
                      className={`hover:text-[#104f96] whitespace-nowrap shrink-0 ${typeof activeCategory !== 'undefined' && activeCategory === cat ? 'text-[#104f96] border-b-[3px] border-[#104f96] h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}
                    >
                       {cat}
@@ -219,6 +220,19 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         ))}
                      </div>
                   )}
+
+                  {/* Pagination Component for Area News */}
+                  {allNews.length > 0 && totalPages > 1 && (
+                     <div className="flex justify-center mt-10 mb-2 gap-3">
+                        {currentPage > 1 && (
+                           <a href={`/?category=বাংলাদেশ&q=${searchQuery}&page=${currentPage - 1}`} className="px-5 py-2 border border-[#104f96] text-[#104f96] rounded-full hover:bg-[#104f96] hover:text-white transition font-bold">পূর্ববর্তী</a>
+                        )}
+                        <div className="px-5 py-2 bg-[#104f96] text-white rounded-full font-bold">{currentPage}</div>
+                        {currentPage < totalPages && (
+                           <a href={`/?category=বাংলাদেশ&q=${searchQuery}&page=${currentPage + 1}`} className="px-5 py-2 border border-[#104f96] text-[#104f96] rounded-full hover:bg-[#104f96] hover:text-white transition font-bold">পরবর্তী</a>
+                        )}
+                     </div>
+                  )}
                </div>
                
                {/* Google AdSense Space */}
@@ -245,12 +259,12 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
 
                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  {bdNews.length === 0 ? (
+                  {allNews.length === 0 ? (
                      <div className="text-gray-400 text-center py-10 col-span-4">খবর আপডেট হচ্ছে...</div>
                   ) : (
                      <>
                         <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
-                           {bdNews.slice(0, 6).map((news) => (
+                           {allNews.slice(0, 12).map((news) => (
                               <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col">
                                  <div className="overflow-hidden mb-3">
                                     <SafeImage src={news.image_url} alt={news.title} className="w-full h-[150px] object-cover group-hover:scale-105 transition duration-300 border border-gray-100" />
@@ -261,7 +275,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                            ))}
                         </div>
                         <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-gray-200 pt-5 lg:pt-0 lg:pl-6 flex flex-col gap-5">
-                           {bdNews.slice(6, 10).map((news) => (
+                           {allNews.slice(12, 20).map((news) => (
                               <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
                                  <h3 className="text-[17px] md:text-[18px] lg:text-[19px] font-bold text-gray-900 group-hover:text-[#104f96] leading-snug">{news.title}</h3>
                                  <p className="text-[14px] md:text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
@@ -271,6 +285,19 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      </>
                   )}
                </div>
+
+               {/* Pagination Component for BD */}
+               {allNews.length > 0 && totalPages > 1 && (
+                  <div className="flex justify-center mt-10 mb-2 gap-3">
+                     {currentPage > 1 && (
+                        <a href={`/?category=বাংলাদেশ&page=${currentPage - 1}`} className="px-5 py-2 border border-[#104f96] text-[#104f96] rounded-full hover:bg-[#104f96] hover:text-white transition font-bold">পূর্ববর্তী</a>
+                     )}
+                     <div className="px-5 py-2 bg-[#104f96] text-white rounded-full font-bold">{currentPage}</div>
+                     {currentPage < totalPages && (
+                        <a href={`/?category=বাংলাদেশ&page=${currentPage + 1}`} className="px-5 py-2 border border-[#104f96] text-[#104f96] rounded-full hover:bg-[#104f96] hover:text-white transition font-bold">পরবর্তী</a>
+                     )}
+                  </div>
+               )}
             </div>
             
         ) : (activeCategory || searchQuery) ? (
@@ -285,17 +312,32 @@ export default async function Home({ searchParams }: { searchParams: { category?
                  {allNews.length === 0 ? (
                     <div className="text-center py-20 text-gray-500 font-bold text-[20px]">কোনো খবর পাওয়া যায়নি।</div>
                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                       {allNews.map(news => (
-                          <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-4">
-                             <div className="flex-1">
-                                <h3 className="text-[20px] md:text-[22px] lg:text-[24px] font-bold group-hover:text-[#104f96] leading-snug">{news.title}</h3>
-                                <p className="text-[14px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
-                             </div>
-                             <SafeImage src={news.image_url} alt={news.title} className="w-[100px] h-[75px] sm:w-[120px] sm:h-[80px] object-cover rounded-sm" />
-                          </a>
-                       ))}
-                    </div>
+                    <>
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                          {allNews.map(news => (
+                             <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-4">
+                                <div className="flex-1">
+                                   <h3 className="text-[20px] md:text-[22px] lg:text-[24px] font-bold group-hover:text-[#104f96] leading-snug">{news.title}</h3>
+                                   <p className="text-[14px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
+                                </div>
+                                <SafeImage src={news.image_url} alt={news.title} className="w-[100px] h-[75px] sm:w-[120px] sm:h-[80px] object-cover rounded-sm" />
+                             </a>
+                          ))}
+                       </div>
+                       
+                       {/* Pagination Component */}
+                       {totalPages > 1 && (
+                          <div className="flex justify-center mt-10 mb-6 gap-3">
+                             {currentPage > 1 && (
+                                <a href={`/?${activeCategory ? `category=${activeCategory}&` : ''}${searchQuery ? `q=${searchQuery}&` : ''}page=${currentPage - 1}`} className="px-5 py-2 border border-[#104f96] text-[#104f96] rounded-full hover:bg-[#104f96] hover:text-white transition font-bold">পূর্ববর্তী</a>
+                             )}
+                             <div className="px-5 py-2 bg-[#104f96] text-white rounded-full font-bold">{currentPage}</div>
+                             {currentPage < totalPages && (
+                                <a href={`/?${activeCategory ? `category=${activeCategory}&` : ''}${searchQuery ? `q=${searchQuery}&` : ''}page=${currentPage + 1}`} className="px-5 py-2 border border-[#104f96] text-[#104f96] rounded-full hover:bg-[#104f96] hover:text-white transition font-bold">পরবর্তী</a>
+                             )}
+                          </div>
+                       )}
+                    </>
                  )}
               </div>
               <div className="hidden md:block col-span-1">
