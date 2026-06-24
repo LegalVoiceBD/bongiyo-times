@@ -3,8 +3,8 @@ on:
   schedule:
     - cron: '0,30 * * * *' # প্রতি ঘণ্টার ০০ এবং ৩০ মিনিটে চলবে
   workflow_dispatch:
-  repository_dispatch:     # এই নতুন লাইনটি যুক্ত হলো
-    types: [run-scraper]   # এই নতুন লাইনটি যুক্ত হলো
+  repository_dispatch:     
+    types: [run-scraper]   
 jobs:
   scrape-and-save:
     runs-on: ubuntu-latest
@@ -18,10 +18,12 @@ jobs:
           node-version: '22'
           
       - name: Install Packages
-        run: npm install cheerio @supabase/supabase-js
+        # এখানে এআই-এর প্যাকেজগুলো যুক্ত করা হয়েছে
+        run: npm install cheerio @supabase/supabase-js @google/generative-ai dotenv
         
       - name: Run Scraper Bot
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} # জেমিনির এপিআই কি যুক্ত হলো
         run: node scripts/scraper.js
