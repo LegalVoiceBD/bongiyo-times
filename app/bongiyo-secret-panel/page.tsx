@@ -42,9 +42,10 @@ export default function AdminDashboard() {
     if (loggedInUser) setUser(JSON.parse(loggedInUser));
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // সরাসরি টেবিল খোঁজার বদলে আমাদের তৈরি করা সিকিউর ফাংশন (RPC) কল করা হচ্ছে
     const { data, error } = await supabase.rpc('admin_login', { 
         p_email: email, 
         p_password: password 
@@ -70,6 +71,8 @@ export default function AdminDashboard() {
     
     let query = supabase.from('news').select('*').eq('is_custom', true).order('created_at', { ascending: false });
     
+    // যদি ইউজার জার্নালিস্ট হয়, তবে সে শুধু তার নিজের নিউজ দেখতে পারবে। 
+    // অ্যাডমিন বা এডিটর হলে সবার নিউজ দেখতে পারবে।
     if (user.role === 'journalist') {
       query = query.eq('author_email', user.email);
     }
@@ -151,14 +154,13 @@ export default function AdminDashboard() {
     }
   };
 
-  // পাবলিশ এবং ড্রাফট এর জন্য অ্যাকশন রিসিভার
-  const handleSubmit = async (e: React.FormEvent, publishAction: boolean) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // জার্নালিস্ট হলে নিউজ বাই ডিফল্ট ড্রাফট থাকবে। এডমিন/এডিটর হলে বাটনের কমান্ড অনুযায়ী হবে
-    const finalIsPublished = (user?.role === 'admin' || user?.role === 'editor') ? publishAction : false;
+    // জার্নালিস্ট হলে নিউজ বাই ডিফল্ট ড্রাফট/আনপাবলিশড থাকবে
+    const isPublished = user?.role === 'admin' || user?.role === 'editor' ? true : false;
     
-    setMessage(editingId ? 'আপডেট হচ্ছে...' : (finalIsPublished ? 'পাবলিশ হচ্ছে...' : 'ড্রাফটে সেভ হচ্ছে...'));
+    setMessage(editingId ? 'আপডেট হচ্ছে...' : (isPublished ? 'পাবলিশ হচ্ছে...' : 'এডিটরের কাছে পাঠানো হচ্ছে...'));
 
     const newsData = {
       title, 
@@ -168,9 +170,8 @@ export default function AdminDashboard() {
       source_name: sourceName, 
       image_url: imageUrl, 
       image_source: imageSource,
-      is_published: finalIsPublished,
-      author_email: user.email,
-      is_custom: true
+      is_published: isPublished,
+      author_email: user.email
     };
 
     if (editingId) {
@@ -185,14 +186,15 @@ export default function AdminDashboard() {
     } else {
       const { data, error } = await supabase.from('news').insert([{
         ...newsData,
-        source_url: '#'
+        source_url: '#', 
+        is_custom: true
       }]).select();
 
       if (error) {
         setMessage('এরর: ' + error.message);
       } else if (data && data.length > 0) {
         await supabase.from('news').update({ source_url: `/news/${data[0].id}` }).eq('id', data[0].id);
-        setMessage(finalIsPublished ? '✅ সফলভাবে পাবলিশ হয়েছে!' : '✅ ড্রাফটে সফলভাবে সেভ হয়েছে!');
+        setMessage(isPublished ? '✅ সফলভাবে পাবলিশ হয়েছে!' : '✅ এডিটরের কাছে সফলভাবে পাঠানো হয়েছে!');
         resetForm();
       }
     }
@@ -257,7 +259,7 @@ export default function AdminDashboard() {
            <button onClick={() => { localStorage.removeItem('bongiyo_admin'); window.location.reload(); }} className="bg-gray-200 px-4 py-2 rounded text-sm font-bold text-gray-700 hover:bg-red-50 hover:text-red-700 transition">লগআউট</button>
         </div>
 
-        {/* Tab Buttons */}
+        {/* Tab Buttons - Mobile Friendly Wrap */}
         <div className="flex flex-wrap gap-2 md:gap-4 mb-6 justify-center sm:justify-start">
            <button onClick={() => { setActiveTab('add'); resetForm(); }} className={`px-4 md:px-6 py-2 text-sm md:text-base font-bold rounded transition ${activeTab==='add' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
               {editingId ? 'খবর এডিট' : 'নতুন খবর'}
@@ -269,7 +271,7 @@ export default function AdminDashboard() {
         </div>
 
         {activeTab === 'add' && (
-          <form className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <input required type="text" placeholder="শিরোনাম" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border p-3 rounded font-bold focus:outline-none focus:ring-2 focus:ring-red-200" />
             <textarea required placeholder="হোমপেজের জন্য সারাংশ স্নিপেট" value={snippet} onChange={(e) => setSnippet(e.target.value)} className="w-full border p-3 rounded h-16 focus:outline-none focus:ring-2 focus:ring-red-200 text-sm md:text-base" />
             <textarea required placeholder="খবরের পুরো বিস্তারিত বিবরণ (এখানে প্যারাগ্রাফ করে লিখুন)" value={content} onChange={(e) => setContent(e.target.value)} className="w-full border p-3 rounded h-40 md:h-52 focus:outline-none focus:ring-2 focus:ring-red-200" />
@@ -298,21 +300,12 @@ export default function AdminDashboard() {
 
             {message && <div className={`p-3 text-sm md:text-base font-bold text-center rounded ${message.includes('✅') ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-800'}`}>{message}</div>}
             
-            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-2">
-               {user?.role === 'admin' || user?.role === 'editor' ? (
-                 <>
-                   <button type="button" disabled={isUploading || !imageUrl || !title} onClick={(e) => handleSubmit(e, true)} className="flex-1 bg-green-600 text-white font-bold text-base md:text-lg py-3 rounded hover:bg-green-700 disabled:bg-gray-400 transition shadow-sm">
-                      {isUploading ? 'আপলোড হচ্ছে...' : (editingId ? 'আপডেট ও পাবলিশ' : 'সরাসরি পাবলিশ')}
-                   </button>
-                   <button type="button" disabled={isUploading || !imageUrl || !title} onClick={(e) => handleSubmit(e, false)} className="flex-1 bg-orange-500 text-white font-bold text-base md:text-lg py-3 rounded hover:bg-orange-600 disabled:bg-gray-400 transition shadow-sm">
-                      {isUploading ? 'আপলোড হচ্ছে...' : 'ড্রাফট হিসেবে সেভ'}
-                   </button>
-                 </>
-               ) : (
-                 <button type="button" disabled={isUploading || !imageUrl || !title} onClick={(e) => handleSubmit(e, false)} className="flex-1 bg-red-700 text-white font-bold text-base md:text-lg py-3 rounded hover:bg-red-800 disabled:bg-gray-400 transition shadow-sm">
-                    {isUploading ? 'আপলোড হচ্ছে...' : 'এডিটরের কাছে পাঠান'}
-                 </button>
-               )}
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+               <button type="submit" disabled={isUploading || !imageUrl || !title} className="flex-1 bg-red-700 text-white font-bold text-base md:text-lg py-3 rounded hover:bg-red-800 disabled:bg-gray-400 transition shadow-sm">
+                  {isUploading ? 'ছবি আপলোড হচ্ছে...' : (
+                    editingId ? 'আপডেট করুন' : (user?.role === 'admin' || user?.role === 'editor' ? 'পাবলিশ করুন' : 'সেন্ড টু এডিটর')
+                  )}
+               </button>
                {editingId && (
                   <button type="button" onClick={resetForm} className="bg-gray-500 text-white font-bold text-base md:text-lg py-3 px-6 rounded hover:bg-gray-600 transition shadow-sm">
                      বাতিল
