@@ -30,7 +30,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const startRow = (currentPage - 1) * limitPerPage;
   const endRow = startRow + limitPerPage - 1;
 
-  let query = supabase.from('news').select('*', { count: 'exact' }).order('created_at', { ascending: false });
+  // AI Agent Data Fetching (Only is_custom: true)
+  let query = supabase.from('news').select('*', { count: 'exact' }).eq('is_custom', true).order('created_at', { ascending: false });
   
   if (searchQuery) {
     query = query.ilike('title', `%${searchQuery}%`).range(startRow, endRow);
@@ -44,18 +45,17 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const allNews = newsItems || [];
   const totalPages = count ? Math.ceil(count / limitPerPage) : 1;
 
-  // --- Hero Section Data ---
   const headerNews = allNews.slice(0, 3);
   const leadNews = allNews[3];            
   const subLeadGridNews = allNews.slice(4, 10); 
   const leftSideNews = allNews.slice(10, 17);   
   
-  // --- Category Data Mapping (Live Fetch) ---
   const fetchDirectCategory = async (catName: string, amt: number) => {
     const { data } = await supabase
       .from('news')
       .select('*')
       .eq('category', catName)
+      .eq('is_custom', true) // AI Filter
       .order('created_at', { ascending: false })
       .limit(amt);
     return data || [];
@@ -86,12 +86,10 @@ export default async function Home({ searchParams }: { searchParams: { category?
 <header className="bg-white">
   <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
     
-    {/* Mobile Date */}
     <div className="md:hidden text-center text-[14px] text-gray-500 w-full mb-[-10px] font-bold">
       {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
     </div>
 
-    {/* লোগো ও তারিখ সেকশন */}
     <div className="shrink-0 flex items-center">
        <a href="/" className="group flex flex-col">
          <h1 className="text-4xl md:text-[42px] font-extrabold text-black flex items-center tracking-tighter">
@@ -112,13 +110,11 @@ export default async function Home({ searchParams }: { searchParams: { category?
            </div>
            ইমস
          </h1>
-         {/* স্লোগান */}
          <span className="hidden md:block text-[14px] font-bold text-gray-600 tracking-wide mt-1">
            সত্য ও সাহসের প্রতিচ্ছবি
          </span>
        </a>
        
-       {/* ডেস্কটপ তারিখ */}
        <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-4 justify-center h-12 mt-1">
          <span className="text-[13.5px] text-gray-600 font-bold leading-tight">
             {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}
@@ -129,7 +125,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
        </div>
     </div>
 
-    {/* রাইট সাইড মেনু / Header News */}
     <div className="hidden lg:flex divide-x divide-gray-300">
        {headerNews.map((news, index) => (
           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" rel="noreferrer" key={index} className="flex gap-3 px-4 w-[250px] group">
@@ -141,15 +136,10 @@ export default async function Home({ searchParams }: { searchParams: { category?
           </a>
        ))}
     </div>
-
   </div>
 
-
-        {/* Navigation Bar */}
         <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
           <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12 relative overflow-hidden">
-            
-            {/* মেনু লিংকস */}
             <div className="flex-1 min-w-0 h-full flex items-center pr-4">
                <nav className="flex items-center gap-5 md:gap-6 lg:gap-7 overflow-x-auto text-[17px] md:text-[18px] lg:text-[19px] font-bold text-black w-full pb-1 custom-scrollbar tracking-wide">
                  <a href="/" className="h-12 flex items-center transition-colors hover:text-[#104f96] whitespace-nowrap shrink-0">প্রচ্ছদ</a>
@@ -165,7 +155,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </nav>
             </div>
             
-            {/* প্রফেশনাল সার্চ অপশন */}
             <div className="hidden md:flex items-center border-l border-gray-200 pl-5 h-full shrink-0 bg-white z-10">
                <form action="/" method="GET" className="relative flex items-center group">
                   <input 
@@ -184,16 +173,13 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   </button>
                </form>
             </div>
-            
           </div>
         </div>
       </header>
 
-      {/* Main Content Body */}
       <main className="max-w-[1200px] mx-auto px-4 mt-6 pb-10">
         
         {activeCategory === 'বাংলাদেশ' && searchQuery ? (
-            /* --- প্রথম আলোর মতো এলাকার খবরের সার্চ রেজাল্ট পেজ --- */
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                <div className="lg:col-span-3">
                   <h1 className="text-[28px] md:text-[36px] font-bold text-red-600 mb-6 border-b border-gray-200 pb-2">{searchQuery}</h1>
@@ -221,7 +207,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      </div>
                   )}
 
-                  {/* Pagination Component for Area News */}
                   {allNews.length > 0 && totalPages > 1 && (
                      <div className="flex justify-center mt-10 mb-2 gap-3">
                         {currentPage > 1 && (
@@ -235,7 +220,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   )}
                </div>
                
-               {/* Google AdSense Space */}
                <div className="lg:col-span-3 hidden lg:block">
                   <div className="w-full min-h-[400px] flex items-center justify-center bg-gray-50 border border-gray-200 rounded-sm">
                      <span className="text-sm font-bold text-gray-400">বিজ্ঞাপন</span>
@@ -244,7 +228,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
             </div>
             
         ) : activeCategory === 'বাংলাদেশ' ? (
-            /* --- বাংলাদেশ ক্যাটাগরির মূল পেজ --- */
             <div className="mb-10 border-b border-gray-300 pb-8">
                <div className="flex items-center mb-5 border-b-[2px] border-gray-200 pb-2">
                   <h2 className="text-[24px] font-bold text-gray-900">বাংলাদেশ</h2>
@@ -286,7 +269,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   )}
                </div>
 
-               {/* Pagination Component for BD */}
                {allNews.length > 0 && totalPages > 1 && (
                   <div className="flex justify-center mt-10 mb-2 gap-3">
                      {currentPage > 1 && (
@@ -301,7 +283,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
             </div>
             
         ) : (activeCategory || searchQuery) ? (
-            /* --- অন্যান্য সাধারণ সার্চ রেজাল্ট --- */
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="col-span-1 md:col-span-3">
                  <div className="border-b-[3px] border-black mb-4 pb-1">
@@ -325,7 +306,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                           ))}
                        </div>
                        
-                       {/* Pagination Component */}
                        {totalPages > 1 && (
                           <div className="flex justify-center mt-10 mb-6 gap-3">
                              {currentPage > 1 && (
@@ -341,7 +321,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                  )}
               </div>
               <div className="hidden md:block col-span-1">
-                 {/* Google AdSense Space */}
                  <div className="w-full min-h-[600px] flex items-center justify-center bg-gray-50 border border-gray-200 rounded-sm sticky top-20">
                     <span className="text-sm font-bold text-gray-400">বিজ্ঞাপন</span>
                  </div>
@@ -349,10 +328,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
             </div>
         ) : (
           <>
-            {/* Top Hero Section */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 border-b border-gray-300 pb-6 mb-8">
               
-              {/* বাম পাশের খবর (মোবাইলে ২য় পজিশনে, পিসিতে ১ম পজিশনে) */}
               <div className="order-2 lg:order-1 lg:col-span-3 flex flex-col divide-y divide-gray-200 lg:pr-4 border-b lg:border-b-0 pb-6 lg:pb-0 lg:border-r border-gray-300">
                 {leftSideNews.map((news, idx) => (
                   <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group block ${idx !== 0 ? 'pt-3' : 'pb-3'}`}>
@@ -364,7 +341,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                 ))}
               </div>
 
-              {/* লিড নিউজ বা বড় খবর (মোবাইলে ১ম পজিশনে, পিসিতে ২য় পজিশনে) */}
               <div className="order-1 lg:order-2 lg:col-span-6 lg:px-4 border-b lg:border-b-0 pb-6 lg:pb-0 lg:border-r border-gray-300">
                 {leadNews && (
                   <a href={leadNews.is_custom ? `/news/${leadNews.id}` : leadNews.source_url} target="_blank" className="group block border-b border-gray-200 pb-4 mb-4">
@@ -387,9 +363,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                 </div>
               </div>
 
-              {/* ডানপাশের সেকশন (সর্বশেষ/জনপ্রিয় এবং বিজ্ঞাপন) */}
               <div className="order-3 lg:order-3 lg:col-span-3">
-                 {/* Google AdSense Space */}
                  <div className="w-full min-h-[250px] bg-gray-50 border border-gray-200 flex flex-col justify-center items-center rounded-sm mb-6">
                     <span className="text-sm font-bold text-gray-400">বিজ্ঞাপন</span>
                  </div>
@@ -397,13 +371,11 @@ export default async function Home({ searchParams }: { searchParams: { category?
               </div>
             </div>
 
-            {/* বাংলাদেশ ক্যাটাগরি - প্রথম আলোর মতো লেআউট */}
             <div className="mb-10 border-b border-gray-300 pb-8">
                <div className="flex items-center mb-5 border-b-[2px] border-gray-200 pb-2">
                   <a href="/?category=বাংলাদেশ" className="text-[24px] font-bold text-gray-900 hover:text-[#104f96]">বাংলাদেশ</a>
                </div>
 
-               {/* আমার এলাকার খবর - ফিল্টার (Prothom Alo Style) */}
                <div className="bg-[#f4f7fc] border border-[#e2e8f0] p-4 sm:p-5 rounded-sm mb-6">
                   <div className="flex items-center gap-2 mb-4">
                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
@@ -412,7 +384,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   <LocationFilter layout="horizontal" />
                </div>
 
-               {/* নিউজ গ্রিড */}
                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                   {bdNews.length === 0 ? (
                      <div className="text-gray-400 text-center py-10 col-span-4">খবর আপডেট হচ্ছে...</div>
@@ -442,9 +413,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
             </div>
 
-            {/* আন্তর্জাতিক ও আইন-আদালত (৭টি করে নিউজ) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 mb-8 border-b border-gray-300 pb-8">
-               {/* আন্তর্জাতিক */}
                <div className="bg-[#f4fdfa] p-4 sm:p-5 border-t-[4px] border-[#4bd396] rounded-sm min-h-[250px]">
                   <div className="mb-5 border-b border-[#bbf2d8] pb-2">
                      <a href="/?category=আন্তর্জাতিক" className="text-2xl font-extrabold text-[#2db97a] hover:text-[#188a56] tracking-tight">আন্তর্জাতিক <span className="text-[#4bd396] ml-1">❯</span></a>
@@ -495,7 +464,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   )}
                </div>
 
-               {/* আইন-আদালত */}
                <div className="bg-[#fcf5f5] p-4 sm:p-5 border-t-[4px] border-[#e85b5b] rounded-sm min-h-[250px]">
                   <div className="mb-5 border-b border-[#fbcbcb] pb-2">
                      <a href="/?category=আইন-আদালত" className="text-2xl font-extrabold text-[#d73f3f] hover:text-[#b02222] tracking-tight">আইন-আদালত <span className="text-[#e85b5b] ml-1">❯</span></a>
@@ -545,7 +513,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
             </div>
 
-            {/* মতামত */}
             <div className="mb-8 border-b border-gray-300 pb-8 min-h-[300px]">
                <div className="border-t-[3px] border-black pt-2 mb-6">
                   <a href="/?category=মতামত" className="text-[26px] font-extrabold hover:text-blue-600">মতামত <span className="text-red-600 ml-1">❯</span></a>
@@ -587,7 +554,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                )}
             </div>
 
-            {/* জীবনযাপন */}
             <div className="mb-8 border-b border-gray-300 pb-8 min-h-[250px]">
                <div className="border-t-[3px] border-black pt-2 mb-6">
                   <a href="/?category=জীবনযাপন" className="text-[26px] font-extrabold hover:text-blue-600">জীবনযাপন <span className="text-red-600 ml-1">❯</span></a>
@@ -607,9 +573,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                )}
             </div>
 
-            {/* বিনোদন ও রাজনীতি (৭টি করে নিউজ) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 mb-8 border-b border-gray-300 pb-8">
-               {/* বিনোদন */}
                <div className="bg-[#eef5fa] p-4 sm:p-5 border-t-[4px] border-[#5293c4] rounded-sm min-h-[250px]">
                   <div className="mb-5 border-b border-[#c8dceb] pb-2">
                      <a href="/?category=বিনোদন" className="text-[26px] font-extrabold text-[#5293c4] hover:text-blue-600 tracking-tight">বিনোদন <span className="text-red-500 ml-1">❯</span></a>
@@ -658,7 +622,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   )}
                </div>
 
-               {/* রাজনীতি */}
                <div className="bg-[#fcfaf5] p-4 sm:p-5 border-t-[4px] border-[#d4b072] rounded-sm min-h-[250px]">
                   <div className="mb-5 border-b border-[#e8dfce] pb-2">
                      <a href="/?category=রাজনীতি" className="text-[26px] font-extrabold text-[#e05e3b] hover:text-[#d4b072] tracking-tight">রাজনীতি <span className="text-[#d4b072] ml-1">❯</span></a>
@@ -708,10 +671,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
             </div>
 
-            {/* শিক্ষা, চাকরি, প্রযুক্তি, বাণিজ্য */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 lg:divide-x divide-gray-200 mb-8 border-b border-gray-300 pb-8">
-               
-               {/* শিক্ষা */}
                <div className="lg:pr-4 min-h-[200px]">
                   <div className="border-t-[3px] border-black pt-2 mb-5">
                      <a href="/?category=শিক্ষা" className="text-[26px] font-extrabold hover:text-blue-600">শিক্ষা <span className="text-red-600 ml-1">❯</span></a>
@@ -733,7 +693,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   )}
                </div>
 
-               {/* চাকরি */}
                <div className="lg:px-4 min-h-[200px]">
                   <div className="border-t-[3px] border-black pt-2 mb-5">
                      <a href="/?category=চাকরি" className="text-[26px] font-extrabold hover:text-blue-600">চাকরি <span className="text-red-600 ml-1">❯</span></a>
@@ -755,7 +714,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   )}
                </div>
 
-               {/* প্রযুক্তি */}
                <div className="lg:px-4 min-h-[200px]">
                   <div className="border-t-[3px] border-black pt-2 mb-5">
                      <a href="/?category=প্রযুক্তি" className="text-[26px] font-extrabold hover:text-blue-600">প্রযুক্তি <span className="text-red-600 ml-1">❯</span></a>
@@ -777,7 +735,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   )}
                </div>
 
-               {/* বাণিজ্য */}
                <div className="lg:pl-4 min-h-[200px]">
                   <div className="border-t-[3px] border-black pt-2 mb-5">
                      <a href="/?category=বাণিজ্য" className="text-[26px] font-extrabold hover:text-blue-600">বাণিজ্য <span className="text-red-600 ml-1">❯</span></a>
@@ -798,10 +755,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      </div>
                   )}
                </div>
-
             </div>
 
-            {/* খেলাধুলা */}
             <div className="mb-8 bg-[#fff5f5] p-5 sm:p-6 rounded-md border border-[#fbd5d5] shadow-sm min-h-[350px]">
                <div className="border-b-[2px] border-red-600 pb-2 mb-6">
                   <a href="/?category=খেলাধুলা" className="text-[26px] font-extrabold text-red-700 hover:text-red-500">খেলাধুলা <span className="text-red-500 ml-1">❯</span></a>
@@ -839,9 +794,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                )}
             </div>
 
-            {/* হাস্যরস & ফিচার */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-4 border-b border-gray-300 pb-8">
-               {/* হাস্যরস */}
                <div className="border border-[#c1dff0] bg-white rounded-sm overflow-hidden min-h-[300px]">
                   <div className="bg-[#eef6fc] px-4 py-3 flex items-center border-b border-[#c1dff0]">
                      <a href="/?category=হাস্যরস" className="text-[26px] font-black text-[#006699] hover:text-blue-800">হাস্য<span className="text-red-500">+</span>রস</a>
@@ -873,7 +826,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   )}
                </div>
 
-               {/* ফিচার */}
                <div className="border border-[#e8dfce] bg-[#fdfaf5] rounded-sm overflow-hidden min-h-[300px]">
                   <div className="flex justify-start items-center py-4 px-4 border-b-2 border-[#d4b072]">
                      <a href="/?category=ফিচার" className="text-[26px] font-bold text-[#966b22] tracking-wider hover:text-yellow-700">ফিচার</a>
@@ -907,7 +859,6 @@ export default async function Home({ searchParams }: { searchParams: { category?
                </div>
             </div>
 
-            {/* ধর্ম (bdnews24 Slider Style) */}
             <div className="mb-6 pt-4">
                <div className="flex items-center justify-between border-b border-gray-200 mb-6">
                   <h2 className="text-[26px] font-extrabold text-[#1a1a1a] border-b-[3px] border-red-600 pb-1 -mb-[2px]">ধর্ম</h2>
@@ -929,21 +880,24 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   </div>
                )}
             </div>
-
           </>
         )}
       </main>
 
-          {/* Footer Section */}
       <footer className="bg-white border-t-4 border-red-700 mt-12 pt-8 pb-6 text-black text-center shadow-inner">
         <div className="max-w-[1200px] mx-auto px-4">
-          
           <div className="flex flex-wrap justify-center items-center gap-3 md:gap-5 text-[15px] md:text-[17px] font-bold mb-6 border-b border-gray-300 pb-4">
              <a href="/" className="hover:text-red-700 transition">প্রচ্ছদ</a> <span className="text-gray-300">|</span>
+             <a href="/about" className="hover:text-red-700 transition">আমাদের কথা</a> <span className="text-gray-300">|</span>
              <a href="/privacy" className="hover:text-red-700 transition">গোপনীয়তার নীতি</a> <span className="text-gray-300">|</span>
              <a href="/terms" className="hover:text-red-700 transition">শর্তাবলি</a> <span className="text-gray-300">|</span>
-             <a href="/contact" className="hover:text-red-700 transition text-[#104f96]">বিজ্ঞাপন</a> <span className="text-gray-300">|</span>
              <a href="/contact" className="hover:text-red-700 transition">যোগাযোগ</a>
+          </div>
+
+          <div className="mb-6 border-b border-gray-300 pb-5">
+             <p className="text-[14px] md:text-[15px] leading-relaxed text-gray-800 font-medium max-w-4xl mx-auto mb-3">
+               <strong>দাবি ত্যাগ (Disclaimer):</strong> আমরা একটি সংবাদ পর্যালোচনামূলক ও তথ্যপ্রযুক্তি ভিত্তিক প্ল্যাটফর্ম। মাঠপর্যায়ে আমাদের কোনো নিজস্ব প্রতিনিধি নেই। দেশের বিভিন্ন নির্ভরযোগ্য মূলধারার সংবাদমাধ্যমের প্রকাশিত তথ্যের ভিত্তিতে এআই (AI) এবং ডেস্ক রিপোর্টিংয়ের মাধ্যমে আমরা সংবাদ বিশ্লেষণ ও সংকলন প্রকাশ করে থাকি। এই সাইটে প্রকাশিত মূল তথ্যের দায়বদ্ধতা সংশ্লিষ্ট প্রাথমিক সূত্রের।
+             </p>
           </div>
 
           <div className="mb-6">
@@ -959,12 +913,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
           </div>
 
           <div className="border-t border-gray-300 pt-5">
-             <p className="text-[14px] md:text-[15px] leading-relaxed text-gray-800 font-medium max-w-4xl mx-auto mb-3">
-               বাংলাদেশ ও বিশ্বের সকল খবর, ব্রেকিং নিউজ, লাইভ নিউজ, রাজনীতি, বাণিজ্য, খেলা, বিনোদনসহ সকল সর্বশেষ সংবাদ সবার আগে পড়তে ক্লিক করুন বঙ্গীয় টাইমস ডট কম।
-             </p>
              <p className="text-[13px] md:text-[14px] text-gray-500 font-bold">&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
           </div>
-          
         </div>
       </footer>
     </div>
