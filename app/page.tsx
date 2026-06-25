@@ -30,7 +30,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const startRow = (currentPage - 1) * limitPerPage;
   const endRow = startRow + limitPerPage - 1;
 
-  let query = supabase.from('news').select('*', { count: 'exact' }).order('created_at', { ascending: false });
+  let query = supabase.from('news').select('*', { count: 'exact' }).eq('is_custom', true).order('created_at', { ascending: false });
   
   if (searchQuery) {
     query = query.ilike('title', `%${searchQuery}%`).range(startRow, endRow);
