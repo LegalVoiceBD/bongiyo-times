@@ -51,12 +51,12 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const leftSideNews = allNews.slice(10, 17);   
   
   // --- Category Data Mapping (Live Fetch) ---
- const fetchDirectCategory = async (catName: string, amt: number) => {
+  const fetchDirectCategory = async (catName: string, amt: number) => {
     const { data } = await supabase
       .from('news')
       .select('*')
       .eq('category', catName)
-      .eq('is_published', true) // এই ফিল্টারটি ড্রাফট নিউজগুলোকে আটকে দেবে
+      .eq('is_published', true)
       .order('created_at', { ascending: false })
       .limit(amt);
     return data || [];
@@ -359,30 +359,34 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group block ${idx !== 0 ? 'pt-3' : 'pb-3'}`}>
                     {idx === 0 && <p className="text-red-600 font-bold text-[15px] md:text-sm mb-1">{news.category} •</p>}
                     {idx === 0 && <SafeImage src={news.image_url} alt={news.title} className="w-full h-[200px] sm:h-[140px] object-cover mb-2 rounded-sm" />}
-                    <h3 className={`font-bold text-[#1a1a1a] group-hover:text-blue-600 leading-snug ${idx === 0 ? 'text-[22px] md:text-[24px] lg:text-[28px]' : 'text-[19px] md:text-[20px] lg:text-[22px]'}`}>{news.title}</h3>
+                    <h3 className={`font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug ${idx === 0 ? 'text-[22px] md:text-[24px] lg:text-[28px]' : 'text-[19px] md:text-[20px] lg:text-[22px]'}`}>{news.title}</h3>
                     <p className="text-[14px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
                   </a>
                 ))}
               </div>
 
-              {/* লিড নিউজ বা বড় খবর (মোবাইলে ১ম পজিশনে, পিসিতে ২য় পজিশনে) */}
+              {/* লিড নিউজ বা বড় খবর (মোবাইলে ১ম পজিশনে, পিসিতে ২য় পজিশনে) - প্রথম আলোর স্টাইল */}
               <div className="order-1 lg:order-2 lg:col-span-6 lg:px-4 border-b lg:border-b-0 pb-6 lg:pb-0 lg:border-r border-gray-300">
                 {leadNews && (
-                  <a href={`/news/${leadNews.id}`} target="_blank" className="group block border-b border-gray-200 pb-4 mb-4">
-                    <SafeImage src={leadNews.image_url} alt={leadNews.title} className="w-full h-[220px] sm:h-[320px] object-cover mb-3 rounded-sm" />
-                    <h1 className="text-[26px] md:text-[30px] lg:text-[36px] font-extrabold leading-tight text-[#1a1a1a] group-hover:text-blue-600">{leadNews.title}</h1>
-                    <p className="text-[14px] md:text-[15px] text-gray-500 mt-2">{formatDateTime(leadNews.created_at)}</p>
+                  <a href={`/news/${leadNews.id}`} target="_blank" className="group block bg-[#f8fafc] border border-gray-100 p-4 sm:p-5 rounded-md pb-5 mb-5 hover:shadow-sm transition">
+                    <SafeImage src={leadNews.image_url} alt={leadNews.title} className="w-full h-[220px] sm:h-[340px] object-cover mb-4 rounded-sm border border-gray-200" />
+                    <h1 className="text-[26px] md:text-[30px] lg:text-[36px] font-extrabold leading-[1.25] text-[#1a1a1a] group-hover:text-[#104f96]">{leadNews.title}</h1>
+                    <p className="text-[16px] md:text-[17px] text-gray-600 mt-3 leading-[1.6] line-clamp-3">{leadNews.snippet}</p>
+                    <p className="text-[14px] md:text-[15px] text-gray-500 mt-4 font-medium">{formatDateTime(leadNews.created_at)}</p>
                   </a>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-5 border-t border-gray-200 pt-5">
                   {subLeadGridNews.map((news, idx) => (
                     <a href={`/news/${news.id}`} target="_blank" key={news.id} 
-                       className={`group flex gap-3 ${idx < 2 ? 'border-b border-gray-200 pb-4 mb-0' : 'pt-0'} ${idx % 2 === 0 ? 'sm:border-r border-gray-200 sm:pr-4' : 'sm:pl-4'}`}>
+                       className={`group flex gap-4 ${idx < 2 ? 'border-b border-gray-200 pb-5 mb-0' : 'pt-0'} ${idx % 2 === 0 ? 'sm:border-r border-gray-200 sm:pr-5' : 'sm:pl-1'}`}>
                        <div className="flex-1">
-                          <h3 className="text-[19px] md:text-[20px] font-bold text-[#1a1a1a] group-hover:text-blue-600 leading-snug">{news.title}</h3>
-                          <p className="text-[14px] md:text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
+                          <h3 className="text-[18px] md:text-[19px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{news.title}</h3>
+                          <p className="text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{news.snippet}</p>
+                          <p className="text-[13px] text-gray-400 mt-2.5">{formatDateTime(news.created_at)}</p>
                        </div>
-                       <SafeImage src={news.image_url} alt={news.title} className="w-[80px] h-[55px] object-cover rounded-sm" />
+                       {news.image_url && !news.image_url.includes('via.placeholder.com') && (
+                          <SafeImage src={news.image_url} alt={news.title} className="w-[85px] h-[65px] object-cover rounded-sm border border-gray-100 shrink-0 mt-1" />
+                       )}
                     </a>
                   ))}
                 </div>
