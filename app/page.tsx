@@ -132,7 +132,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
     {/* রাইট সাইড মেনু / Header News */}
     <div className="hidden lg:flex divide-x divide-gray-300">
        {headerNews.map((news, index) => (
-          <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" rel="noreferrer" key={index} className="flex gap-3 px-4 w-[250px] group">
+          <a href={`/news/${news.id}`} target="_blank" rel="noreferrer" key={index} className="flex gap-3 px-4 w-[250px] group">
              <div className="flex-1">
                 <p className="text-xs text-red-600 mb-1">■ {news.category}</p>
                 <h3 className="text-[16px] leading-tight font-semibold group-hover:text-blue-600 line-clamp-2">{news.title}</h3>
@@ -209,7 +209,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   ) : (
                      <div className="flex flex-col gap-6">
                         {allNews.map(news => (
-                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-6 last:border-0">
+                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-6 last:border-0">
                               <div className="flex-1">
                                  <h3 className="text-[20px] md:text-[22px] lg:text-[24px] font-bold group-hover:text-[#104f96] leading-snug text-gray-900">{news.title}</h3>
                                  <p className="text-[16px] text-gray-600 mt-2 line-clamp-2">{news.snippet}</p>
@@ -265,7 +265,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <>
                         <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
                            {allNews.slice(0, 12).map((news) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col">
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex flex-col">
                                  <div className="overflow-hidden mb-3">
                                     <SafeImage src={news.image_url} alt={news.title} className="w-full h-[150px] object-cover group-hover:scale-105 transition duration-300 border border-gray-100" />
                                  </div>
@@ -276,7 +276,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         </div>
                         <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-gray-200 pt-5 lg:pt-0 lg:pl-6 flex flex-col gap-5">
                            {allNews.slice(12, 20).map((news) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
                                  <h3 className="text-[17px] md:text-[18px] lg:text-[19px] font-bold text-gray-900 group-hover:text-[#104f96] leading-snug">{news.title}</h3>
                                  <p className="text-[14px] md:text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
                               </a>
@@ -315,7 +315,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                     <>
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                           {allNews.map(news => (
-                             <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-4">
+                             <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-4">
                                 <div className="flex-1">
                                    <h3 className="text-[20px] md:text-[22px] lg:text-[24px] font-bold group-hover:text-[#104f96] leading-snug">{news.title}</h3>
                                    <p className="text-[14px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
@@ -355,7 +355,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
               {/* বাম পাশের খবর (মোবাইলে ২য় পজিশনে, পিসিতে ১ম পজিশনে) */}
               <div className="order-2 lg:order-1 lg:col-span-3 flex flex-col divide-y divide-gray-200 lg:pr-4 border-b lg:border-b-0 pb-6 lg:pb-0 lg:border-r border-gray-300">
                 {leftSideNews.map((news, idx) => (
-                  <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group block ${idx !== 0 ? 'pt-3' : 'pb-3'}`}>
+                  <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group block ${idx !== 0 ? 'pt-3' : 'pb-3'}`}>
                     {idx === 0 && <p className="text-red-600 font-bold text-[15px] md:text-sm mb-1">{news.category} •</p>}
                     {idx === 0 && <SafeImage src={news.image_url} alt={news.title} className="w-full h-[200px] sm:h-[140px] object-cover mb-2 rounded-sm" />}
                     <h3 className={`font-bold text-[#1a1a1a] group-hover:text-blue-600 leading-snug ${idx === 0 ? 'text-[22px] md:text-[24px] lg:text-[28px]' : 'text-[19px] md:text-[20px] lg:text-[22px]'}`}>{news.title}</h3>
@@ -367,7 +367,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
               {/* লিড নিউজ বা বড় খবর (মোবাইলে ১ম পজিশনে, পিসিতে ২য় পজিশনে) */}
               <div className="order-1 lg:order-2 lg:col-span-6 lg:px-4 border-b lg:border-b-0 pb-6 lg:pb-0 lg:border-r border-gray-300">
                 {leadNews && (
-                  <a href={leadNews.is_custom ? `/news/${leadNews.id}` : leadNews.source_url} target="_blank" className="group block border-b border-gray-200 pb-4 mb-4">
+                  <a href={`/news/${leadNews.id}`} target="_blank" className="group block border-b border-gray-200 pb-4 mb-4">
                     <SafeImage src={leadNews.image_url} alt={leadNews.title} className="w-full h-[220px] sm:h-[320px] object-cover mb-3 rounded-sm" />
                     <h1 className="text-[26px] md:text-[30px] lg:text-[36px] font-extrabold leading-tight text-[#1a1a1a] group-hover:text-blue-600">{leadNews.title}</h1>
                     <p className="text-[14px] md:text-[15px] text-gray-500 mt-2">{formatDateTime(leadNews.created_at)}</p>
@@ -375,7 +375,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4">
                   {subLeadGridNews.map((news, idx) => (
-                    <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} 
+                    <a href={`/news/${news.id}`} target="_blank" key={news.id} 
                        className={`group flex gap-3 ${idx < 2 ? 'border-b border-gray-200 pb-4 mb-0' : 'pt-0'} ${idx % 2 === 0 ? 'sm:border-r border-gray-200 sm:pr-4' : 'sm:pl-4'}`}>
                        <div className="flex-1">
                           <h3 className="text-[19px] md:text-[20px] font-bold text-[#1a1a1a] group-hover:text-blue-600 leading-snug">{news.title}</h3>
@@ -420,7 +420,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <>
                         <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
                            {bdNews.slice(0, 6).map((news) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col">
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex flex-col">
                                  <div className="overflow-hidden mb-3">
                                     <SafeImage src={news.image_url} alt={news.title} className="w-full h-[150px] object-cover group-hover:scale-105 transition duration-300 border border-gray-100" />
                                  </div>
@@ -431,7 +431,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         </div>
                         <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-gray-200 pt-5 lg:pt-0 lg:pl-6 flex flex-col gap-5">
                            {bdNews.slice(6, 10).map((news) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
                                  <h3 className="text-[17px] md:text-[18px] lg:text-[19px] font-bold text-gray-900 group-hover:text-[#104f96] leading-snug">{news.title}</h3>
                                  <p className="text-[14px] md:text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
                               </a>
@@ -456,7 +456,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#bbf2d8] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {intlNews[0] && (
-                              <a href={intlNews[0].is_custom ? `/news/${intlNews[0].id}` : intlNews[0].source_url} target="_blank" className="group block mb-4">
+                              <a href={`/news/${intlNews[0].id}`} target="_blank" className="group block mb-4">
                                  <SafeImage src={intlNews[0].image_url} alt={intlNews[0].title} className="w-full h-[180px] sm:h-[140px] object-cover mb-3 sm:mb-2 rounded-sm" />
                                  <h3 className="text-[22px] md:text-[24px] lg:text-[26px] font-bold group-hover:text-[#2db97a] leading-snug">{intlNews[0].title}</h3>
                                  <p className="text-[14px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(intlNews[0].created_at)}</p>
@@ -465,14 +465,14 @@ export default async function Home({ searchParams }: { searchParams: { category?
                            
                            <div className="mt-auto space-y-4 pt-3 border-t border-[#bbf2d8]">
                               {intlNews[1] && (
-                                 <a href={intlNews[1].is_custom ? `/news/${intlNews[1].id}` : intlNews[1].source_url} target="_blank" className="group block">
+                                 <a href={`/news/${intlNews[1].id}`} target="_blank" className="group block">
                                     <h3 className="text-[19px] md:text-[20px] font-bold text-gray-800 group-hover:text-[#2db97a] leading-snug">
                                        <span className="text-[#2db97a] mr-1">■</span> {intlNews[1].title}
                                     </h3>
                                  </a>
                               )}
                               {intlNews[2] && (
-                                 <a href={intlNews[2].is_custom ? `/news/${intlNews[2].id}` : intlNews[2].source_url} target="_blank" className="group block">
+                                 <a href={`/news/${intlNews[2].id}`} target="_blank" className="group block">
                                     <h3 className="text-[19px] md:text-[20px] font-bold text-gray-800 group-hover:text-[#2db97a] leading-snug">
                                        <span className="text-[#2db97a] mr-1">■</span> {intlNews[2].title}
                                     </h3>
@@ -482,7 +482,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#bbf2d8]">
                            {intlNews.slice(3, 7).map((news, idx) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
                                     <h3 className="text-[18px] md:text-[19px] lg:text-[20px] font-bold group-hover:text-[#2db97a] leading-snug">{news.title}</h3>
                                     <p className="text-[14px] md:text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
@@ -506,7 +506,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#fbcbcb] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {lawNews[0] && (
-                              <a href={lawNews[0].is_custom ? `/news/${lawNews[0].id}` : lawNews[0].source_url} target="_blank" className="group block mb-4">
+                              <a href={`/news/${lawNews[0].id}`} target="_blank" className="group block mb-4">
                                  <SafeImage src={lawNews[0].image_url} alt={lawNews[0].title} className="w-full h-[180px] sm:h-[140px] object-cover mb-3 sm:mb-2 rounded-sm" />
                                  <h3 className="text-[22px] md:text-[24px] lg:text-[26px] font-bold group-hover:text-[#d73f3f] leading-snug">{lawNews[0].title}</h3>
                                  <p className="text-[14px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(lawNews[0].created_at)}</p>
@@ -514,14 +514,14 @@ export default async function Home({ searchParams }: { searchParams: { category?
                            )}
                            <div className="mt-auto space-y-4 pt-3 border-t border-[#fbcbcb]">
                               {lawNews[1] && (
-                                 <a href={lawNews[1].is_custom ? `/news/${lawNews[1].id}` : lawNews[1].source_url} target="_blank" className="group block">
+                                 <a href={`/news/${lawNews[1].id}`} target="_blank" className="group block">
                                     <h3 className="text-[19px] md:text-[20px] font-bold text-gray-800 group-hover:text-[#d73f3f] leading-snug">
                                        <span className="text-[#d73f3f] mr-1">■</span> {lawNews[1].title}
                                     </h3>
                                  </a>
                               )}
                               {lawNews[2] && (
-                                 <a href={lawNews[2].is_custom ? `/news/${lawNews[2].id}` : lawNews[2].source_url} target="_blank" className="group block">
+                                 <a href={`/news/${lawNews[2].id}`} target="_blank" className="group block">
                                     <h3 className="text-[19px] md:text-[20px] font-bold text-gray-800 group-hover:text-[#d73f3f] leading-snug">
                                        <span className="text-[#d73f3f] mr-1">■</span> {lawNews[2].title}
                                     </h3>
@@ -531,7 +531,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#fbcbcb]">
                            {lawNews.slice(3, 7).map((news, idx) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
                                     <h3 className="text-[18px] md:text-[19px] lg:text-[20px] font-bold group-hover:text-[#d73f3f] leading-snug">{news.title}</h3>
                                     <p className="text-[14px] md:text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
@@ -556,7 +556,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-6">
                      {opinionNews[0] && (
                      <div className="md:col-span-5 lg:col-span-4">
-                        <a href={opinionNews[0].is_custom ? `/news/${opinionNews[0].id}` : opinionNews[0].source_url} target="_blank" className="group flex flex-col h-full border border-gray-300 p-4 sm:p-5 hover:shadow-sm transition">
+                        <a href={`/news/${opinionNews[0].id}`} target="_blank" className="group flex flex-col h-full border border-gray-300 p-4 sm:p-5 hover:shadow-sm transition">
                            <h3 className="text-[22px] md:text-[24px] lg:text-[26px] font-bold leading-snug mb-3">
                               <span className="bg-[#11233f] text-[#fcd105] px-2 py-1 mr-2 text-[15px] inline-block mb-1">মতামত •</span>
                               <span className="group-hover:text-blue-600">{opinionNews[0].title}</span>
@@ -570,7 +570,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      )}
                      <div className="md:col-span-7 lg:col-span-8 flex flex-col justify-between divide-y divide-gray-200">
                         {opinionNews.slice(1, 5).map((news, idx) => (
-                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-4 sm:gap-5 items-center ${idx === 0 ? 'pb-4' : 'py-4'} last:pb-0`}>
+                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-4 sm:gap-5 items-center ${idx === 0 ? 'pb-4' : 'py-4'} last:pb-0`}>
                               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#e6e6e6] flex items-center justify-center shrink-0">
                                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                               </div>
@@ -597,7 +597,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
                      {lifestyleNews.map((news) => (
-                        <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                        <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block">
                            <SafeImage src={news.image_url} alt={news.title} className="w-full h-[200px] lg:h-[160px] object-cover mb-3 rounded-sm" />
                            <h3 className="text-[20px] md:text-[22px] lg:text-[24px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
                            <p className="text-[14px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
@@ -620,7 +620,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#c8dceb] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {entertainmentNews[0] && (
-                              <a href={entertainmentNews[0].is_custom ? `/news/${entertainmentNews[0].id}` : entertainmentNews[0].source_url} target="_blank" className="group block mb-4">
+                              <a href={`/news/${entertainmentNews[0].id}`} target="_blank" className="group block mb-4">
                                  <SafeImage src={entertainmentNews[0].image_url} alt={entertainmentNews[0].title} className="w-full h-[180px] sm:h-[140px] object-cover mb-3 sm:mb-2 rounded-sm" />
                                  <h3 className="text-[22px] md:text-[24px] lg:text-[26px] font-bold group-hover:text-blue-600 leading-snug">{entertainmentNews[0].title}</h3>
                                  <p className="text-[14px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(entertainmentNews[0].created_at)}</p>
@@ -628,14 +628,14 @@ export default async function Home({ searchParams }: { searchParams: { category?
                            )}
                            <div className="mt-auto space-y-4 pt-3 border-t border-[#c8dceb]">
                               {entertainmentNews[1] && (
-                                 <a href={entertainmentNews[1].is_custom ? `/news/${entertainmentNews[1].id}` : entertainmentNews[1].source_url} target="_blank" className="group block">
+                                 <a href={`/news/${entertainmentNews[1].id}`} target="_blank" className="group block">
                                     <h3 className="text-[19px] md:text-[20px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">
                                        <span className="text-[#5293c4] mr-1">■</span> {entertainmentNews[1].title}
                                     </h3>
                                  </a>
                               )}
                               {entertainmentNews[2] && (
-                                 <a href={entertainmentNews[2].is_custom ? `/news/${entertainmentNews[2].id}` : entertainmentNews[2].source_url} target="_blank" className="group block">
+                                 <a href={`/news/${entertainmentNews[2].id}`} target="_blank" className="group block">
                                     <h3 className="text-[19px] md:text-[20px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">
                                        <span className="text-[#5293c4] mr-1">■</span> {entertainmentNews[2].title}
                                     </h3>
@@ -645,7 +645,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#c8dceb]">
                            {entertainmentNews.slice(3, 7).map((news, idx) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
                                     <h3 className="text-[18px] md:text-[19px] lg:text-[20px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
                                     <p className="text-[14px] md:text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
@@ -669,7 +669,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#e8dfce] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {politicsNews[0] && (
-                              <a href={politicsNews[0].is_custom ? `/news/${politicsNews[0].id}` : politicsNews[0].source_url} target="_blank" className="group block mb-4">
+                              <a href={`/news/${politicsNews[0].id}`} target="_blank" className="group block mb-4">
                                  <SafeImage src={politicsNews[0].image_url} alt={politicsNews[0].title} className="w-full h-[180px] sm:h-[140px] object-cover mb-3 sm:mb-2 rounded-sm" />
                                  <h3 className="text-[22px] md:text-[24px] lg:text-[26px] font-bold group-hover:text-[#e05e3b] leading-snug">{politicsNews[0].title}</h3>
                                  <p className="text-[14px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(politicsNews[0].created_at)}</p>
@@ -677,14 +677,14 @@ export default async function Home({ searchParams }: { searchParams: { category?
                            )}
                            <div className="mt-auto space-y-4 pt-3 border-t border-[#e8dfce]">
                               {politicsNews[1] && (
-                                 <a href={politicsNews[1].is_custom ? `/news/${politicsNews[1].id}` : politicsNews[1].source_url} target="_blank" className="group block">
+                                 <a href={`/news/${politicsNews[1].id}`} target="_blank" className="group block">
                                     <h3 className="text-[19px] md:text-[20px] font-bold text-gray-800 group-hover:text-[#e05e3b] leading-snug">
                                        <span className="text-[#d4b072] mr-1">■</span> {politicsNews[1].title}
                                     </h3>
                                  </a>
                               )}
                               {politicsNews[2] && (
-                                 <a href={politicsNews[2].is_custom ? `/news/${politicsNews[2].id}` : politicsNews[2].source_url} target="_blank" className="group block">
+                                 <a href={`/news/${politicsNews[2].id}`} target="_blank" className="group block">
                                     <h3 className="text-[19px] md:text-[20px] font-bold text-gray-800 group-hover:text-[#e05e3b] leading-snug">
                                        <span className="text-[#d4b072] mr-1">■</span> {politicsNews[2].title}
                                     </h3>
@@ -694,7 +694,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#e8dfce]">
                            {politicsNews.slice(3, 7).map((news, idx) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
                                     <h3 className="text-[18px] md:text-[19px] lg:text-[20px] font-bold group-hover:text-[#e05e3b] leading-snug">{news.title}</h3>
                                     <p className="text-[14px] md:text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
@@ -719,13 +719,13 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   {eduNews.length === 0 ? <div className="text-gray-400 py-4">খবর আপডেট হচ্ছে...</div> : (
                      <div className="flex flex-col gap-3">
                         {eduNews[0] && (
-                           <a href={eduNews[0].is_custom ? `/news/${eduNews[0].id}` : eduNews[0].source_url} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
+                           <a href={`/news/${eduNews[0].id}`} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
                               <SafeImage src={eduNews[0].image_url} alt={eduNews[0].title} className="w-full h-[150px] sm:h-[130px] object-cover mb-3 rounded-sm" />
                               <h3 className="text-[22px] lg:text-[24px] font-bold group-hover:text-blue-600 leading-snug">{eduNews[0].title}</h3>
                            </a>
                         )}
                         {eduNews.slice(1, 4).map(news => (
-                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block">
                               <h3 className="text-[18px] lg:text-[19px] font-bold group-hover:text-blue-600 leading-snug">■ {news.title}</h3>
                            </a>
                         ))}
@@ -741,13 +741,13 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   {jobsNews.length === 0 ? <div className="text-gray-400 py-4">খবর আপডেট হচ্ছে...</div> : (
                      <div className="flex flex-col gap-3">
                         {jobsNews[0] && (
-                           <a href={jobsNews[0].is_custom ? `/news/${jobsNews[0].id}` : jobsNews[0].source_url} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
+                           <a href={`/news/${jobsNews[0].id}`} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
                               <SafeImage src={jobsNews[0].image_url} alt={jobsNews[0].title} className="w-full h-[150px] sm:h-[130px] object-cover mb-3 rounded-sm" />
                               <h3 className="text-[22px] lg:text-[24px] font-bold group-hover:text-blue-600 leading-snug">{jobsNews[0].title}</h3>
                            </a>
                         )}
                         {jobsNews.slice(1, 4).map(news => (
-                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block">
                               <h3 className="text-[18px] lg:text-[19px] font-bold group-hover:text-blue-600 leading-snug">■ {news.title}</h3>
                            </a>
                         ))}
@@ -763,13 +763,13 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   {techNews.length === 0 ? <div className="text-gray-400 py-4">খবর আপডেট হচ্ছে...</div> : (
                      <div className="flex flex-col gap-3">
                         {techNews[0] && (
-                           <a href={techNews[0].is_custom ? `/news/${techNews[0].id}` : techNews[0].source_url} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
+                           <a href={`/news/${techNews[0].id}`} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
                               <SafeImage src={techNews[0].image_url} alt={techNews[0].title} className="w-full h-[150px] sm:h-[130px] object-cover mb-3 rounded-sm" />
                               <h3 className="text-[22px] lg:text-[24px] font-bold group-hover:text-blue-600 leading-snug">{techNews[0].title}</h3>
                            </a>
                         )}
                         {techNews.slice(1, 4).map(news => (
-                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block">
                               <h3 className="text-[18px] lg:text-[19px] font-bold group-hover:text-blue-600 leading-snug">■ {news.title}</h3>
                            </a>
                         ))}
@@ -785,13 +785,13 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   {businessNews.length === 0 ? <div className="text-gray-400 py-4">খবর আপডেট হচ্ছে...</div> : (
                      <div className="flex flex-col gap-3">
                         {businessNews[0] && (
-                           <a href={businessNews[0].is_custom ? `/news/${businessNews[0].id}` : businessNews[0].source_url} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
+                           <a href={`/news/${businessNews[0].id}`} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
                               <SafeImage src={businessNews[0].image_url} alt={businessNews[0].title} className="w-full h-[150px] sm:h-[130px] object-cover mb-3 rounded-sm" />
                               <h3 className="text-[22px] lg:text-[24px] font-bold group-hover:text-blue-600 leading-snug">{businessNews[0].title}</h3>
                            </a>
                         )}
                         {businessNews.slice(1, 4).map(news => (
-                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group block">
+                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block">
                               <h3 className="text-[18px] lg:text-[19px] font-bold group-hover:text-blue-600 leading-snug">■ {news.title}</h3>
                            </a>
                         ))}
@@ -812,7 +812,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                      <div className="flex flex-col gap-5 lg:col-span-1">
                         {sportsNews.slice(1, 3).map((news) => (
-                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col bg-white p-3 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition">
+                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex flex-col bg-white p-3 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition">
                               <SafeImage src={news.image_url} alt={news.title} className="w-full h-[120px] object-cover mb-2 rounded-sm" />
                               <h3 className="text-[18px] lg:text-[19px] font-bold group-hover:text-red-600 leading-snug">{news.title}</h3>
                            </a>
@@ -820,7 +820,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      </div>
                      <div className="lg:col-span-2">
                         {sportsNews[0] && (
-                           <a href={sportsNews[0].is_custom ? `/news/${sportsNews[0].id}` : sportsNews[0].source_url} target="_blank" className="group block h-full bg-white p-4 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition relative">
+                           <a href={`/news/${sportsNews[0].id}`} target="_blank" className="group block h-full bg-white p-4 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition relative">
                               <SafeImage src={sportsNews[0].image_url} alt={sportsNews[0].title} className="w-full h-[250px] sm:h-[320px] object-cover mb-4 rounded-sm" />
                               <h3 className="text-[26px] md:text-[30px] lg:text-[34px] font-extrabold text-gray-900 group-hover:text-red-600 leading-tight">{sportsNews[0].title}</h3>
                               <p className="text-[14px] md:text-[15px] text-gray-600 mt-2">{formatDateTime(sportsNews[0].created_at)}</p>
@@ -829,7 +829,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      </div>
                      <div className="flex flex-col gap-5 lg:col-span-1">
                         {sportsNews.slice(3, 5).map((news) => (
-                           <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="group flex flex-col bg-white p-3 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition">
+                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex flex-col bg-white p-3 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition">
                               <SafeImage src={news.image_url} alt={news.title} className="w-full h-[120px] object-cover mb-2 rounded-sm" />
                               <h3 className="text-[18px] lg:text-[19px] font-bold group-hover:text-red-600 leading-snug">{news.title}</h3>
                            </a>
@@ -852,7 +852,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="sm:border-r border-[#c1dff0] sm:pr-6">
                            {hasyroshNews[0] && (
-                              <a href={hasyroshNews[0].is_custom ? `/news/${hasyroshNews[0].id}` : hasyroshNews[0].source_url} target="_blank" className="group block">
+                              <a href={`/news/${hasyroshNews[0].id}`} target="_blank" className="group block">
                                  <SafeImage src={hasyroshNews[0].image_url} alt={hasyroshNews[0].title} className="w-full h-[200px] object-cover mb-3 rounded-sm shadow-sm" />
                                  <h3 className="text-[22px] md:text-[24px] lg:text-[26px] font-bold text-gray-800 group-hover:text-[#006699] leading-snug">{hasyroshNews[0].title}</h3>
                                  <p className="text-[14px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(hasyroshNews[0].created_at)}</p>
@@ -861,7 +861,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#c1dff0] justify-center">
                            {hasyroshNews.slice(1, 4).map((news, idx) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex items-center justify-between gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex items-center justify-between gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1 pr-2">
                                     <h3 className="text-[18px] md:text-[19px] lg:text-[20px] font-bold text-gray-800 group-hover:text-[#006699] leading-snug">{news.title}</h3>
                                  </div>
@@ -884,7 +884,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="sm:border-r border-[#e8dfce] sm:pr-6">
                            {featureNews[0] && (
-                              <a href={featureNews[0].is_custom ? `/news/${featureNews[0].id}` : featureNews[0].source_url} target="_blank" className="group block">
+                              <a href={`/news/${featureNews[0].id}`} target="_blank" className="group block">
                                  <SafeImage src={featureNews[0].image_url} alt={featureNews[0].title} className="w-full h-[200px] object-cover mb-3 rounded-sm shadow-sm" />
                                  <h3 className="text-[22px] md:text-[24px] lg:text-[26px] font-bold text-gray-900 group-hover:text-[#966b22] leading-snug">{featureNews[0].title}</h3>
                                  <p className="text-[14px] md:text-[13px] text-gray-500 mt-2 line-clamp-2">ফিচারের বিশেষ আয়োজন সম্পর্কে বিস্তারিত পড়তে ক্লিক করুন।</p>
@@ -893,7 +893,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#e8dfce] justify-center">
                            {featureNews.slice(1, 4).map((news, idx) => (
-                              <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
                                     <h3 className="text-[18px] md:text-[19px] lg:text-[20px] font-bold text-gray-800 group-hover:text-[#966b22] leading-snug">{news.title}</h3>
                                     <p className="text-[14px] md:text-[13px] text-gray-500 mt-1">{formatDateTime(news.created_at)}</p>
@@ -919,7 +919,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                ) : (
                   <div className="flex overflow-x-auto gap-5 pb-4 snap-x snap-mandatory scrollbar-hide" style={{ scrollBehavior: 'smooth' }}>
                      {religionNews.map((news) => (
-                        <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" key={news.id} className="min-w-[240px] md:min-w-[280px] w-[240px] md:w-[280px] snap-start group shrink-0 block">
+                        <a href={`/news/${news.id}`} target="_blank" key={news.id} className="min-w-[240px] md:min-w-[280px] w-[240px] md:w-[280px] snap-start group shrink-0 block">
                            <div className="overflow-hidden rounded-sm mb-3">
                               <SafeImage src={news.image_url} alt={news.title} className="w-full h-[150px] md:h-[160px] object-cover transform group-hover:scale-105 transition duration-500 ease-in-out" />
                            </div>
