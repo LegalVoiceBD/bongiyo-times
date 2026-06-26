@@ -3,7 +3,6 @@ const { createClient } = require('@supabase/supabase-js');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const cloudinary = require('cloudinary').v2;
 
-// ১. কনফিগারেশন সেটআপ
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -17,33 +16,23 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// ২. হেল্পার ফাংশন: বটের কাজ কিছুক্ষণ থামিয়ে রাখার জন্য (Rate Limit এড়াতে)
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runBot() {
   console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে...");
 
   const allSources = [
-    // --- বাংলাদেশ ---
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Jugantor', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ' },
     { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/national', domain: 'kalerkantho.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Samakal', url: 'https://samakal.com/bangladesh', domain: 'samakal.com', defaultCategory: 'বাংলাদেশ' },
-    
-    // --- আন্তর্জাতিক ---
     { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক' },
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/world', domain: 'prothomalo.com', defaultCategory: 'আন্তর্জাতিক' },
-    
-    // --- খেলাধুলা ---
     { name: 'Jugantor', url: 'https://www.jugantor.com/sports', domain: 'jugantor.com', defaultCategory: 'খেলাধুলা' },
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/sports', domain: 'prothomalo.com', defaultCategory: 'খেলাধুলা' },
-    
-    // --- বিনোদন ---
     { name: 'Samakal', url: 'https://samakal.com/entertainment', domain: 'samakal.com', defaultCategory: 'বিনোদন' },
     { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/entertainment', domain: 'ittefaq.com.bd', defaultCategory: 'বিনোদন' },
-    
-    // --- প্রযুক্তি ---
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/technology', domain: 'prothomalo.com', defaultCategory: 'প্রযুক্তি' }
   ];
 
@@ -56,12 +45,9 @@ async function runBot() {
   }
 
   const sourcesToScrape = shuffleArray([...allSources]).slice(0, 15);
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-  };
+  const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
 
-  // স্ট্রিক্ট ইউআরএল ভ্যালিডেশন
-  function isStrictlyValid(url, expectedCategory) {
+  function isStrictlyValid(url) {
     const lowerUrl = url.toLowerCase();
     const generalBadWords = ['tag', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo'];
     if (generalBadWords.some(word => lowerUrl.includes(`/${word}`))) return false;
@@ -70,7 +56,7 @@ async function runBot() {
   }
 
   let processedArticlesCount = 0;
-  const MAX_ARTICLES_PER_RUN = 10; // এক রানে সর্বোচ্চ ১০টি নিউজ নিবে
+  const MAX_ARTICLES_PER_RUN = 10; 
 
   for (let source of sourcesToScrape) {
     if (processedArticlesCount >= MAX_ARTICLES_PER_RUN) break;
@@ -86,7 +72,7 @@ async function runBot() {
       
       $('a').each((i, el) => {
         let href = $(el).attr('href');
-        if (href && href.length > 40 && isStrictlyValid(href, source.defaultCategory)) {
+        if (href && href.length > 40 && isStrictlyValid(href)) {
           if (href.startsWith('/')) href = `https://www.${source.domain}${href}`;
           if (href.includes(source.domain) && !links.includes(href)) {
             links.push(href);
@@ -94,23 +80,18 @@ async function runBot() {
         }
       });
 
-      const topLinks = links.slice(0, 2); // প্রতিটি সোর্স থেকে ২টি করে লিংক নিবে
+      const topLinks = links.slice(0, 2); 
       
       for (let link of topLinks) {
         if (processedArticlesCount >= MAX_ARTICLES_PER_RUN) break;
 
-        // চেক করুন এই URL আগে সেভ করা হয়েছে কিনা
         const { data: existingUrl } = await supabase.from('news').select('id').eq('source_url', link);
-        if (existingUrl && existingUrl.length > 0) {
-            console.log(`⚠️ খবরটি আগে থেকেই ডাটাবেসে আছে, স্কিপ করা হলো।`);
-            continue;
-        }
+        if (existingUrl && existingUrl.length > 0) continue;
 
         const articleRes = await fetch(link, { headers });
         const articleHtml = await articleRes.text();
         const article$ = cheerio.load(articleHtml);
 
-        // পুরো খবরের টেক্সট বের করা
         const fullTextArray = [];
         article$('p').each((i, el) => {
           const text = article$(el).text().trim();
@@ -118,10 +99,7 @@ async function runBot() {
         });
         const fullText = fullTextArray.join('\n');
 
-        if (fullText.length < 300) {
-            console.log(`⚠️ খবরটি খুব ছোট, স্কিপ করা হলো।`);
-            continue; 
-        }
+        if (fullText.length < 300) continue; 
 
         let original_image_url = article$('meta[property="og:image"]').attr('content');
         if (original_image_url && original_image_url.startsWith('/')) {
@@ -132,8 +110,7 @@ async function runBot() {
           console.log(`🧠 জেমিনি এপিআই দিয়ে বিশ্লেষণ শুরু হচ্ছে...`);
           
           try {
-            // ১. জেমিনি প্রম্পট
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // আপনি 2.5-flash ব্যবহার করতে চেয়েছেন
             const prompt = `
             তুমি একজন প্রফেশনাল সাংবাদিক এবং নিউজ বিশ্লেষক। নিচে একটি খবরের মূল অংশ দেওয়া হলো। তোমার কাজ হলো খবরটিকে নিজের ভাষায় বিশ্লেষণ করে নতুনভাবে লেখা।
             
@@ -149,14 +126,24 @@ async function runBot() {
             ${fullText}
             `;
 
-            const result = await model.generateContent(prompt);
+            let result;
+            try {
+                result = await model.generateContent(prompt);
+            } catch (geminiError) {
+                // সার্ভার বিজি থাকলে ১০ সেকেন্ড পর আবার ট্রাই করবে
+                if (geminiError.message.includes('503')) {
+                    console.log('⏳ সার্ভার ব্যস্ত, ১০ সেকেন্ড পর আবার চেষ্টা করছি...');
+                    await delay(10000);
+                    result = await model.generateContent(prompt);
+                } else {
+                    throw geminiError;
+                }
+            }
+
             let responseText = result.response.text();
-            
-            // JSON ক্লিনিং
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             const rewrittenData = JSON.parse(responseText);
 
-            // ২. ক্লাউডিনারিতে ছবি আপলোড
             console.log(`☁️ ক্লাউডিনারিতে ছবি আপলোড হচ্ছে...`);
             let cloudinaryImageUrl = original_image_url;
             try {
@@ -168,11 +155,11 @@ async function runBot() {
                 console.error("❌ ক্লাউডিনারি আপলোড ফেইল করেছে, অরিজিনাল ছবি ব্যবহার করা হচ্ছে।");
             }
 
-            // ৩. সুপাবেজে ডেটা সেভ
-            await supabase.from('news').insert([{
+            // સુপাবেজে সেভ করার সময় এরর চেক
+            const { error: insertError } = await supabase.from('news').insert([{
               title: rewrittenData.title,
-              content: rewrittenData.content, // পুরো খবর
-              snippet: rewrittenData.content.substring(0, 150) + "...", // খবরের প্রথম ১৫০ অক্ষর
+              content: rewrittenData.content,
+              snippet: rewrittenData.content.substring(0, 150) + "...",
               image_url: cloudinaryImageUrl,
               source_url: link,
               source_name: source.name,
@@ -180,14 +167,18 @@ async function runBot() {
               image_source: `ছবি সংগৃহীত: ${source.name}`
             }]);
             
-            console.log(`✅ সেভ হয়েছে: ${rewrittenData.title.substring(0, 40)}...`);
-            processedArticlesCount++;
+            if (insertError) {
+                console.error("❌ সুপাবেজ ডাটাবেস এরর:", insertError.message);
+                console.error("💡 সুপাবেজে 'content' কলাম যুক্ত করেছেন কিনা চেক করুন!");
+            } else {
+                console.log(`✅ সফলভাবে সেভ হয়েছে: ${rewrittenData.title.substring(0, 40)}...`);
+                processedArticlesCount++;
+            }
             
-            // এপিআই লিমিট এড়াতে ৮ সেকেন্ড অপেক্ষা
-            await delay(8000); 
+            await delay(10000); // পরবর্তী নিউজের আগে ১০ সেকেন্ড বিরতি
 
           } catch (apiError) {
-            console.error("❌ জেমিনি বা সুপাবেজ এরর:", apiError.message);
+            console.error("❌ জেমিনি বা অন্য এরর:", apiError.message);
           }
         }
       }
