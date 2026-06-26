@@ -121,7 +121,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
           {/* রাইট সাইড মেনু / Header News */}
           <div className="hidden lg:flex divide-x divide-gray-300">
              {headerNews.map((news, index) => (
-                <a href={news.is_custom ? `/news/${news.id}` : news.source_url} target="_blank" rel="noreferrer" key={index} className="flex gap-3 px-4 w-[250px] group">
+                <a href={`/news/${news.id}`} target="_blank" rel="noreferrer" key={index} className="flex gap-3 px-4 w-[250px] group">
                    <div className="flex-1">
                       <p className="text-xs text-red-600 mb-1">■ {news.category}</p>
                       <h3 className="text-[15px] leading-tight font-semibold group-hover:text-blue-600 line-clamp-2">{news.title}</h3>
