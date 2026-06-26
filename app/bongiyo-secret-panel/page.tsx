@@ -20,7 +20,7 @@ export default function AdminDashboard() {
   const [category, setCategory] = useState('মতামত');
   const [sourceName, setSourceName] = useState('বঙ্গীয় টাইমস');
   const [imageUrl, setImageUrl] = useState('');
-  const [imageSource, setImageSource] = useState('');
+  const [imageSource, setImageSource] = useState('বঙ্গীয় টাইমস'); 
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -69,15 +69,18 @@ const handleLogin = async (e: React.FormEvent) => {
   const fetchMyNews = async () => {
     if (!user) return;
     
-    // কোনো ফিল্টার ছাড়াই সব নিউজ আনা হচ্ছে, ফিল্টারিংটা আমরা নিচে UI তে করব
     let query = supabase.from('news').select('*').order('created_at', { ascending: false });
     
     if (user.role === 'journalist') {
       query = query.eq('author_email', user.email);
     }
     
-    const { data } = await query;
-    if (data) setMyNews(data);
+    const { data, error } = await query;
+    if (error) {
+      console.error("Fetch Error:", error.message);
+    } else if (data) {
+      setMyNews(data);
+    }
   };
 
   useEffect(() => {
@@ -99,14 +102,15 @@ const handleLogin = async (e: React.FormEvent) => {
     setCategory(newsItem.category);
     setSourceName(newsItem.source_name || '');
     setImageUrl(newsItem.image_url || '');
-    setImageSource(newsItem.image_source || ''); 
+    setImageSource(newsItem.image_source || 'বঙ্গীয় টাইমস'); 
     setActiveTab('add'); 
     setMessage('');
   };
 
   const resetForm = () => {
     setEditingId(null);
-    setTitle(''); setSnippet(''); setContent(''); setImageUrl(''); setImageSource('');
+    setTitle(''); setSnippet(''); setContent(''); setImageUrl(''); 
+    setImageSource('বঙ্গীয় টাইমস'); 
     setSourceName(user?.role === 'journalist' ? user.name || 'প্রতিনিধি' : 'বঙ্গীয় টাইমস'); 
     setCategory('মতামত');
     setMessage('');
@@ -133,7 +137,8 @@ const handleLogin = async (e: React.FormEvent) => {
     formData.append('upload_preset', 'bongiyo_unsigned'); 
 
     try {
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      // ক্লাউডিনারি ইউআরএল ফিক্স করা হয়েছে: আপনার অরিজিনাল ক্লাউড নেম (dfgfvfvmk) সরাসরি দেওয়া হলো
+      const res = await fetch(`https://api.cloudinary.com/v1_1/dfgfvfvmk/image/upload`, {
         method: 'POST', body: formData,
       });
       const data = await res.json();
@@ -179,6 +184,7 @@ const handleLogin = async (e: React.FormEvent) => {
         setMessage('এরর: ' + error.message);
       } else {
         setMessage('✅ সফলভাবে আপডেট হয়েছে!');
+        fetchMyNews(); 
         resetForm(); 
       }
     } else {
@@ -193,6 +199,7 @@ const handleLogin = async (e: React.FormEvent) => {
       } else if (data && data.length > 0) {
         await supabase.from('news').update({ source_url: `/news/${data[0].id}` }).eq('id', data[0].id);
         setMessage(isPublished ? '✅ সফলভাবে পাবলিশ হয়েছে!' : '✅ এডিটরের কাছে সফলভাবে পাঠানো হয়েছে!');
+        fetchMyNews();
         resetForm();
       }
     }
@@ -201,7 +208,6 @@ const handleLogin = async (e: React.FormEvent) => {
   const handlePublishToggle = async (newsItem: any) => {
     if (user.role !== 'admin' && user.role !== 'editor') return;
     
-    // পুরোনো নিউজের জন্য সেফটি চেক
     const currentStatus = newsItem.is_published === false ? false : true;
     
     const confirmMsg = currentStatus ? 'খবরটি আনপাবলিশ (ড্রাফট) করতে চান?' : 'খবরটি সবার জন্য পাবলিশ করতে চান?';
@@ -231,7 +237,6 @@ const handleLogin = async (e: React.FormEvent) => {
      const matchesSearch = news.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            news.category.toLowerCase().includes(searchTerm.toLowerCase());
      
-     // যদি ডাটাবেসে is_published ফলস থাকে তবেই ড্রাফট, না হলে পুরোনো সব নিউজ পাবলিশড
      const isPub = news.is_published === false ? false : true;
 
      if (!matchesSearch) return false;
@@ -239,7 +244,7 @@ const handleLogin = async (e: React.FormEvent) => {
      if (statusFilter === 'published') return isPub;
      if (statusFilter === 'drafts') return !isPub;
      
-     return true; // statusFilter === 'all'
+     return true; 
   });
 
   if (!user) {
@@ -329,7 +334,6 @@ const handleLogin = async (e: React.FormEvent) => {
 
         {activeTab === 'manage' && (
           <div className="space-y-4">
-             {/* সাব-ফিল্টার ট্যাব শুরু */}
              <div className="flex flex-wrap gap-2 md:gap-4 mb-4 border-b border-gray-200 pb-4">
                 <button onClick={() => setStatusFilter('all')} className={`px-4 py-1.5 text-xs md:text-sm font-bold rounded-full transition ${statusFilter === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>সব খবর</button>
                 <button onClick={() => setStatusFilter('published')} className={`px-4 py-1.5 text-xs md:text-sm font-bold rounded-full transition ${statusFilter === 'published' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-800 hover:bg-green-200'}`}>পাবলিশড নিউজ</button>
