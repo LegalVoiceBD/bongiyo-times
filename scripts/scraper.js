@@ -164,7 +164,8 @@ async function runBot() {
               source_url: link,
               source_name: source.name,
               category: source.defaultCategory,
-              image_source: `ছবি সংগৃহীত: ${source.name}`
+              image_source: `ছবি সংগৃহীত: ${source.name}`,
+              is_custom: true
             }]);
             
             if (insertError) {
