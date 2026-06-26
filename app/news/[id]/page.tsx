@@ -217,8 +217,14 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                )}
             </figure>
             
-            <div className="text-[20px] md:text-[22px] leading-[1.9] text-[#333333] whitespace-pre-wrap">
-               {news.content || news.snippet}
+            {/* মডিফাইড অংশ: HTML ট্যাগ সঠিকভাবে রেন্ডার করার জন্য dangerouslySetInnerHTML ব্যবহার করা হলো */}
+            <div className="text-[20px] md:text-[22px] leading-[1.9] text-[#333333] whitespace-pre-wrap flex flex-col gap-4">
+               {news.content ? (
+                  <div dangerouslySetInnerHTML={{ __html: news.content }} />
+               ) : (
+                  <div dangerouslySetInnerHTML={{ __html: news.snippet }} />
+               )}
+               
                {!news.content && (
                   <p className="mt-8 font-bold text-[#104f96]">
                      <a href={news.source_url} target="_blank" className="hover:underline" rel="noreferrer">বিস্তারিত পড়তে মূল লিংকে ক্লিক করুন ❯</a>
