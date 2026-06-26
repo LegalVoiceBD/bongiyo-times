@@ -133,7 +133,7 @@ async function runBot() {
           
           try {
             // ১. জেমিনি প্রম্পট
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
             const prompt = `
             তুমি একজন প্রফেশনাল সাংবাদিক এবং নিউজ বিশ্লেষক। নিচে একটি খবরের মূল অংশ দেওয়া হলো। তোমার কাজ হলো খবরটিকে নিজের ভাষায় বিশ্লেষণ করে নতুনভাবে লেখা।
             
