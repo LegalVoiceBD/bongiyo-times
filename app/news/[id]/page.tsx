@@ -60,9 +60,11 @@ export default async function NewsDetail({ params }: { params: { id: string } })
   const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস"];
   const currentUrl = `https://www.bongiyotimes.com/news/${news.id}`;
   
-  // যুক্ত করা ভেরিয়েবল (এরর ফিক্স করার জন্য)
   const activeCategory = news.category;
   const searchQuery = "";
+
+  // ডাবল "ছবি" বা "ছবি সংগৃহীত:" কথাটি রিমুভ করে ক্লিন সোর্স বের করা
+  const cleanImageSource = news.image_source ? news.image_source.replace(/ছবি সংগৃহীত:\s*/g, '').trim() : '';
 
   return (
     <div className="min-h-screen bg-white text-black tracking-tight">
@@ -81,7 +83,6 @@ export default async function NewsDetail({ params }: { params: { id: string } })
             {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
           </div>
 
-     {/* লোগো ও তারিখ সেকশন */}
           <div className="shrink-0 flex items-center">
              <a href="/" className="group flex flex-col">
                <h1 className="text-4xl md:text-[42px] font-extrabold text-black flex items-center tracking-tighter">
@@ -102,13 +103,11 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                  </div>
                  ইমস
                </h1>
-               {/* স্লোগান */}
                <span className="hidden md:block text-[14px] font-bold text-gray-600 tracking-wide mt-1">
                  সত্য ও সাহসের প্রতিচ্ছবি
                </span>
              </a>
              
-             {/* ডেস্কটপ তারিখ */}
              <div className="hidden md:flex flex-col border-l-[2px] border-gray-300 pl-4 ml-4 justify-center h-12 mt-1">
                <span className="text-[13.5px] text-gray-600 font-bold leading-tight">
                   {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long' }).format(new Date())}
@@ -118,7 +117,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                </span>
              </div>
           </div>
-          {/* রাইট সাইড মেনু / Header News */}
+          
           <div className="hidden lg:flex divide-x divide-gray-300">
              {headerNews.map((news, index) => (
                 <a href={`/news/${news.id}`} target="_blank" rel="noreferrer" key={index} className="flex gap-3 px-4 w-[250px] group">
@@ -130,14 +129,10 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                 </a>
              ))}
           </div>
-
         </div>
 
-        {/* Navigation Bar */}
         <div className="border-t border-b border-gray-300 sticky top-0 z-50 bg-white shadow-sm">
           <div className="max-w-[1200px] mx-auto px-4 flex justify-between items-center h-12 relative overflow-hidden">
-            
-            {/* মেনু লিংকস */}
             <div className="flex-1 min-w-0 h-full flex items-center pr-4">
                <nav className="flex items-center gap-5 md:gap-6 lg:gap-7 overflow-x-auto text-[17px] lg:text-[19px] font-bold text-black w-full pb-1 custom-scrollbar tracking-wide">
                  <a href="/" className="h-12 flex items-center transition-colors hover:text-[#104f96] whitespace-nowrap shrink-0">প্রচ্ছদ</a>
@@ -153,7 +148,6 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                </nav>
             </div>
             
-            {/* প্রফেশনাল সার্চ অপশন */}
             <div className="hidden md:flex items-center border-l border-gray-200 pl-5 h-full shrink-0 bg-white z-10">
                <form action="/" method="GET" className="relative flex items-center group">
                   <input 
@@ -172,25 +166,21 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                   </button>
                </form>
             </div>
-            
           </div>
         </div>
       </header>
 
-      {/* Prothom Alo Style Breadcrumb */}
       <div className="max-w-[1200px] mx-auto px-4 py-4 text-[15px] font-bold text-gray-500 flex gap-2 items-center">
          <a href="/" className="hover:text-[#104f96]">প্রচ্ছদ</a> 
          <span className="text-gray-400">❯</span>
          <a href={`/?category=${news.category}`} className="hover:text-[#104f96] text-black">{news.category}</a>
       </div>
 
-      {/* Main Article Content */}
       <main className="max-w-[1200px] mx-auto px-4 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-10">
          
          <article className="lg:col-span-8">
             <h1 className="text-[32px] md:text-[44px] font-extrabold leading-[1.3] text-gray-900 mb-5">{news.title}</h1>
             
-            {/* Author and Date Section (National Newspaper Look) */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-y border-gray-200 py-4 mb-8 bg-gray-50/50 px-2 rounded-sm">
                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
@@ -202,7 +192,6 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                   </div>
                </div>
                
-               {/* Minimal Social Share Buttons */}
                <div className="flex items-center gap-3">
                   <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`} target="_blank" rel="noopener noreferrer" 
                      className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-500 hover:text-white hover:bg-[#1877f2] hover:border-[#1877f2] transition">
@@ -219,17 +208,15 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                </div>
             </div>
             
-            {/* Feature Image with Centered Caption */}
             <figure className="mb-8">
                <img src={news.image_url} alt={news.title} className="w-full h-auto max-h-[600px] object-cover" />
-               {news.image_source && (
+               {cleanImageSource && (
                   <figcaption className="text-[14px] text-gray-500 mt-3 text-center border-b border-gray-100 pb-5 flex justify-center items-center gap-1">
-                     <span className="font-bold">ছবি:</span> {news.image_source}
+                     <span className="font-bold">ছবি:</span> {cleanImageSource}
                   </figcaption>
                )}
             </figure>
             
-            {/* Article Content */}
             <div className="text-[20px] md:text-[22px] leading-[1.9] text-[#333333] whitespace-pre-wrap">
                {news.content || news.snippet}
                {!news.content && (
@@ -239,7 +226,15 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                )}
             </div>
 
-            {/* Auto Tags Section */}
+            {/* সুন্দর সফট ব্যাকগ্রাউন্ডে প্রফেশনাল ক্রেডিট */}
+            {cleanImageSource && (
+               <div className="mt-10 p-4 md:p-5 bg-[#f8fafc] border-l-[4px] border-[#104f96] rounded-r-md">
+                  <p className="text-[15px] md:text-[16px] text-gray-600 italic font-medium">
+                     * এই বিশ্লেষণটি {cleanImageSource} এর খবরের আলোকে বঙ্গীয় টাইমস কর্তৃক প্রস্তুতকৃত।
+                  </p>
+               </div>
+            )}
+
             <div className="mt-12 pt-6 border-t border-gray-200">
                <h3 className="text-[17px] font-bold text-gray-800 mb-4 flex items-center gap-2">
                   <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
@@ -259,7 +254,6 @@ export default async function NewsDetail({ params }: { params: { id: string } })
             </div>
          </article>
 
-         {/* Sidebar Content */}
          <aside className="lg:col-span-4 lg:pl-4">
             <div className="w-full min-h-[300px] bg-gray-50 border border-gray-200 flex flex-col items-center justify-center mb-10 text-gray-400 font-bold">
                <span className="text-xs mb-2">বিজ্ঞাপন</span>
@@ -287,7 +281,6 @@ export default async function NewsDetail({ params }: { params: { id: string } })
 
       </main>
 
-      {/* Footer Section */}
       <footer className="bg-white border-t-4 border-red-700 mt-12 pt-8 pb-6 text-black text-center shadow-inner">
         <div className="max-w-[1200px] mx-auto px-4">
           
