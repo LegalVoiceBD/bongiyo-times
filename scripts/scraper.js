@@ -57,6 +57,9 @@ async function runBot() {
 
   let processedArticlesCount = 0;
   const MAX_ARTICLES_PER_RUN = 10; 
+  
+  // আজকের বাংলা তারিখ তৈরি করা হচ্ছে প্রম্পটের জন্য
+  const todayBn = new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
   for (let source of sourcesToScrape) {
     if (processedArticlesCount >= MAX_ARTICLES_PER_RUN) break;
@@ -110,17 +113,17 @@ async function runBot() {
           console.log(`🧠 জেমিনি এপিআই দিয়ে বিশ্লেষণ শুরু হচ্ছে...`);
           
           try {
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // আপনি 2.5-flash ব্যবহার করতে চেয়েছেন
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             const prompt = `
-            তুমি একজন প্রফেশনাল সাংবাদিক এবং নিউজ বিশ্লেষক। নিচে একটি খবরের মূল অংশ দেওয়া হলো। তোমার কাজ হলো খবরটিকে নিজের ভাষায় বিশ্লেষণ করে নতুনভাবে লেখা।
+            তুমি একজন প্রফেশনাল সাংবাদিক। নিচে একটি খবরের মূল অংশ দেওয়া হলো। তোমার কাজ হলো খবরটিকে সম্পূর্ণ নিজের ভাষায় বিশ্লেষণ করে নতুনভাবে লেখা।
             
             শর্তসমূহ:
-            ১. খবরের প্রথম লাইনেই মূল পত্রিকার নাম উল্লেখ করে স্বাভাবিকভাবে লিখতে হবে। যেমন: "আজকের ${source.name} পত্রিকায় প্রকাশিত একটি খবরে বলা হয়েছে যে..." বা "সম্প্রতি ${source.name} এর একটি প্রতিবেদনে জানা গেছে..."।
-            ২. খবরটির একটি নতুন, ইউনিক এবং আকর্ষণীয় শিরোনাম দিতে হবে।
-            ৩. খবরের মূল তথ্য ঠিক রেখে একটি সুন্দর বিশ্লেষণমূলক বিস্তারিত অংশ লিখতে হবে।
+            ১. খবরের শিরোনামে কোনোভাবেই মূল পত্রিকার নাম (যেমন- ${source.name}, বিবিসি, প্রথম আলো ইত্যাদি) থাকবে না। একদম ফ্রেশ, ইউনিক এবং আকর্ষণীয় একটি শিরোনাম দিবে।
+            ২. খবরের প্রথম প্যারাগ্রাফটি ঠিক এভাবে শুরু করতে হবে: "আজ ${todayBn} তারিখে ${source.name} একটি খবর প্রকাশ করে জানিয়েছে যে,..." (এই লাইনটি হুবহু রাখবে, শুধু এরপর থেকে নিজের মতো বিস্তারিত লিখবে)।
+            ৩. খবরের মূল তথ্য ঠিক রেখে একটি সুন্দর বিশ্লেষণমূলক বিস্তারিত অংশ লিখবে। 
             ৪. পুরো লেখাটি অবশ্যই শুদ্ধ বাংলায় হবে।
             ৫. আউটপুটটি শুধুমাত্র JSON ফরম্যাটে দিবে। অন্য কোনো টেক্সট বা মার্কডাউন কোড ব্লক (যেমন \`\`\`json) ব্যবহার করবে না। 
-            অবশ্যই এই JSON স্ট্রাকচার ফলো করবে: {"title": "নতুন শিরোনাম", "content": "পুরো খবরের বিস্তারিত টেক্সট"}
+            অবশ্যই এই JSON স্ট্রাকচার ফলো করবে: {"title": "নতুন ফ্রেশ শিরোনাম", "content": "পুরো খবরের বিস্তারিত টেক্সট"}
             
             মূল খবর:
             ${fullText}
@@ -130,7 +133,6 @@ async function runBot() {
             try {
                 result = await model.generateContent(prompt);
             } catch (geminiError) {
-                // সার্ভার বিজি থাকলে ১০ সেকেন্ড পর আবার ট্রাই করবে
                 if (geminiError.message.includes('503')) {
                     console.log('⏳ সার্ভার ব্যস্ত, ১০ সেকেন্ড পর আবার চেষ্টা করছি...');
                     await delay(10000);
@@ -155,28 +157,26 @@ async function runBot() {
                 console.error("❌ ক্লাউডিনারি আপলোড ফেইল করেছে, অরিজিনাল ছবি ব্যবহার করা হচ্ছে।");
             }
 
-            // સુপাবেজে সেভ করার সময় এরর চেক
+            // সুপাবেজে সেভ
             const { error: insertError } = await supabase.from('news').insert([{
               title: rewrittenData.title,
               content: rewrittenData.content,
               snippet: rewrittenData.content.substring(0, 150) + "...",
               image_url: cloudinaryImageUrl,
               source_url: link,
-              source_name: source.name,
+              source_name: 'বঙ্গীয় টাইমস', // সব সময় প্রতিবেদক বঙ্গীয় টাইমস হবে
               category: source.defaultCategory,
-              image_source: `ছবি সংগৃহীত: ${source.name}`,
-              is_custom: true
+              image_source: source.name // ডাবল ছবি না আসার জন্য শুধু পত্রিকার নাম রাখা হলো
             }]);
             
             if (insertError) {
                 console.error("❌ সুপাবেজ ডাটাবেস এরর:", insertError.message);
-                console.error("💡 সুপাবেজে 'content' কলাম যুক্ত করেছেন কিনা চেক করুন!");
             } else {
                 console.log(`✅ সফলভাবে সেভ হয়েছে: ${rewrittenData.title.substring(0, 40)}...`);
                 processedArticlesCount++;
             }
             
-            await delay(10000); // পরবর্তী নিউজের আগে ১০ সেকেন্ড বিরতি
+            await delay(10000);
 
           } catch (apiError) {
             console.error("❌ জেমিনি বা অন্য এরর:", apiError.message);
