@@ -112,7 +112,7 @@ async function runBot() {
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/lifestyle', domain: 'prothomalo.com', defaultCategory: 'জীবনযাপন' },
     { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/life', domain: 'bd-pratidin.com', defaultCategory: 'জীবনযাপন' },
     { name: 'Jugantor', url: 'https://www.jugantor.com/lifestyle', domain: 'jugantor.com', defaultCategory: 'জীবনযাপন' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/lifestyle', domain: 'ittefaq.com.bd', defaultCategory: ' जीवनযাপন' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/lifestyle', domain: 'ittefaq.com.bd', defaultCategory: ' জীবনযাপন' },
     { name: 'UNB', url: 'https://unb.com.bd/bangla/category/9/লাইফস্টাইল', domain: 'unb.com.bd', defaultCategory: 'জীবনযাপন' },
     
     // --- চাকরি ---
@@ -204,7 +204,7 @@ async function runBot() {
         if (fullText.length < 300) continue; 
 
         if (fullText) {
-          console.log(`🧠 জেমিনি এপিআই দিয়ে विश्लेषण শুরু হচ্ছে...`);
+          console.log(`🧠 জেমিনি এপিআই দিয়ে বিশ্লেষণ শুরু হচ্ছে...`);
           
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
@@ -215,10 +215,10 @@ async function runBot() {
             শর্তসমূহ:
             ১. খবরের শিরোনামে কোনোভাবেই মূল পত্রিকার নাম (যেমন- ${source.name}) থাকবে না। একদম ফ্রেশ, ইউনিক, বিশ্লেষণধর্মী শিরোনাম দিবে।
             ২. খবরের প্রথম প্যারাগ্রাফ ঠিক এভাবে শুরু করতে হবে:
-            "${todayBn} তারিখে <a href='${link}' target='_blank' style='color: #0056b3; text-decoration: underline;'>${source.name} এর প্রকাশিত একটি খবরে</a> জানানো হয়েছে যে,..." (এই লাইনটি হুবহু রাখবে। শুরুতে 'আজ' শব্দটি ব্যবহার করবে না)।
-            ৩. খবরের মূল তথ্য ঠিক রেখে বিশ্লেষণমূলক অংশ লিখবে। প্রফেশনাল স্পেসিংয়ের জন্য প্রতিটি প্যারাগ্রাফকে অবশ্যই <p style="margin-bottom: 20px; line-height: 1.8;">...</p> ট্যাগের ভেতর রাখবে। 
+            <p style="margin-bottom: 20px; line-height: 1.8;">${todayBn} তারিখে <a href='${link}' target='_blank' style='color: #0056b3; text-decoration: underline;'>${source.name} এর প্রকাশিত একটি খবরে</a> জানানো হয়েছে যে,...</p> (এই লাইনটি হুবহু রাখবে। শুরুতে 'আজ' শব্দটি ব্যবহার করবে না)।
+            ৩. খবরের মূল তথ্য ঠিক রেখে বিশ্লেষণমূলক অংশ লিখবে। প্রফেশনাল স্পেসিংয়ের জন্য প্রতিটি প্যারাগ্রাফকে অবশ্যই <p style="margin-bottom: 20px; line-height: 1.8;">...</p> ট্যাগের ভেতর রাখবে। 
             ৪. পুরো লেখাটি অবশ্যই শুদ্ধ বাংলায় হতে হবে এবং খবরের শেষে কোনোভাবেই "ছবি সংগৃহীত" বা এ ধরনের কোনো অতিরিক্ত লাইন যুক্ত করা যাবে না।
-            ৫. কোন ভুল বা কাল্পনিক তথ্য দেয়া যাবে না। শুধু নিউজটাকে নিরপেক্ষভাবে বিশ্লেষণ করবে। এমনভাবে নিজস্ব ভাষায় লিখবে যাতে কপি মনে না হয়।  
+            ৫. কোন ভুল বা কাল্পনিক তথ্য দেয়া যাবে না। শুধু নিউজটাকে নিরপেক্ষভাবে বিশ্লেষণ করবে। এমনভাবে নিজস্ব ভাষায় লিখবে যাতে কপি মনে না হয়।  
             ৬. আউটপুটটি শুধুমাত্র JSON ফরম্যাটে দিবে: {"title": "নতুন শিরোনাম", "content": "পুরো খবরের বিস্তারিত HTML টেক্সট"}
             
             মূল খবর:
@@ -229,7 +229,6 @@ async function runBot() {
             try {
                 result = await model.generateContent(prompt);
             } catch (geminiError) {
-                // এপিআই কোটা বা রেট লিমিট এরর (429) হ্যান্ডলিং লজিক
                 if (geminiError.message.includes('429') || geminiError.message.includes('quota')) {
                     console.log('⏳ কোটা লিমিট শেষ বা সার্ভার ব্যস্ত, ৬ সেকেন্ড অপেক্ষা করে আবার চেষ্টা করা হচ্ছে...');
                     await delay(6000);
@@ -247,7 +246,6 @@ async function runBot() {
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             const rewrittenData = JSON.parse(responseText);
 
-            // সুপাবেজে ড্রাফট হিসেবে সেভ (is_published: false, is_custom: false)
             const { error: insertError } = await supabase.from('news').insert([{
               title: rewrittenData.title,
               content: rewrittenData.content,
@@ -258,7 +256,7 @@ async function runBot() {
               category: source.defaultCategory,
               image_source: 'বঙ্গীয় টাইমস', 
               is_published: false,
-              is_custom: false // বটের নিউজ আইডেন্টিফাই করার জন্য এটি ফলস থাকবে
+              is_custom: false 
             }]);
             
             if (insertError) {
@@ -272,7 +270,6 @@ async function runBot() {
 
           } catch (apiError) {
             console.error("❌ জেমিনি বা অন্য এরর:", apiError.message);
-            // কোটা ফুল হয়ে গেলে স্ক্রিপ্ট ক্র্যাশ না করে পরবর্তী সোর্সের জন্য একটু বেশি সময় বিরতি নেবে
             await delay(5000);
           }
         }
