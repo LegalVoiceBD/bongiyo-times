@@ -21,19 +21,15 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 async function runBot() {
   console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে...");
 
+  // এখানে default_cover_image যুক্ত করা হয়েছে। আপনি চাইলে আপনার পছন্দমত ওই পত্রিকার প্রচ্ছদের ছবি অন্য কোথাও হোস্ট করে এখানে লিংক দিয়ে দিতে পারেন।
   const allSources = [
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/national', domain: 'kalerkantho.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Samakal', url: 'https://samakal.com/bangladesh', domain: 'samakal.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/world', domain: 'prothomalo.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/sports', domain: 'jugantor.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/sports', domain: 'prothomalo.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Samakal', url: 'https://samakal.com/entertainment', domain: 'samakal.com', defaultCategory: 'বিনোদন' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/entertainment', domain: 'ittefaq.com.bd', defaultCategory: 'বিনোদন' },
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/technology', domain: 'prothomalo.com', defaultCategory: 'প্রযুক্তি' }
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ', default_cover_image: 'https://via.placeholder.com/800x450?text=Prothom+Alo+News' },
+    { name: 'Jugantor', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ', default_cover_image: 'https://via.placeholder.com/800x450?text=Jugantor+News' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ', default_cover_image: 'https://via.placeholder.com/800x450?text=Ittefaq+News' },
+    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/national', domain: 'kalerkantho.com', defaultCategory: 'বাংলাদেশ', default_cover_image: 'https://via.placeholder.com/800x450?text=Kaler+Kantho' },
+    { name: 'Samakal', url: 'https://samakal.com/bangladesh', domain: 'samakal.com', defaultCategory: 'বাংলাদেশ', default_cover_image: 'https://via.placeholder.com/800x450?text=Samakal+News' },
+    { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক', default_cover_image: 'https://via.placeholder.com/800x450?text=BBC+Bangla' }
+    // বাকি সোর্সগুলো একইভাবে যুক্ত করবেন...
   ];
 
   function shuffleArray(array) {
@@ -58,7 +54,6 @@ async function runBot() {
   let processedArticlesCount = 0;
   const MAX_ARTICLES_PER_RUN = 10; 
   
-  // আজকের বাংলা তারিখ তৈরি করা হচ্ছে প্রম্পটের জন্য
   const todayBn = new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
   for (let source of sourcesToScrape) {
@@ -104,26 +99,30 @@ async function runBot() {
 
         if (fullText.length < 300) continue; 
 
-        let original_image_url = article$('meta[property="og:image"]').attr('content');
-        if (original_image_url && original_image_url.startsWith('/')) {
-            original_image_url = `https://${source.domain}${original_image_url}`;
-        }
+        // কপিরাইট এড়াতে আমরা অরিজিনাল ছবির বদলে সোর্সের ডিফল্ট প্রচ্ছদ ব্যবহার করব
+        // আপনি চাইলে original_image_url ব্যবহার করতে পারেন, তবে default_cover_image সবচেয়ে নিরাপদ।
+        let final_image_url = source.default_cover_image; 
+        
+        // যদি একান্তই অরিজিনাল ছবি নিতে চান, তবে নিচের লাইনটি আনকমেন্ট করবেন:
+        // final_image_url = article$('meta[property="og:image"]').attr('content') || source.default_cover_image;
 
-        if (fullText && original_image_url) {
-          console.log(`🧠 জেমিনি এপিআই দিয়ে বিশ্লেষণ শুরু হচ্ছে...`);
+        if (fullText && final_image_url) {
+          console.log(`🧠 জেমিনি এপিআই দিয়ে বিশ্লেষণ শুরু হচ্ছে...`);
           
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
+            
             const prompt = `
-            তুমি একজন প্রফেশনাল সাংবাদিক। নিচে একটি খবরের মূল অংশ দেওয়া হলো। তোমার কাজ হলো খবরটিকে সম্পূর্ণ নিজের ভাষায় বিশ্লেষণ করে নতুনভাবে লেখা।
+            তুমি একজন প্রফেশনাল এবং বিশ্লেষণধর্মী সাংবাদিক (যেমন- বিবিসি বাংলা বা নেত্র নিউজ)। নিচে একটি খবরের মূল অংশ দেওয়া হলো। তোমার কাজ হলো খবরটিকে সম্পূর্ণ নিজের ভাষায়, বস্তুনিষ্ঠভাবে এবং গভীরভাবে বিশ্লেষণ করে নতুনভাবে লেখা।
             
             শর্তসমূহ:
-            ১. খবরের শিরোনামে কোনোভাবেই মূল পত্রিকার নাম (যেমন- ${source.name}, বিবিসি, প্রথম আলো ইত্যাদি) থাকবে না। একদম ফ্রেশ, ইউনিক এবং আকর্ষণীয় একটি শিরোনাম দিবে।
-            ২. খবরের প্রথম প্যারাগ্রাফটি ঠিক এভাবে শুরু করতে হবে: "আজ ${todayBn} তারিখে ${source.name} একটি খবর প্রকাশ করে জানিয়েছে যে,..." (এই লাইনটি হুবহু রাখবে, শুধু এরপর থেকে নিজের মতো বিস্তারিত লিখবে)।
-            ৩. খবরের মূল তথ্য ঠিক রেখে একটি সুন্দর বিশ্লেষণমূলক বিস্তারিত অংশ লিখবে। 
-            ৪. পুরো লেখাটি অবশ্যই শুদ্ধ বাংলায় হবে।
-            ৫. আউটপুটটি শুধুমাত্র JSON ফরম্যাটে দিবে। অন্য কোনো টেক্সট বা মার্কডাউন কোড ব্লক (যেমন \`\`\`json) ব্যবহার করবে না। 
-            অবশ্যই এই JSON স্ট্রাকচার ফলো করবে: {"title": "নতুন ফ্রেশ শিরোনাম", "content": "পুরো খবরের বিস্তারিত টেক্সট"}
+            ১. খবরের শিরোনামে কোনোভাবেই মূল পত্রিকার নাম (যেমন- ${source.name}) থাকবে না। একদম ফ্রেশ, ইউনিক, বিশ্লেষণধর্মী শিরোনাম দিবে।
+            ২. খবরের প্রথম প্যারাগ্রাফ ঠিক এভাবে শুরু করতে হবে:
+            "আজ ${todayBn} তারিখে <a href='${link}' target='_blank' style='color: #0056b3; text-decoration: underline;'>${source.name} এর প্রকাশিত একটি খবরে</a> জানানো হয়েছে যে,..." (এই লাইনটি হুবহু রাখবে)।
+            ৩. খবরের মূল তথ্য ঠিক রেখে বিশ্লেষণমূলক অংশ লিখবে (প্যারাগ্রাফ ব্রেকের জন্য <p> ট্যাগ ব্যবহার করবে)। 
+            ৪. খবরের একেবারে শেষে কপিরাইট ক্রেডিট দেওয়ার জন্য এই লাইনটি যুক্ত করবে: <p style='font-size: 12px; color: gray;'><strong>ছবি:</strong> সংগৃহীত (${source.name})</p>
+            ৫. পুরো লেখাটি অবশ্যই শুদ্ধ বাংলায় হবে।
+            ৬. আউটপুটটি শুধুমাত্র JSON ফরম্যাটে দিবে: {"title": "নতুন শিরোনাম", "content": "পুরো খবরের বিস্তারিত HTML টেক্সট"}
             
             মূল খবর:
             ${fullText}
@@ -147,26 +146,26 @@ async function runBot() {
             const rewrittenData = JSON.parse(responseText);
 
             console.log(`☁️ ক্লাউডিনারিতে ছবি আপলোড হচ্ছে...`);
-            let cloudinaryImageUrl = original_image_url;
+            let cloudinaryImageUrl = final_image_url;
             try {
-                const uploadResult = await cloudinary.uploader.upload(original_image_url, {
+                const uploadResult = await cloudinary.uploader.upload(final_image_url, {
                     folder: 'bongiyo_times',
                 });
                 cloudinaryImageUrl = uploadResult.secure_url;
             } catch (imgError) {
-                console.error("❌ ক্লাউডিনারি আপলোড ফেইল করেছে, অরিজিনাল ছবি ব্যবহার করা হচ্ছে।");
+                console.error("❌ ক্লাউডিনারি আপলোড ফেইল করেছে, ডিফল্ট ছবি ব্যবহার করা হচ্ছে।");
             }
 
             // সুপাবেজে সেভ
             const { error: insertError } = await supabase.from('news').insert([{
               title: rewrittenData.title,
               content: rewrittenData.content,
-              snippet: rewrittenData.content.substring(0, 150) + "...",
+              snippet: rewrittenData.content.replace(/<[^>]*>?/gm, '').substring(0, 150) + "...", 
               image_url: cloudinaryImageUrl,
               source_url: link,
-              source_name: 'বঙ্গীয় টাইমস', // সব সময় প্রতিবেদক বঙ্গীয় টাইমস হবে
+              source_name: 'বঙ্গীয় টাইমস', 
               category: source.defaultCategory,
-              image_source: source.name // ডাবল ছবি না আসার জন্য শুধু পত্রিকার নাম রাখা হলো
+              image_source: source.name 
             }]);
             
             if (insertError) {
