@@ -1,7 +1,6 @@
 const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const cloudinary = require('cloudinary').v2;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -10,37 +9,13 @@ const supabase = createClient(
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Draft Mode)...");
 
-  // 👇 আপনার ক্লাউডিনারিতে ছবি আপলোড করে লিংকগুলো নিচের ডানপাশে পেস্ট করুন 👇
-  const categoryImages = {
-    'বাংলাদেশ': 'https://via.placeholder.com/800x450?text=Bangladesh+News', // এখানে আপনার লিংক দিন
-    'আন্তর্জাতিক': 'https://via.placeholder.com/800x450?text=International+News', 
-    'খেলাধুলা': 'https://via.placeholder.com/800x450?text=Sports+News', 
-    'বিনোদন': 'https://via.placeholder.com/800x450?text=Entertainment+News', 
-    'বাণিজ্য': 'https://via.placeholder.com/800x450?text=Business+News', 
-    'আইন-আদালত': 'https://via.placeholder.com/800x450?text=Law+and+Court', 
-    'শিক্ষা': 'https://via.placeholder.com/800x450?text=Education+News', 
-    'প্রযুক্তি': 'https://via.placeholder.com/800x450?text=Technology+News', 
-    'ধর্ম': 'https://via.placeholder.com/800x450?text=Religion+News', 
-    'জীবনযাপন': 'https://via.placeholder.com/800x450?text=Lifestyle+News', 
-    'চাকরি': 'https://via.placeholder.com/800x450?text=Job+News', 
-    'রাজনীতি': 'https://via.placeholder.com/800x450?text=Politics+News', 
-    'হাস্যরস': 'https://via.placeholder.com/800x450?text=Fun+News', 
-    'ফিচার': 'https://via.placeholder.com/800x450?text=Feature+News'
-  };
-
-  // ক্যাটাগরির ছবি না পাওয়া গেলে এই ডিফল্ট ছবিটি ব্যবহৃত হবে
-  const defaultFallbackImage = 'https://via.placeholder.com/800x450?text=Bongiyo+Times';
+  // ছবি এডিটর নিজে বসাবেন, তাই আপাতত বটের ডাটাবেসে একটি ডামি প্লেসহোল্ডার সেভ হবে
+  const defaultPlaceholder = 'https://via.placeholder.com/800x450?text=Please+Upload+an+Image';
 
   const allSources = [
     // --- বাংলাদেশ ---
@@ -184,7 +159,6 @@ async function runBot() {
   let processedArticlesCount = 0;
   const MAX_ARTICLES_PER_RUN = 10; 
   
-  // ডাইনামিক বাংলা তারিখ তৈরি করা হচ্ছে (আজ শব্দটি ছাড়া)
   const todayBn = new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
   for (let source of sourcesToScrape) {
@@ -230,25 +204,6 @@ async function runBot() {
 
         if (fullText.length < 300) continue; 
 
-        // ক্যাটাগরি অনুযায়ী ছবি সেট করা হচ্ছে
-        let targetImageUrl = categoryImages[source.defaultCategory] || defaultFallbackImage;
-        let cloudinaryImageUrl = targetImageUrl;
-
-        // যদি আপনার দেওয়া লিংকটি ক্লাউডিনারির না হয়, কেবল তখনই সেটি আপলোড করবে
-        if (!targetImageUrl.includes('cloudinary.com')) {
-          console.log(`☁️ ক্লাউডিনারিতে ছবি আপলোড হচ্ছে...`);
-          try {
-              const uploadResult = await cloudinary.uploader.upload(targetImageUrl, {
-                  folder: 'bongiyo_times',
-              });
-              cloudinaryImageUrl = uploadResult.secure_url;
-          } catch (imgError) {
-              console.error("❌ ক্লাউডিনারি আপলোড ফেইল করেছে, অরিজিনাল লিংক ব্যবহার করা হচ্ছে।");
-          }
-        } else {
-          console.log(`⚡ ক্লাউডিনারি লিংক পাওয়া গেছে, আপলোড স্কিপ করা হলো।`);
-        }
-
         if (fullText) {
           console.log(`🧠 জেমিনি এপিআই দিয়ে বিশ্লেষণ শুরু হচ্ছে...`);
           
@@ -259,7 +214,7 @@ async function runBot() {
             তুমি একজন টপ প্রফেশনাল এবং বিশ্লেষণধর্মী সাংবাদিক (যেমন- বিবিসি বাংলা বা নেত্র নিউজ)। নিচে একটি খবরের মূল অংশ দেওয়া হলো। তোমার কাজ হলো খবরটিকে সম্পূর্ণ নিজের ভাষায়, বস্তুনিষ্ঠভাবে এবং গভীরভাবে পর্যালোচনা করে নতুনভাবে বিশ্লেষণধর্মী নিউজ লেখা।
             
             শর্তসমূহ:
-            ১. খবরের শিরোনামে কোনোভাবেই মূল পত্রিকার নাম (যেমন- ${source.name}) থাকবে না। একদম ফ্রেশ, ইউনিক, বিশ্লেষণধর্মী শিরোনাম দিবে।
+            ১. খবরের শিরোনামে কোনোভাবেই মূল পত্রিকার নাম (যেমন- ${source.name}) থাকবে আধুনিক। একদম ফ্রেশ, ইউনিক, বিশ্লেষণধর্মী শিরোনাম দিবে।
             ২. খবরের প্রথম প্যারাগ্রাফ ঠিক এভাবে শুরু করতে হবে:
             "${todayBn} তারিখে <a href='${link}' target='_blank' style='color: #0056b3; text-decoration: underline;'>${source.name} এর প্রকাশিত একটি খবরে</a> জানানো হয়েছে যে,..." (এই লাইনটি হুবহু রাখবে। শুরুতে 'আজ' শব্দটি ব্যবহার করবে না)।
             ৩. খবরের মূল তথ্য ঠিক রেখে বিশ্লেষণমূলক অংশ লিখবে। প্রফেশনাল স্পেসিংয়ের জন্য প্রতিটি প্যারাগ্রাফকে অবশ্যই <p style="margin-bottom: 20px; line-height: 1.8;">...</p> ট্যাগের ভেতর রাখবে। 
@@ -268,8 +223,6 @@ async function runBot() {
             ৬. আউটপুটটি শুধুমাত্র JSON ফরম্যাটে দিবে: {"title": "নতুন শিরোনাম", "content": "পুরো খবরের বিস্তারিত HTML টেক্সট"}
             
             মূল খবর:
-
-
             ${fullText}
             `;
 
@@ -290,22 +243,23 @@ async function runBot() {
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             const rewrittenData = JSON.parse(responseText);
 
-            // সুপাবেজে সেভ
+            // সুপাবেজে ড্রাফট হিসেবে সেভ (is_published: false)
             const { error: insertError } = await supabase.from('news').insert([{
               title: rewrittenData.title,
               content: rewrittenData.content,
               snippet: rewrittenData.content.replace(/<[^>]*>?/gm, '').substring(0, 150) + "...", 
-              image_url: cloudinaryImageUrl,
+              image_url: defaultPlaceholder, // আপনি পরে ম্যানুয়ালি ছবি আপলোড করবেন
               source_url: link,
               source_name: 'বঙ্গীয় টাইমস', 
               category: source.defaultCategory,
-              image_source: source.name 
+              image_source: 'বঙ্গীয় টাইমস', // ফিক্সড ক্যাপশন
+              is_published: false // এই লাইনের কারণে নিউজটি হোমপেজে যাবে না, ড্রাফটে থাকবে 
             }]);
             
             if (insertError) {
                 console.error("❌ সুপাবেজ ডাটাবেস এরর:", insertError.message);
             } else {
-                console.log(`✅ সফলভাবে সেভ হয়েছে: ${rewrittenData.title.substring(0, 40)}...`);
+                console.log(`✅ সফলভাবে ড্রাফট হিসেবে সেভ হয়েছে: ${rewrittenData.title.substring(0, 40)}...`);
                 processedArticlesCount++;
             }
             
@@ -320,7 +274,7 @@ async function runBot() {
       console.error(`❌ ${source.name} ক্র্যাশ করেছে:`, err.message);
     }
   }
-  console.log(`\n🎉 বটের কাজ সফলভাবে শেষ! মোট প্রসেস করা নিউজ: ${processedArticlesCount}`);
+  console.log(`\n🎉 বটের কাজ সফলভাবে শেষ! মোট ড্রাফট করা নিউজ: ${processedArticlesCount}`);
 }
 
 runBot();
