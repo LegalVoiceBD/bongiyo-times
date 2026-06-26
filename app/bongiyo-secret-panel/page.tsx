@@ -20,7 +20,7 @@ export default function AdminDashboard() {
   const [category, setCategory] = useState('মতামত');
   const [sourceName, setSourceName] = useState('বঙ্গীয় টাইমস');
   const [imageUrl, setImageUrl] = useState('');
-  const [imageSource, setImageSource] = useState('');
+  const [imageSource, setImageSource] = useState('বঙ্গীয় টাইমস'); // ডিফল্ট ক্যাপশন ফিক্সড করা হলো
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -69,7 +69,7 @@ const handleLogin = async (e: React.FormEvent) => {
   const fetchMyNews = async () => {
     if (!user) return;
     
-    let query = supabase.from('news').select('*').eq('is_custom', true).order('created_at', { ascending: false });
+    let query = supabase.from('news').select('*').order('created_at', { ascending: false });
     
     // যদি ইউজার জার্নালিস্ট হয়, তবে সে শুধু তার নিজের নিউজ দেখতে পারবে। 
     // অ্যাডমিন বা এডিটর হলে সবার নিউজ দেখতে পারবে।
@@ -100,14 +100,16 @@ const handleLogin = async (e: React.FormEvent) => {
     setCategory(newsItem.category);
     setSourceName(newsItem.source_name || '');
     setImageUrl(newsItem.image_url || '');
-    setImageSource(newsItem.image_source || ''); 
+    // যদি ডাটাবেসে ছবির সোর্স না থাকে, তবে বাই ডিফল্ট "বঙ্গীয় টাইমস" দেখাবে
+    setImageSource(newsItem.image_source || 'বঙ্গীয় টাইমস'); 
     setActiveTab('add'); 
     setMessage('');
   };
 
   const resetForm = () => {
     setEditingId(null);
-    setTitle(''); setSnippet(''); setContent(''); setImageUrl(''); setImageSource('');
+    setTitle(''); setSnippet(''); setContent(''); setImageUrl(''); 
+    setImageSource('বঙ্গীয় টাইমস'); // নতুন নিউজ লেখার সময়ও ডিফল্ট থাকবে
     setSourceName(user?.role === 'journalist' ? user.name || 'প্রতিনিধি' : 'বঙ্গীয় টাইমস'); 
     setCategory('মতামত');
     setMessage('');
@@ -134,7 +136,7 @@ const handleLogin = async (e: React.FormEvent) => {
     formData.append('upload_preset', 'bongiyo_unsigned'); 
 
     try {
-      const res = await fetch('https://api.cloudinary.com/v1_1/dfgfvfvmk/image/upload', {
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: 'POST', body: formData,
       });
       const data = await res.json();
