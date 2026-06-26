@@ -12,9 +12,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Draft Mode)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Draft Mode with Rate Limit Handler)...");
 
-  // ছবি এডিটর নিজে বসাবেন, তাই আপাতত বটের ডাটাবেসে একটি ডামি প্লেসহোল্ডার সেভ হবে
   const defaultPlaceholder = 'https://via.placeholder.com/800x450?text=Please+Upload+an+Image';
 
   const allSources = [
@@ -113,7 +112,7 @@ async function runBot() {
     { name: 'Prothom Alo', url: 'https://www.prothomalo.com/lifestyle', domain: 'prothomalo.com', defaultCategory: 'জীবনযাপন' },
     { name: 'BD Pratidin', url: 'https://www.bd-pratidin.com/life', domain: 'bd-pratidin.com', defaultCategory: 'জীবনযাপন' },
     { name: 'Jugantor', url: 'https://www.jugantor.com/lifestyle', domain: 'jugantor.com', defaultCategory: 'জীবনযাপন' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/lifestyle', domain: 'ittefaq.com.bd', defaultCategory: 'জীবনযাপন' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/lifestyle', domain: 'ittefaq.com.bd', defaultCategory: ' जीवनযাপন' },
     { name: 'UNB', url: 'https://unb.com.bd/bangla/category/9/লাইফস্টাইল', domain: 'unb.com.bd', defaultCategory: 'জীবনযাপন' },
     
     // --- চাকরি ---
@@ -205,7 +204,7 @@ async function runBot() {
         if (fullText.length < 300) continue; 
 
         if (fullText) {
-          console.log(`🧠 জেমিনি এপিআই দিয়ে বিশ্লেষণ শুরু হচ্ছে...`);
+          console.log(`🧠 জেমিনি এপিআই দিয়ে विश्लेषण শুরু হচ্ছে...`);
           
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
@@ -214,7 +213,7 @@ async function runBot() {
             তুমি একজন টপ প্রফেশনাল এবং বিশ্লেষণধর্মী সাংবাদিক (যেমন- বিবিসি বাংলা বা নেত্র নিউজ)। নিচে একটি খবরের মূল অংশ দেওয়া হলো। তোমার কাজ হলো খবরটিকে সম্পূর্ণ নিজের ভাষায়, বস্তুনিষ্ঠভাবে এবং গভীরভাবে পর্যালোচনা করে নতুনভাবে বিশ্লেষণধর্মী নিউজ লেখা।
             
             শর্তসমূহ:
-            ১. খবরের শিরোনামে কোনোভাবেই মূল পত্রিকার নাম (যেমন- ${source.name}) থাকবে আধুনিক। একদম ফ্রেশ, ইউনিক, বিশ্লেষণধর্মী শিরোনাম দিবে।
+            ১. খবরের শিরোনামে কোনোভাবেই মূল পত্রিকার নাম (যেমন- ${source.name}) থাকবে না। একদম ফ্রেশ, ইউনিক, বিশ্লেষণধর্মী শিরোনাম দিবে।
             ২. খবরের প্রথম প্যারাগ্রাফ ঠিক এভাবে শুরু করতে হবে:
             "${todayBn} তারিখে <a href='${link}' target='_blank' style='color: #0056b3; text-decoration: underline;'>${source.name} এর প্রকাশিত একটি খবরে</a> জানানো হয়েছে যে,..." (এই লাইনটি হুবহু রাখবে। শুরুতে 'আজ' শব্দটি ব্যবহার করবে না)।
             ৩. খবরের মূল তথ্য ঠিক রেখে বিশ্লেষণমূলক অংশ লিখবে। প্রফেশনাল স্পেসিংয়ের জন্য প্রতিটি প্যারাগ্রাফকে অবশ্যই <p style="margin-bottom: 20px; line-height: 1.8;">...</p> ট্যাগের ভেতর রাখবে। 
@@ -230,8 +229,13 @@ async function runBot() {
             try {
                 result = await model.generateContent(prompt);
             } catch (geminiError) {
-                if (geminiError.message.includes('503')) {
-                    console.log('⏳ সার্ভার ব্যস্ত, ১০ সেকেন্ড পর আবার চেষ্টা করছি...');
+                // এপিআই কোটা বা রেট লিমিট এরর (429) হ্যান্ডলিং লজিক
+                if (geminiError.message.includes('429') || geminiError.message.includes('quota')) {
+                    console.log('⏳ কোটা লিমিট শেষ বা সার্ভার ব্যস্ত, ৬ সেকেন্ড অপেক্ষা করে আবার চেষ্টা করা হচ্ছে...');
+                    await delay(6000);
+                    result = await model.generateContent(prompt);
+                } else if (geminiError.message.includes('503')) {
+                    console.log('⏳ সার্ভার বিজি, ১০ সেকেন্ড পর আবার চেষ্টা করছি...');
                     await delay(10000);
                     result = await model.generateContent(prompt);
                 } else {
@@ -243,17 +247,18 @@ async function runBot() {
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             const rewrittenData = JSON.parse(responseText);
 
-            // সুপাবেজে ড্রাফট হিসেবে সেভ (is_published: false)
+            // সুপাবেজে ড্রাফট হিসেবে সেভ (is_published: false, is_custom: false)
             const { error: insertError } = await supabase.from('news').insert([{
               title: rewrittenData.title,
               content: rewrittenData.content,
               snippet: rewrittenData.content.replace(/<[^>]*>?/gm, '').substring(0, 150) + "...", 
-              image_url: defaultPlaceholder, // আপনি পরে ম্যানুয়ালি ছবি আপলোড করবেন
+              image_url: defaultPlaceholder, 
               source_url: link,
               source_name: 'বঙ্গীয় টাইমস', 
               category: source.defaultCategory,
-              image_source: 'বঙ্গীয় টাইমস', // ফিক্সড ক্যাপশন
-              is_published: false // এই লাইনের কারণে নিউজটি হোমপেজে যাবে না, ড্রাফটে থাকবে 
+              image_source: 'বঙ্গীয় টাইমস', 
+              is_published: false,
+              is_custom: false // বটের নিউজ আইডেন্টিফাই করার জন্য এটি ফলস থাকবে
             }]);
             
             if (insertError) {
@@ -267,6 +272,8 @@ async function runBot() {
 
           } catch (apiError) {
             console.error("❌ জেমিনি বা অন্য এরর:", apiError.message);
+            // কোটা ফুল হয়ে গেলে স্ক্রিপ্ট ক্র্যাশ না করে পরবর্তী সোর্সের জন্য একটু বেশি সময় বিরতি নেবে
+            await delay(5000);
           }
         }
       }
