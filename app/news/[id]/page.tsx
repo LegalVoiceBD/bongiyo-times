@@ -57,7 +57,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
     return <div className="text-center p-20 text-2xl font-bold mt-20">খবরটি পাওয়া যায়নি অথবা মুছে ফেলা হয়েছে।</div>;
   }
 
-  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস"];
+  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্র প্রযুক্তি", "ফিচার", "হাস্যরস"];
   const currentUrl = `https://www.bongiyotimes.com/news/${news.id}`;
   
   const activeCategory = news.category;
@@ -65,9 +65,35 @@ export default async function NewsDetail({ params }: { params: { id: string } })
 
   const cleanImageSource = news.image_source ? news.image_source.replace(/ছবি সংগৃহীত:\s*/g, '').trim() : '';
 
-  // অরিজিনাল পত্রিকার নাম বের করার লজিক (ক্রেডিট লাইনের জন্য)
-  // যদি source_name 'বঙ্গীয় টাইমস' হয়, তবে ডাটাবেসে থাকা image_source থেকে মূল নাম নিবে। 
-  // যদি image_source ও 'বঙ্গীয় টাইমস' হয়, তবে URL থেকে ডোমেইন নেম নিবে।
+  // ইংরেজি নাম থাকলে বাংলায় রূপান্তরের জন্য ডিকশনারি
+  const sourceNameMap: { [key: string]: string } = {
+    'Prothom Alo': 'প্রথম আলো',
+    'Jugantor': 'যুগান্তর',
+    'Ittefaq': 'ইত্তেফাক',
+    'Kaler Kantho': 'কালের কণ্ঠ',
+    'Samakal': 'সমকাল',
+    'BD Pratidin': 'বাংলাদেশ প্রতিদিন',
+    'Nayadiganta': 'নয়া দিগন্ত',
+    'Inqilab': 'ইনকিলাব',
+    'Dhaka Post': 'ঢাকা পোস্ট',
+    'Jagonews24': 'জাগো নিউজ',
+    'BDNews24': 'বিডিনিউজ টোয়েন্টিফোর',
+    'Jamuna TV': 'যমুনা টিভি',
+    'BBC Bangla': 'বিবিসি বাংলা',
+    'TBS News': 'টিবিএস নিউজ',
+    'Bangla Tribune': 'বাংলা ট্রিবিউন',
+    'Somoy TV': 'সময় টিভি',
+    'Kalbela': 'কালবেলা',
+    'Manobkantha': 'মানবকণ্ঠ',
+    'Shomoyer Alo': 'সময়ের আলো',
+    'Amader Shomoy': 'আমাদের সময়',
+    'UNB': 'ইউএনবি',
+    'bd-pratidin.com': 'বাংলাদেশ প্রতিদিন',
+    'bbc.com': 'বিবিসি বাংলা',
+    'prothomalo.com': 'প্রথম আলো',
+    'jugantor.com': 'যুগান্তর'
+  };
+
   let originalSourceName = 'সংশ্লিষ্ট সংবাদমাধ্যম';
   if (news.source_name && news.source_name !== 'বঙ্গীয় টাইমস') {
       originalSourceName = news.source_name;
@@ -81,6 +107,12 @@ export default async function NewsDetail({ params }: { params: { id: string } })
           // ignore
       }
   }
+  
+  const mappedSourceName = sourceNameMap[originalSourceName] || originalSourceName;
+
+  // ডাবল এন্টারকে <br/> এ রূপান্তর করা হলো যাতে প্যারাগ্রাফগুলো সুন্দর দেখায়
+  const formattedContent = news.content ? news.content.replace(/\n/g, '<br />') : '';
+  const formattedSnippet = news.snippet ? news.snippet.replace(/\n/g, '<br />') : '';
 
   return (
     <div className="min-h-screen bg-white text-black tracking-tight">
@@ -94,6 +126,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
       <header className="bg-white">
         <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
           
+          {/* Mobile Date */}
           <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-10px] font-bold">
             {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
           </div>
@@ -224,7 +257,6 @@ export default async function NewsDetail({ params }: { params: { id: string } })
             </div>
             
             <figure className="mb-8">
-               {/* Placehold image check */}
                {news.image_url && !news.image_url.includes('via.placeholder.com') && (
                  <img src={news.image_url} alt={news.title} className="w-full h-auto max-h-[600px] object-cover" />
                )}
@@ -237,9 +269,9 @@ export default async function NewsDetail({ params }: { params: { id: string } })
             
             <div className="text-[20px] md:text-[22px] leading-[1.9] text-[#333333] flex flex-col gap-4">
                {news.content ? (
-                  <div dangerouslySetInnerHTML={{ __html: news.content }} />
+                  <div dangerouslySetInnerHTML={{ __html: formattedContent }} />
                ) : (
-                  <div dangerouslySetInnerHTML={{ __html: news.snippet }} />
+                  <div dangerouslySetInnerHTML={{ __html: formattedSnippet }} />
                )}
                
                {!news.content && (
@@ -249,10 +281,9 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                )}
             </div>
 
-            {/* মডিফাইড অংশ: সুন্দর সফট ব্যাকগ্রাউন্ডে প্রফেশনাল ক্রেডিট */}
             <div className="mt-10 p-4 md:p-5 bg-gradient-to-r from-[#f4f7fc] to-white border-l-[4px] border-[#104f96] rounded-r-md shadow-sm">
                <p className="text-[15px] md:text-[16px] text-gray-700 font-medium">
-                  এই বিশ্লেষণটি <span className="font-bold text-[#104f96]">{originalSourceName}</span>-এর খবরের আলোকে বঙ্গীয় টাইমস কর্তৃক প্রস্তুতকৃত।
+                  এই বিশ্লেষণটি <span className="font-bold text-[#104f96]">{mappedSourceName}</span>-এর খবরের আলোকে বঙ্গীয় টাইমস কর্তৃক প্রস্তুতকৃত।
                </p>
             </div>
 
