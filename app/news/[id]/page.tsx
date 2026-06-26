@@ -63,8 +63,24 @@ export default async function NewsDetail({ params }: { params: { id: string } })
   const activeCategory = news.category;
   const searchQuery = "";
 
-  // ডাবল "ছবি" বা "ছবি সংগৃহীত:" কথাটি রিমুভ করে ক্লিন সোর্স বের করা
   const cleanImageSource = news.image_source ? news.image_source.replace(/ছবি সংগৃহীত:\s*/g, '').trim() : '';
+
+  // অরিজিনাল পত্রিকার নাম বের করার লজিক (ক্রেডিট লাইনের জন্য)
+  // যদি source_name 'বঙ্গীয় টাইমস' হয়, তবে ডাটাবেসে থাকা image_source থেকে মূল নাম নিবে। 
+  // যদি image_source ও 'বঙ্গীয় টাইমস' হয়, তবে URL থেকে ডোমেইন নেম নিবে।
+  let originalSourceName = 'সংশ্লিষ্ট সংবাদমাধ্যম';
+  if (news.source_name && news.source_name !== 'বঙ্গীয় টাইমস') {
+      originalSourceName = news.source_name;
+  } else if (news.image_source && news.image_source !== 'বঙ্গীয় টাইমস') {
+      originalSourceName = news.image_source;
+  } else if (news.source_url) {
+      try {
+          const urlObj = new URL(news.source_url);
+          originalSourceName = urlObj.hostname.replace('www.', '');
+      } catch (e) {
+          // ignore
+      }
+  }
 
   return (
     <div className="min-h-screen bg-white text-black tracking-tight">
@@ -78,7 +94,6 @@ export default async function NewsDetail({ params }: { params: { id: string } })
       <header className="bg-white">
         <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
           
-          {/* Mobile Date */}
           <div className="md:hidden text-center text-[13px] text-gray-500 w-full mb-[-10px] font-bold">
             {new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())}
           </div>
@@ -209,16 +224,18 @@ export default async function NewsDetail({ params }: { params: { id: string } })
             </div>
             
             <figure className="mb-8">
-               <img src={news.image_url} alt={news.title} className="w-full h-auto max-h-[600px] object-cover" />
-               {cleanImageSource && (
+               {/* Placehold image check */}
+               {news.image_url && !news.image_url.includes('via.placeholder.com') && (
+                 <img src={news.image_url} alt={news.title} className="w-full h-auto max-h-[600px] object-cover" />
+               )}
+               {cleanImageSource && cleanImageSource !== 'বঙ্গীয় টাইমস' && (
                   <figcaption className="text-[14px] text-gray-500 mt-3 text-center border-b border-gray-100 pb-5 flex justify-center items-center gap-1">
                      <span className="font-bold">ছবি:</span> {cleanImageSource}
                   </figcaption>
                )}
             </figure>
             
-            {/* মডিফাইড অংশ: HTML ট্যাগ সঠিকভাবে রেন্ডার করার জন্য dangerouslySetInnerHTML ব্যবহার করা হলো */}
-            <div className="text-[20px] md:text-[22px] leading-[1.9] text-[#333333] whitespace-pre-wrap flex flex-col gap-4">
+            <div className="text-[20px] md:text-[22px] leading-[1.9] text-[#333333] flex flex-col gap-4">
                {news.content ? (
                   <div dangerouslySetInnerHTML={{ __html: news.content }} />
                ) : (
@@ -232,14 +249,12 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                )}
             </div>
 
-            {/* সুন্দর সফট ব্যাকগ্রাউন্ডে প্রফেশনাল ক্রেডিট */}
-            {cleanImageSource && (
-               <div className="mt-10 p-4 md:p-5 bg-[#f8fafc] border-l-[4px] border-[#104f96] rounded-r-md">
-                  <p className="text-[15px] md:text-[16px] text-gray-600 italic font-medium">
-                     * এই বিশ্লেষণটি {cleanImageSource} এর খবরের আলোকে বঙ্গীয় টাইমস কর্তৃক প্রস্তুতকৃত।
-                  </p>
-               </div>
-            )}
+            {/* মডিফাইড অংশ: সুন্দর সফট ব্যাকগ্রাউন্ডে প্রফেশনাল ক্রেডিট */}
+            <div className="mt-10 p-4 md:p-5 bg-gradient-to-r from-[#f4f7fc] to-white border-l-[4px] border-[#104f96] rounded-r-md shadow-sm">
+               <p className="text-[15px] md:text-[16px] text-gray-700 font-medium">
+                  এই বিশ্লেষণটি <span className="font-bold text-[#104f96]">{originalSourceName}</span>-এর খবরের আলোকে বঙ্গীয় টাইমস কর্তৃক প্রস্তুতকৃত।
+               </p>
+            </div>
 
             <div className="mt-12 pt-6 border-t border-gray-200">
                <h3 className="text-[17px] font-bold text-gray-800 mb-4 flex items-center gap-2">
