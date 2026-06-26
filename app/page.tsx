@@ -48,10 +48,10 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const headerNews = allNews.slice(0, 3);
   const topHighlightNews = allNews.slice(3, 7); 
   const leadNews = allNews[7];            
-  const underLeadNews = allNews.slice(8, 15); // লিড নিউজের নিচে আরও বেশি নিউজ দিয়ে লেআউট ম্যাচ করা হলো
+  const underLeadNews = allNews.slice(8, 13); // লিড নিউজের নিচে আরও বেশি নিউজ দিয়ে লেআউট ম্যাচ করা হলো
   const middleTopNews = allNews[15];
-  const middleListNews = allNews.slice(16, 27); // মিডল কলামের উচ্চতা ব্যালেন্স করতে নিউজ বাড়ানো হলো
-  const rightSideNews = allNews.slice(27, 32); 
+  const middleListNews = allNews.slice(13, 25); // মিডল কলামের উচ্চতা ব্যালেন্স করতে নিউজ বাড়ানো হলো
+  const rightSideNews = allNews.slice(25, 30); 
   
   // --- Category Data Mapping (Live Fetch) ---
   const fetchDirectCategory = async (catName: string, amt: number) => {
