@@ -30,7 +30,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const startRow = (currentPage - 1) * limitPerPage;
   const endRow = startRow + limitPerPage - 1;
 
-  let query = supabase.from('news').select('*', { count: 'exact' }).order('created_at', { ascending: false });
+  let query = supabase.from('news').select('*', { count: 'exact' }).eq('is_published', true).order('created_at', { ascending: false });
   
   if (searchQuery) {
     query = query.ilike('title', `%${searchQuery}%`).range(startRow, endRow);
@@ -51,11 +51,12 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const leftSideNews = allNews.slice(10, 17);   
   
   // --- Category Data Mapping (Live Fetch) ---
-  const fetchDirectCategory = async (catName: string, amt: number) => {
+ const fetchDirectCategory = async (catName: string, amt: number) => {
     const { data } = await supabase
       .from('news')
       .select('*')
       .eq('category', catName)
+      .eq('is_published', true) // এই ফিল্টারটি ড্রাফট নিউজগুলোকে আটকে দেবে
       .order('created_at', { ascending: false })
       .limit(amt);
     return data || [];
