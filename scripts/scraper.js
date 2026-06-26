@@ -21,15 +21,21 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 async function runBot() {
   console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে...");
 
-  // এখানে default_cover_image যুক্ত করা হয়েছে। আপনি চাইলে আপনার পছন্দমত ওই পত্রিকার প্রচ্ছদের ছবি অন্য কোথাও হোস্ট করে এখানে লিংক দিয়ে দিতে পারেন।
+  // এখানে প্রতিটি সোর্সের জন্য default_image যুক্ত করা হয়েছে। 
+  // কপিরাইট এড়াতে বট এখন আর পত্রিকার অরিজিনাল ছবি নেবে না, বরং এখান থেকে কাস্টম ছবি নেবে।
   const allSources = [
-    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ', default_cover_image: 'https://via.placeholder.com/800x450?text=Prothom+Alo+News' },
-    { name: 'Jugantor', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ', default_cover_image: 'https://via.placeholder.com/800x450?text=Jugantor+News' },
-    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ', default_cover_image: 'https://via.placeholder.com/800x450?text=Ittefaq+News' },
-    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/national', domain: 'kalerkantho.com', defaultCategory: 'বাংলাদেশ', default_cover_image: 'https://via.placeholder.com/800x450?text=Kaler+Kantho' },
-    { name: 'Samakal', url: 'https://samakal.com/bangladesh', domain: 'samakal.com', defaultCategory: 'বাংলাদেশ', default_cover_image: 'https://via.placeholder.com/800x450?text=Samakal+News' },
-    { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক', default_cover_image: 'https://via.placeholder.com/800x450?text=BBC+Bangla' }
-    // বাকি সোর্সগুলো একইভাবে যুক্ত করবেন...
+    { name: 'Jugantor', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ', default_image: 'https://epaper.jugantor.com/storage/2026-06-26/1/1782436103_second-edition_1.jpg' },
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ', default_image: 'https://via.placeholder.com/800x450?text=Prothom+Alo' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ', default_image: 'https://via.placeholder.com/800x450?text=Ittefaq' },
+    { name: 'Kaler Kantho', url: 'https://www.kalerkantho.com/online/national', domain: 'kalerkantho.com', defaultCategory: 'বাংলাদেশ', default_image: 'https://via.placeholder.com/800x450?text=Kaler+Kantho' },
+    { name: 'Samakal', url: 'https://samakal.com/bangladesh', domain: 'samakal.com', defaultCategory: 'বাংলাদেশ', default_image: 'https://via.placeholder.com/800x450?text=Samakal' },
+    { name: 'BBC Bangla', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক', default_image: 'https://via.placeholder.com/800x450?text=BBC+Bangla' },
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/world', domain: 'prothomalo.com', defaultCategory: 'আন্তর্জাতিক', default_image: 'https://via.placeholder.com/800x450?text=Prothom+Alo' },
+    { name: 'Jugantor', url: 'https://www.jugantor.com/sports', domain: 'jugantor.com', defaultCategory: 'খেলাধুলা', default_image: 'https://epaper.jugantor.com/storage/2026-06-26/1/1782436103_second-edition_1.jpg' },
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/sports', domain: 'prothomalo.com', defaultCategory: 'খেলাধুলা', default_image: 'https://via.placeholder.com/800x450?text=Prothom+Alo' },
+    { name: 'Samakal', url: 'https://samakal.com/entertainment', domain: 'samakal.com', defaultCategory: 'বিনোদন', default_image: 'https://via.placeholder.com/800x450?text=Samakal' },
+    { name: 'Ittefaq', url: 'https://www.ittefaq.com.bd/entertainment', domain: 'ittefaq.com.bd', defaultCategory: 'বিনোদন', default_image: 'https://via.placeholder.com/800x450?text=Ittefaq' },
+    { name: 'Prothom Alo', url: 'https://www.prothomalo.com/technology', domain: 'prothomalo.com', defaultCategory: 'প্রযুক্তি', default_image: 'https://via.placeholder.com/800x450?text=Prothom+Alo' }
   ];
 
   function shuffleArray(array) {
@@ -54,6 +60,7 @@ async function runBot() {
   let processedArticlesCount = 0;
   const MAX_ARTICLES_PER_RUN = 10; 
   
+  // ডাইনামিক বাংলা তারিখ তৈরি করা হচ্ছে (আজ শব্দটি ছাড়া)
   const todayBn = new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
   for (let source of sourcesToScrape) {
@@ -99,12 +106,8 @@ async function runBot() {
 
         if (fullText.length < 300) continue; 
 
-        // কপিরাইট এড়াতে আমরা অরিজিনাল ছবির বদলে সোর্সের ডিফল্ট প্রচ্ছদ ব্যবহার করব
-        // আপনি চাইলে original_image_url ব্যবহার করতে পারেন, তবে default_cover_image সবচেয়ে নিরাপদ।
-        let final_image_url = source.default_cover_image; 
-        
-        // যদি একান্তই অরিজিনাল ছবি নিতে চান, তবে নিচের লাইনটি আনকমেন্ট করবেন:
-        // final_image_url = article$('meta[property="og:image"]').attr('content') || source.default_cover_image;
+        // খবরের আসল ছবির বদলে এখন সোর্সের নিজস্ব default_image ব্যবহার করা হবে।
+        let final_image_url = source.default_image;
 
         if (fullText && final_image_url) {
           console.log(`🧠 জেমিনি এপিআই দিয়ে বিশ্লেষণ শুরু হচ্ছে...`);
@@ -112,17 +115,17 @@ async function runBot() {
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
+            // মডিফাইড প্রম্পট - 'আজ' শব্দটি বাদ দেওয়া হয়েছে
             const prompt = `
             তুমি একজন প্রফেশনাল এবং বিশ্লেষণধর্মী সাংবাদিক (যেমন- বিবিসি বাংলা বা নেত্র নিউজ)। নিচে একটি খবরের মূল অংশ দেওয়া হলো। তোমার কাজ হলো খবরটিকে সম্পূর্ণ নিজের ভাষায়, বস্তুনিষ্ঠভাবে এবং গভীরভাবে বিশ্লেষণ করে নতুনভাবে লেখা।
             
             শর্তসমূহ:
             ১. খবরের শিরোনামে কোনোভাবেই মূল পত্রিকার নাম (যেমন- ${source.name}) থাকবে না। একদম ফ্রেশ, ইউনিক, বিশ্লেষণধর্মী শিরোনাম দিবে।
             ২. খবরের প্রথম প্যারাগ্রাফ ঠিক এভাবে শুরু করতে হবে:
-            "আজ ${todayBn} তারিখে <a href='${link}' target='_blank' style='color: #0056b3; text-decoration: underline;'>${source.name} এর প্রকাশিত একটি খবরে</a> জানানো হয়েছে যে,..." (এই লাইনটি হুবহু রাখবে)।
-            ৩. খবরের মূল তথ্য ঠিক রেখে বিশ্লেষণমূলক অংশ লিখবে (প্যারাগ্রাফ ব্রেকের জন্য <p> ট্যাগ ব্যবহার করবে)। 
-            ৪. খবরের একেবারে শেষে কপিরাইট ক্রেডিট দেওয়ার জন্য এই লাইনটি যুক্ত করবে: <p style='font-size: 12px; color: gray;'><strong>ছবি:</strong> সংগৃহীত (${source.name})</p>
-            ৫. পুরো লেখাটি অবশ্যই শুদ্ধ বাংলায় হবে।
-            ৬. আউটপুটটি শুধুমাত্র JSON ফরম্যাটে দিবে: {"title": "নতুন শিরোনাম", "content": "পুরো খবরের বিস্তারিত HTML টেক্সট"}
+            "${todayBn} তারিখে <a href='${link}' target='_blank' style='color: #0056b3; text-decoration: underline;'>${source.name} এর প্রকাশিত একটি খবরে</a> জানানো হয়েছে যে,..." (এই লাইনটি হুবহু রাখবে। শুরুতে 'আজ' শব্দটি ব্যবহার করবে না)।
+            ৩. খবরের মূল তথ্য ঠিক রেখে বিশ্লেষণমূলক অংশ লিখবে। প্রফেশনাল স্পেসিংয়ের জন্য প্রতিটি প্যারাগ্রাফকে অবশ্যই <p style="margin-bottom: 20px; line-height: 1.8;">...</p> ট্যাগের ভেতর রাখবে। 
+            ৪. পুরো লেখাটি অবশ্যই শুদ্ধ বাংলায় হতে হবে এবং খবরের শেষে কোনোভাবেই "ছবি সংগৃহীত" বা এ ধরনের কোনো অতিরিক্ত লাইন যুক্ত করা যাবে না।
+            ৫. আউটপুটটি শুধুমাত্র JSON ফরম্যাটে দিবে: {"title": "নতুন শিরোনাম", "content": "পুরো খবরের বিস্তারিত HTML টেক্সট"}
             
             মূল খবর:
             ${fullText}
@@ -148,12 +151,13 @@ async function runBot() {
             console.log(`☁️ ক্লাউডিনারিতে ছবি আপলোড হচ্ছে...`);
             let cloudinaryImageUrl = final_image_url;
             try {
+                // ডিফল্ট ছবি ক্লাউডিনারিতে আপলোড হচ্ছে
                 const uploadResult = await cloudinary.uploader.upload(final_image_url, {
                     folder: 'bongiyo_times',
                 });
                 cloudinaryImageUrl = uploadResult.secure_url;
             } catch (imgError) {
-                console.error("❌ ক্লাউডিনারি আপলোড ফেইল করেছে, ডিফল্ট ছবি ব্যবহার করা হচ্ছে।");
+                console.error("❌ ক্লাউডিনারি আপলোড ফেইল করেছে, সোর্সের অরিজিনাল ডিফল্ট লিংক ব্যবহার করা হচ্ছে।");
             }
 
             // সুপাবেজে সেভ
