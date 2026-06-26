@@ -44,14 +44,14 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const allNews = newsItems || [];
   const totalPages = count ? Math.ceil(count / limitPerPage) : 1;
 
-  // --- Hero Section Data ---
+  // --- Hero Section Data (Updated Layout Allocations) ---
   const headerNews = allNews.slice(0, 3);
   const topHighlightNews = allNews.slice(3, 7); 
   const leadNews = allNews[7];            
-  const underLeadNews = allNews.slice(8, 10); 
-  const middleTopNews = allNews[10];
-  const middleListNews = allNews.slice(11, 14);
-  const rightSideNews = allNews.slice(14, 19); 
+  const underLeadNews = allNews.slice(8, 15); // লিড নিউজের নিচে আরও বেশি নিউজ দিয়ে লেআউট ম্যাচ করা হলো
+  const middleTopNews = allNews[15];
+  const middleListNews = allNews.slice(16, 27); // মিডল কলামের উচ্চতা ব্যালেন্স করতে নিউজ বাড়ানো হলো
+  const rightSideNews = allNews.slice(27, 32); 
   
   // --- Category Data Mapping (Live Fetch) ---
   const fetchDirectCategory = async (catName: string, amt: number) => {
@@ -87,7 +87,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
     <div className="min-h-screen bg-white text-[#333] tracking-tight">
       
  {/* Header Section */}
-<header className="bg-white">
+ <header className="bg-white">
   <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
     
     {/* Mobile Date */}
@@ -354,12 +354,12 @@ export default async function Home({ searchParams }: { searchParams: { category?
         ) : (
           <>
             {/* --- Top Highlight Section (Under Menu) --- */}
-            <div className="bg-[#f2efe9] py-5 mb-8 border-b border-gray-200">
-              <div className="max-w-[1200px] mx-auto px-4 grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="bg-[#f2efe9] py-6 mb-8 border-b border-gray-200">
+              <div className="max-w-[1200px] mx-auto px-4 grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                 {topHighlightNews.map(news => (
-                  <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block bg-white p-2 rounded-sm shadow-sm hover:shadow-md transition">
-                    <SafeImage src={news.image_url} alt={news.title} className="w-full aspect-video object-cover mb-3 border border-gray-200 rounded-sm" />
-                    <h3 className="font-bold text-[15px] md:text-[16px] text-[#1a1a1a] group-hover:text-[#104f96] leading-snug line-clamp-3">{news.title}</h3>
+                  <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block transition">
+                    <SafeImage src={news.image_url} alt={news.title} className="w-full aspect-video object-cover mb-3 border border-gray-200/50 rounded-sm" />
+                    <h3 className="font-bold text-[16px] md:text-[17px] text-[#1a1a1a] group-hover:text-[#104f96] leading-snug line-clamp-3">{news.title}</h3>
                   </a>
                 ))}
               </div>
@@ -1000,7 +1000,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
              <p className="text-[14px] md:text-[15px] leading-relaxed text-gray-800 font-medium max-w-4xl mx-auto mb-3">
                বাংলাদেশ ও বিশ্বের সকল খবর, ব্রেকিং নিউজ, লাইভ নিউজ, রাজনীতি, বাণিজ্য, খেলা, বিনোদনসহ সকল সর্বশেষ সংবাদ সবার আগে পড়তে ক্লিক করুন বঙ্গীয় টাইমস ডট কম।
              </p>
-             <p className="text-[13px] md:text-[14px] text-gray-500 font-bold">&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
+             <p className="text-[13px] md:text-[14px] text-gray-500 font-bold">&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত。</p>
           </div>
           
         </div>
