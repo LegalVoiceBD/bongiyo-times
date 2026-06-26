@@ -20,7 +20,7 @@ export default function AdminDashboard() {
   const [category, setCategory] = useState('মতামত');
   const [sourceName, setSourceName] = useState('বঙ্গীয় টাইমস');
   const [imageUrl, setImageUrl] = useState('');
-  const [imageSource, setImageSource] = useState('বঙ্গীয় টাইমস'); 
+  const [imageSource, setImageSource] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -30,6 +30,7 @@ export default function AdminDashboard() {
   // Search and Manage States
   const [searchTerm, setSearchTerm] = useState('');
   const [myNews, setMyNews] = useState<any[]>([]);
+  const [statusFilter, setStatusFilter] = useState('all'); // all, published, drafts
 
   // Password Settings States
   const [newPassword, setNewPassword] = useState('');
@@ -68,11 +69,9 @@ const handleLogin = async (e: React.FormEvent) => {
   const fetchMyNews = async () => {
     if (!user) return;
     
-    // কোনো এক্সট্রা ফিল্টার ছাড়াই লেটেস্ট নিউজগুলো কল করা হচ্ছে
+    // কোনো ফিল্টার ছাড়াই সব নিউজ আনা হচ্ছে, ফিল্টারিংটা আমরা নিচে UI তে করব
     let query = supabase.from('news').select('*').order('created_at', { ascending: false });
     
-    // যদি ইউজার জার্নালিস্ট হয়, তবে সে শুধু তার নিজের নিউজ দেখতে পারবে। 
-    // অ্যাডমিন বা এডিটর হলে সকল নিউজ (পাবলিশড, ড্রাফট, অটো, কাস্টম সব) দেখতে পারবে।
     if (user.role === 'journalist') {
       query = query.eq('author_email', user.email);
     }
@@ -100,15 +99,14 @@ const handleLogin = async (e: React.FormEvent) => {
     setCategory(newsItem.category);
     setSourceName(newsItem.source_name || '');
     setImageUrl(newsItem.image_url || '');
-    setImageSource(newsItem.image_source || 'বঙ্গীয় টাইমস'); 
+    setImageSource(newsItem.image_source || ''); 
     setActiveTab('add'); 
     setMessage('');
   };
 
   const resetForm = () => {
     setEditingId(null);
-    setTitle(''); setSnippet(''); setContent(''); setImageUrl(''); 
-    setImageSource('বঙ্গীয় টাইমস'); 
+    setTitle(''); setSnippet(''); setContent(''); setImageUrl(''); setImageSource('');
     setSourceName(user?.role === 'journalist' ? user.name || 'প্রতিনিধি' : 'বঙ্গীয় টাইমস'); 
     setCategory('মতামত');
     setMessage('');
@@ -181,7 +179,6 @@ const handleLogin = async (e: React.FormEvent) => {
         setMessage('এরর: ' + error.message);
       } else {
         setMessage('✅ সফলভাবে আপডেট হয়েছে!');
-        fetchMyNews(); // লিস্ট আপডেট করার জন্য কল করা হলো
         resetForm(); 
       }
     } else {
@@ -196,7 +193,6 @@ const handleLogin = async (e: React.FormEvent) => {
       } else if (data && data.length > 0) {
         await supabase.from('news').update({ source_url: `/news/${data[0].id}` }).eq('id', data[0].id);
         setMessage(isPublished ? '✅ সফলভাবে পাবলিশ হয়েছে!' : '✅ এডিটরের কাছে সফলভাবে পাঠানো হয়েছে!');
-        fetchMyNews();
         resetForm();
       }
     }
@@ -205,10 +201,13 @@ const handleLogin = async (e: React.FormEvent) => {
   const handlePublishToggle = async (newsItem: any) => {
     if (user.role !== 'admin' && user.role !== 'editor') return;
     
-    const confirmMsg = newsItem.is_published ? 'খবরটি আনপাবলিশ (ড্রাফট) করতে চান?' : 'খবরটি সবার জন্য পাবলিশ করতে চান?';
+    // পুরোনো নিউজের জন্য সেফটি চেক
+    const currentStatus = newsItem.is_published === false ? false : true;
+    
+    const confirmMsg = currentStatus ? 'খবরটি আনপাবলিশ (ড্রাফট) করতে চান?' : 'খবরটি সবার জন্য পাবলিশ করতে চান?';
     if (!confirm(confirmMsg)) return;
 
-    const { error } = await supabase.from('news').update({ is_published: !newsItem.is_published }).eq('id', newsItem.id);
+    const { error } = await supabase.from('news').update({ is_published: !currentStatus }).eq('id', newsItem.id);
     if (!error) fetchMyNews();
   };
 
@@ -227,10 +226,21 @@ const handleLogin = async (e: React.FormEvent) => {
     }
   };
 
-  const filteredNews = myNews.filter(news => 
-     news.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-     news.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // নিউজের সাব-ট্যাব এবং সার্চ ফিল্টারিং লজিক
+  const filteredNews = myNews.filter(news => {
+     const matchesSearch = news.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           news.category.toLowerCase().includes(searchTerm.toLowerCase());
+     
+     // যদি ডাটাবেসে is_published ফলস থাকে তবেই ড্রাফট, না হলে পুরোনো সব নিউজ পাবলিশড
+     const isPub = news.is_published === false ? false : true;
+
+     if (!matchesSearch) return false;
+     
+     if (statusFilter === 'published') return isPub;
+     if (statusFilter === 'drafts') return !isPub;
+     
+     return true; // statusFilter === 'all'
+  });
 
   if (!user) {
     return (
@@ -261,7 +271,7 @@ const handleLogin = async (e: React.FormEvent) => {
            <button onClick={() => { localStorage.removeItem('bongiyo_admin'); window.location.reload(); }} className="bg-gray-200 px-4 py-2 rounded text-sm font-bold text-gray-700 hover:bg-red-50 hover:text-red-700 transition">লগআউট</button>
         </div>
 
-        {/* Tab Buttons */}
+        {/* Tab Buttons - Mobile Friendly Wrap */}
         <div className="flex flex-wrap gap-2 md:gap-4 mb-6 justify-center sm:justify-start">
            <button onClick={() => { setActiveTab('add'); resetForm(); }} className={`px-4 md:px-6 py-2 text-sm md:text-base font-bold rounded transition ${activeTab==='add' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
               {editingId ? 'খবর এডিট' : 'নতুন খবর'}
@@ -319,18 +329,28 @@ const handleLogin = async (e: React.FormEvent) => {
 
         {activeTab === 'manage' && (
           <div className="space-y-4">
+             {/* সাব-ফিল্টার ট্যাব শুরু */}
+             <div className="flex flex-wrap gap-2 md:gap-4 mb-4 border-b border-gray-200 pb-4">
+                <button onClick={() => setStatusFilter('all')} className={`px-4 py-1.5 text-xs md:text-sm font-bold rounded-full transition ${statusFilter === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>সব খবর</button>
+                <button onClick={() => setStatusFilter('published')} className={`px-4 py-1.5 text-xs md:text-sm font-bold rounded-full transition ${statusFilter === 'published' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-800 hover:bg-green-200'}`}>পাবলিশড নিউজ</button>
+                <button onClick={() => setStatusFilter('drafts')} className={`px-4 py-1.5 text-xs md:text-sm font-bold rounded-full transition ${statusFilter === 'drafts' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-800 hover:bg-orange-200'}`}>ড্রাফট / পেন্ডিং</button>
+             </div>
+             
              <div className="mb-4">
                 <input type="text" placeholder="শিরোনাম বা ক্যাটাগরি দিয়ে খুঁজুন..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full border-2 border-red-700 p-2 md:p-3 rounded text-sm md:text-base font-bold focus:outline-none bg-red-50/30" />
              </div>
              {filteredNews.length === 0 ? <p className="text-center text-gray-500 py-10 font-bold">কোনো খবর পাওয়া যায়নি।</p> : null}
              
              <div className="flex flex-col gap-3 md:gap-4">
-               {filteredNews.map(news => (
-                  <div key={news.id} className={`flex flex-col lg:flex-row justify-between lg:items-center border p-3 md:p-4 rounded gap-3 md:gap-4 hover:shadow-sm transition ${!news.is_published ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50'}`}>
+               {filteredNews.map(news => {
+                  const isPub = news.is_published === false ? false : true;
+                  
+                  return (
+                  <div key={news.id} className={`flex flex-col lg:flex-row justify-between lg:items-center border p-3 md:p-4 rounded gap-3 md:gap-4 hover:shadow-sm transition ${!isPub ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50'}`}>
                      <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-[10px] md:text-xs font-bold px-2 py-0.5 rounded text-white ${news.is_published ? 'bg-green-600' : 'bg-orange-500'}`}>
-                            {news.is_published ? 'পাবলিশড' : 'পেন্ডিং / ড্রাফট'}
+                          <span className={`text-[10px] md:text-xs font-bold px-2 py-0.5 rounded text-white ${isPub ? 'bg-green-600' : 'bg-orange-500'}`}>
+                            {isPub ? 'পাবলিশড' : 'পেন্ডিং / ড্রাফট'}
                           </span>
                           <span className="text-[10px] md:text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded">{news.category}</span>
                         </div>
@@ -343,20 +363,21 @@ const handleLogin = async (e: React.FormEvent) => {
                         </p>
                      </div>
                      <div className="flex flex-wrap gap-2 shrink-0">
-                        <a href={`/news/${news.id}`} target="_blank" className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs md:text-sm font-bold shadow text-center flex-1 sm:flex-none">দেখুন</a>
-                        
+                        {isPub && (
+                          <a href={news.source_url} target="_blank" className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs md:text-sm font-bold shadow text-center flex-1 sm:flex-none">দেখুন</a>
+                        )}
                         <button onClick={() => handleEditClick(news)} className="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs md:text-sm font-bold shadow text-center flex-1 sm:flex-none">এডিট</button>
                         
                         {(user.role === 'admin' || user.role === 'editor') && (
-                          <button onClick={() => handlePublishToggle(news)} className={`${news.is_published ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'} text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs md:text-sm font-bold shadow text-center flex-1 sm:flex-none`}>
-                            {news.is_published ? 'ড্রাফট করুন' : 'পাবলিশ করুন'}
+                          <button onClick={() => handlePublishToggle(news)} className={`${isPub ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'} text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs md:text-sm font-bold shadow text-center flex-1 sm:flex-none`}>
+                            {isPub ? 'ড্রাফট করুন' : 'পাবলিশ করুন'}
                           </button>
                         )}
                         
                         <button onClick={() => handleDelete(news.id)} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs md:text-sm font-bold shadow text-center flex-1 sm:flex-none">ডিলিট</button>
                      </div>
                   </div>
-               ))}
+               )})}
              </div>
           </div>
         )}
