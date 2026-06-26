@@ -20,7 +20,7 @@ export default function AdminDashboard() {
   const [category, setCategory] = useState('মতামত');
   const [sourceName, setSourceName] = useState('বঙ্গীয় টাইমস');
   const [imageUrl, setImageUrl] = useState('');
-  const [imageSource, setImageSource] = useState('বঙ্গীয় টাইমস'); // ডিফল্ট ক্যাপশন ফিক্সড করা হলো
+  const [imageSource, setImageSource] = useState('বঙ্গীয় টাইমস'); 
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -45,7 +45,6 @@ export default function AdminDashboard() {
 const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // সরাসরি টেবিল খোঁজার বদলে আমাদের তৈরি করা সিকিউর ফাংশন (RPC) কল করা হচ্ছে
     const { data, error } = await supabase.rpc('admin_login', { 
         p_email: email, 
         p_password: password 
@@ -69,12 +68,16 @@ const handleLogin = async (e: React.FormEvent) => {
   const fetchMyNews = async () => {
     if (!user) return;
     
+    // ফিক্সড কন্ডিশন: এখানে বটের অটো নিউজ ও ম্যানুয়াল নিউজের একটা মিশ্র ফিল্টার সেট করা হলো
+    // যাতে অ্যাডমিন তার প্যানেল থেকে তৈরি করা কাস্টম নিউজ এবং বটের আনা ড্রাফট দুইটাই সুন্দরভাবে হ্যান্ডেল করতে পারে
     let query = supabase.from('news').select('*').order('created_at', { ascending: false });
     
-    // যদি ইউজার জার্নালিস্ট হয়, তবে সে শুধু তার নিজের নিউজ দেখতে পারবে। 
-    // অ্যাডমিন বা এডিটর হলে সবার নিউজ দেখতে পারবে।
+    // যদি ইউজার জার্নালিস্ট হয়, তবে সে শুধু তার নিজের নিউজ দেখতে পারবে।
     if (user.role === 'journalist') {
       query = query.eq('author_email', user.email);
+    } else {
+      // অ্যাডমিন বা এডিটরের ক্ষেত্রে যেন বটের ড্রাফট নিউজ বা তাদের নিজস্ব কাস্টম নিউজ দেখায় তা সুনির্দিষ্ট করা হলো
+      query = query.or(`is_custom.eq.true,is_published.eq.false`);
     }
     
     const { data } = await query;
@@ -100,7 +103,6 @@ const handleLogin = async (e: React.FormEvent) => {
     setCategory(newsItem.category);
     setSourceName(newsItem.source_name || '');
     setImageUrl(newsItem.image_url || '');
-    // যদি ডাটাবেসে ছবির সোর্স না থাকে, তবে বাই ডিফল্ট "বঙ্গীয় টাইমস" দেখাবে
     setImageSource(newsItem.image_source || 'বঙ্গীয় টাইমস'); 
     setActiveTab('add'); 
     setMessage('');
@@ -109,7 +111,7 @@ const handleLogin = async (e: React.FormEvent) => {
   const resetForm = () => {
     setEditingId(null);
     setTitle(''); setSnippet(''); setContent(''); setImageUrl(''); 
-    setImageSource('বঙ্গীয় টাইমস'); // নতুন নিউজ লেখার সময়ও ডিফল্ট থাকবে
+    setImageSource('বঙ্গীয় টাইমস'); 
     setSourceName(user?.role === 'journalist' ? user.name || 'প্রতিনিধি' : 'বঙ্গীয় টাইমস'); 
     setCategory('মতামত');
     setMessage('');
@@ -159,7 +161,6 @@ const handleLogin = async (e: React.FormEvent) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // জার্নালিস্ট হলে নিউজ বাই ডিফল্ট ড্রাফট/আনপাবলিশড থাকবে
     const isPublished = user?.role === 'admin' || user?.role === 'editor' ? true : false;
     
     setMessage(editingId ? 'আপডেট হচ্ছে...' : (isPublished ? 'পাবলিশ হচ্ছে...' : 'এডিটরের কাছে পাঠানো হচ্ছে...'));
@@ -183,6 +184,7 @@ const handleLogin = async (e: React.FormEvent) => {
         setMessage('এরর: ' + error.message);
       } else {
         setMessage('✅ সফলভাবে আপডেট হয়েছে!');
+        fetchMyNews(); // লিস্ট আপডেট করার জন্য কল করা হলো
         resetForm(); 
       }
     } else {
@@ -197,6 +199,7 @@ const handleLogin = async (e: React.FormEvent) => {
       } else if (data && data.length > 0) {
         await supabase.from('news').update({ source_url: `/news/${data[0].id}` }).eq('id', data[0].id);
         setMessage(isPublished ? '✅ সফলভাবে পাবলিশ হয়েছে!' : '✅ এডিটরের কাছে সফলভাবে পাঠানো হয়েছে!');
+        fetchMyNews();
         resetForm();
       }
     }
@@ -261,7 +264,7 @@ const handleLogin = async (e: React.FormEvent) => {
            <button onClick={() => { localStorage.removeItem('bongiyo_admin'); window.location.reload(); }} className="bg-gray-200 px-4 py-2 rounded text-sm font-bold text-gray-700 hover:bg-red-50 hover:text-red-700 transition">লগআউট</button>
         </div>
 
-        {/* Tab Buttons - Mobile Friendly Wrap */}
+        {/* Tab Buttons */}
         <div className="flex flex-wrap gap-2 md:gap-4 mb-6 justify-center sm:justify-start">
            <button onClick={() => { setActiveTab('add'); resetForm(); }} className={`px-4 md:px-6 py-2 text-sm md:text-base font-bold rounded transition ${activeTab==='add' ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
               {editingId ? 'খবর এডিট' : 'নতুন খবর'}
@@ -343,9 +346,9 @@ const handleLogin = async (e: React.FormEvent) => {
                         </p>
                      </div>
                      <div className="flex flex-wrap gap-2 shrink-0">
-                        {news.is_published && (
-                          <a href={news.source_url} target="_blank" className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs md:text-sm font-bold shadow text-center flex-1 sm:flex-none">দেখুন</a>
-                        )}
+                        {/* মডিফাইড বাটন লজিক: খবর অলরেডি পাবলিশড বা আনপাবলিশড যাই হোক না কেন লাইভ লিংক দেখার ব্যবস্থা */}
+                        <a href={`/news/${news.id}`} target="_blank" className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs md:text-sm font-bold shadow text-center flex-1 sm:flex-none">দেখুন</a>
+                        
                         <button onClick={() => handleEditClick(news)} className="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs md:text-sm font-bold shadow text-center flex-1 sm:flex-none">এডিট</button>
                         
                         {(user.role === 'admin' || user.role === 'editor') && (
