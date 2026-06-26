@@ -68,16 +68,13 @@ const handleLogin = async (e: React.FormEvent) => {
   const fetchMyNews = async () => {
     if (!user) return;
     
-    // ফিক্সড কন্ডিশন: এখানে বটের অটো নিউজ ও ম্যানুয়াল নিউজের একটা মিশ্র ফিল্টার সেট করা হলো
-    // যাতে অ্যাডমিন তার প্যানেল থেকে তৈরি করা কাস্টম নিউজ এবং বটের আনা ড্রাফট দুইটাই সুন্দরভাবে হ্যান্ডেল করতে পারে
+    // কোনো এক্সট্রা ফিল্টার ছাড়াই লেটেস্ট নিউজগুলো কল করা হচ্ছে
     let query = supabase.from('news').select('*').order('created_at', { ascending: false });
     
-    // যদি ইউজার জার্নালিস্ট হয়, তবে সে শুধু তার নিজের নিউজ দেখতে পারবে।
+    // যদি ইউজার জার্নালিস্ট হয়, তবে সে শুধু তার নিজের নিউজ দেখতে পারবে। 
+    // অ্যাডমিন বা এডিটর হলে সকল নিউজ (পাবলিশড, ড্রাফট, অটো, কাস্টম সব) দেখতে পারবে।
     if (user.role === 'journalist') {
       query = query.eq('author_email', user.email);
-    } else {
-      // অ্যাডমিন বা এডিটরের ক্ষেত্রে যেন বটের ড্রাফট নিউজ বা তাদের নিজস্ব কাস্টম নিউজ দেখায় তা সুনির্দিষ্ট করা হলো
-      query = query.or(`is_custom.eq.true,is_published.eq.false`);
     }
     
     const { data } = await query;
@@ -346,7 +343,6 @@ const handleLogin = async (e: React.FormEvent) => {
                         </p>
                      </div>
                      <div className="flex flex-wrap gap-2 shrink-0">
-                        {/* মডিফাইড বাটন লজিক: খবর অলরেডি পাবলিশড বা আনপাবলিশড যাই হোক না কেন লাইভ লিংক দেখার ব্যবস্থা */}
                         <a href={`/news/${news.id}`} target="_blank" className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs md:text-sm font-bold shadow text-center flex-1 sm:flex-none">দেখুন</a>
                         
                         <button onClick={() => handleEditClick(news)} className="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs md:text-sm font-bold shadow text-center flex-1 sm:flex-none">এডিট</button>
