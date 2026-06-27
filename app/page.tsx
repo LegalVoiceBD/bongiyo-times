@@ -44,14 +44,31 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const allNews = newsItems || [];
   const totalPages = count ? Math.ceil(count / limitPerPage) : 1;
 
-  // --- Hero Section Data (Updated Layout Allocations) ---
-  const headerNews = allNews.slice(0, 3);
-  const topHighlightNews = allNews.slice(3, 7); 
-  const leadNews = allNews[7];            
-  const underLeadNews = allNews.slice(8, 13); // লিড নিউজের নিচে আরও বেশি নিউজ দিয়ে লেআউট ম্যাচ করা হলো
-  const middleTopNews = allNews[13];
-  const middleListNews = allNews.slice(13, 23); // মিডল কলামের উচ্চতা ব্যালেন্স করতে নিউজ বাড়ানো হলো
-  const rightSideNews = allNews.slice(23, 28); 
+ 
+ // --- Hero Section Data (Updated Layout Allocations) ---
+  let remainingNews = [...allNews];
+  const headerNews = remainingNews.splice(0, 3);
+  const topHighlightNews = remainingNews.splice(0, 4); 
+
+  // লিড নিউজের জন্য নির্দিষ্ট ক্যাটাগরি ফিল্টার (বাংলাদেশ, রাজনীতি, আন্তর্জাতিক)
+  const leadAllowedCategories = ['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক'];
+  const leadIndex = remainingNews.findIndex(n => 
+    n.category && leadAllowedCategories.some(cat => n.category.includes(cat))
+  );
+
+  let leadNews = null;
+  if (leadIndex !== -1) {
+    // নির্দিষ্ট ক্যাটাগরি পেলে সেটি লিড নিউজ হিসেবে সেট হবে
+    leadNews = remainingNews.splice(leadIndex, 1)[0];
+  } else {
+    // যদি ওই ৩টি ক্যাটাগরির কোনো নিউজ না থাকে, তবে ডিফল্ট প্রথমটি নিবে
+    leadNews = remainingNews.length > 0 ? remainingNews.shift() : null;
+  }
+
+  const underLeadNews = remainingNews.splice(0, 5); // লিড নিউজের নিচের নিউজ
+  const middleTopNews = remainingNews.length > 0 ? remainingNews.shift() : null;
+  const middleListNews = remainingNews.splice(0, 10); // মিডল কলাম
+  const rightSideNews = remainingNews.splice(0, 5); // ডানপাশের কলাম
   
   // --- Category Data Mapping (Live Fetch) ---
 const fetchDirectCategory = async (catName: string, amt: number) => {
