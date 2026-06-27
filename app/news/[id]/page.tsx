@@ -308,9 +308,9 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                   </a>
                </div>
             </div>
-         </article>
+       </article>
 
-         <aside className="lg:col-span-4 lg:pl-4">
+         <aside className="lg:col-span-4 lg:pl-4 sticky top-20 self-start pb-10">
             <div className="w-full min-h-[300px] bg-gray-50 border border-gray-200 flex flex-col items-center justify-center mb-10 text-gray-400 font-bold">
                <span className="text-xs mb-2">বিজ্ঞাপন</span>
             </div>
