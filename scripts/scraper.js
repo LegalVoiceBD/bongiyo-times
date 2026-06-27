@@ -14,7 +14,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 async function runBot() {
   console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Draft Mode with Rate Limit Handler)...");
 
-  const defaultPlaceholder = 'https://via.placeholder.com/800x450?text=Please+Upload+an+Image';
+  const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
   // বাংলা নাম (bnName) যুক্ত করা হয়েছে
   const allSources = [
@@ -222,6 +222,7 @@ async function runBot() {
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             const rewrittenData = JSON.parse(responseText);
 
+           // অটো নিউজ সরাসরি পাবলিশ হবে এবং ডিফল্ট ছবি ও ক্যাপশন বসবে
             const { error: insertError } = await supabase.from('news').insert([{
               title: rewrittenData.title,
               content: rewrittenData.content,
@@ -230,11 +231,10 @@ async function runBot() {
               source_url: link,
               source_name: 'বঙ্গীয় টাইমস', 
               category: source.defaultCategory,
-              image_source: source.bnName, // এখানে বাংলা নাম সেভ হবে
-              is_published: false,
+              image_source: 'বঙ্গীয় টাইমস', // <--- ক্যাপশনে বঙ্গীয় টাইমস সেট করা হলো
+              is_published: true, // <--- এটি true করার ফলে সরাসরি পাবলিশ হয়ে যাবে
               is_custom: false 
             }]);
-            
             if (insertError) {
                 console.error("❌ সুপাবেজ ডাটাবেস এরর:", insertError.message);
             } else {
