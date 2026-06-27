@@ -57,15 +57,18 @@ export default async function NewsDetail({ params }: { params: { id: string } })
     return <div className="text-center p-20 text-2xl font-bold mt-20">খবরটি পাওয়া যায়নি অথবা মুছে ফেলা হয়েছে।</div>;
   }
 
-  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্র প্রযুক্তি", "ফিচার", "হাস্যরস"];
+  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস"];
   const currentUrl = `https://www.bongiyotimes.com/news/${news.id}`;
   
   const activeCategory = news.category;
   const searchQuery = "";
 
+  // একাধিক ক্যাটাগরি আলাদা করার লজিক
+  const categoryArray = news.category ? news.category.split(',').map((c: string) => c.trim()) : [];
+  const primaryCategory = categoryArray[0] || 'সর্বশেষ';
   const cleanImageSource = news.image_source ? news.image_source.replace(/ছবি সংগৃহীত:\s*/g, '').trim() : '';
 
-  // ইংরেজি নাম থাকলে বাংলায় রূপান্তরের জন্য ডিকশনারি
+  // ইংরেজি নাম থাকলে বাংলায় রূপান্তরের জন্য ডিকশনারি
   const sourceNameMap: { [key: string]: string } = {
     'Prothom Alo': 'প্রথম আলো',
     'Jugantor': 'যুগান্তর',
@@ -170,7 +173,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
              {headerNews.map((news, index) => (
                 <a href={`/news/${news.id}`} target="_blank" rel="noreferrer" key={index} className="flex gap-3 px-4 w-[250px] group">
                    <div className="flex-1">
-                      <p className="text-xs text-red-600 mb-1">■ {news.category}</p>
+                      <p className="text-xs text-red-600 mb-1">■ {primaryCategory}</p>
                       <h3 className="text-[15px] leading-tight font-semibold group-hover:text-blue-600 line-clamp-2">{news.title}</h3>
                    </div>
                    <img src={news.image_url} alt={news.title} className="w-16 h-16 object-cover border border-gray-100" />
@@ -188,7 +191,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                    <a 
                      key={index} 
                      href={`/?category=${cat}`} 
-                     className={`hover:text-[#104f96] whitespace-nowrap shrink-0 ${typeof activeCategory !== 'undefined' && activeCategory === cat ? 'text-[#104f96] border-b-[3px] border-[#104f96] h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}
+                     className={`hover:text-[#104f96] whitespace-nowrap shrink-0 ${typeof activeCategory !== 'undefined' && categoryArray.includes(cat) ? 'text-[#104f96] border-b-[3px] border-[#104f96] h-12 flex items-center' : 'h-12 flex items-center transition-colors'}`}
                    >
                       {cat}
                    </a>
@@ -221,7 +224,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
       <div className="max-w-[1200px] mx-auto px-4 py-4 text-[15px] font-bold text-gray-500 flex gap-2 items-center">
          <a href="/" className="hover:text-[#104f96]">প্রচ্ছদ</a> 
          <span className="text-gray-400">❯</span>
-         <a href={`/?category=${news.category}`} className="hover:text-[#104f96] text-black">{news.category}</a>
+         <a href={`/?category=${primaryCategory}`} className="hover:text-[#104f96] text-black">{primaryCategory}</a>
       </div>
 
       <main className="max-w-[1200px] mx-auto px-4 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-10">
@@ -267,7 +270,8 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                )}
             </figure>
             
-            <div className="text-[20px] md:text-[22px] leading-[1.9] text-[#333333] flex flex-col gap-4">
+            {/* জাস্টিফাই মোড যুক্ত করা হলো: text-justify */}
+            <div className="text-[20px] md:text-[22px] leading-[1.9] text-[#333333] text-justify flex flex-col gap-4">
                {news.content ? (
                   <div dangerouslySetInnerHTML={{ __html: formattedContent }} />
                ) : (
@@ -275,7 +279,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                )}
                
                {!news.content && (
-                  <p className="mt-8 font-bold text-[#104f96]">
+                  <p className="mt-8 font-bold text-[#104f96] text-left">
                      <a href={news.source_url} target="_blank" className="hover:underline" rel="noreferrer">বিস্তারিত পড়তে মূল লিংকে ক্লিক করুন ❯</a>
                   </p>
                )}
@@ -293,14 +297,14 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                   বিষয়:
                </h3>
                <div className="flex flex-wrap gap-2.5">
-                  <a href={`/?category=${news.category}`} className="bg-[#f4f7fc] hover:bg-red-50 text-[#104f96] hover:text-red-700 border border-transparent hover:border-red-200 px-4 py-2 rounded text-[15px] font-bold transition">
-                     {news.category}
-                  </a>
+                  {/* লুপ চালিয়ে একাধিক ক্যাটাগরি দেখানো হলো */}
+                  {categoryArray.map((cat: string, index: number) => (
+                      <a key={index} href={`/?category=${cat}`} className="bg-[#f4f7fc] hover:bg-red-50 text-[#104f96] hover:text-red-700 border border-transparent hover:border-red-200 px-4 py-2 rounded text-[15px] font-bold transition">
+                         {cat}
+                      </a>
+                  ))}
                   <a href="/" className="bg-[#f4f7fc] hover:bg-red-50 text-[#104f96] hover:text-red-700 border border-transparent hover:border-red-200 px-4 py-2 rounded text-[15px] font-bold transition">
                      বঙ্গীয় টাইমস
-                  </a>
-                  <a href="/" className="bg-[#f4f7fc] hover:bg-red-50 text-[#104f96] hover:text-red-700 border border-transparent hover:border-red-200 px-4 py-2 rounded text-[15px] font-bold transition">
-                     সর্বশেষ খবর
                   </a>
                </div>
             </div>
@@ -357,7 +361,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
           </div>
 
           <div className="border-t border-gray-300 pt-5">
-             <p className="text-[13px] md:text-[15px] leading-relaxed text-gray-800 font-medium max-w-4xl mx-auto mb-3">
+             <p className="text-[14px] md:text-[15px] leading-relaxed text-gray-800 font-medium max-w-4xl mx-auto mb-3">
                বাংলাদেশ ও বিশ্বের সকল খবর, ব্রেকিং নিউজ, লাইভ নিউজ, রাজনীতি, বাণিজ্য, খেলা, বিনোদনসহ সকল সর্বশেষ সংবাদ সবার আগে পড়তে ক্লিক করুন বঙ্গীয় টাইমস ডট কম।
              </p>
              <p className="text-[13px] md:text-[14px] text-gray-500 font-bold">&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
