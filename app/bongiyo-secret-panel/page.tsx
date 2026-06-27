@@ -93,6 +93,7 @@ const handleLogin = async (e: React.FormEvent) => {
   const handleDelete = async (id: number) => {
     if (confirm('আপনি কি নিশ্চিত যে খবরটি ডিলিট করতে চান?')) {
       await supabase.from('news').delete().eq('id', id);
+      await fetch('/api/revalidate');
       fetchMyNews();
     }
   };
