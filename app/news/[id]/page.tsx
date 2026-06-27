@@ -66,7 +66,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
   // একাধিক ক্যাটাগরি আলাদা করার লজিক
   const categoryArray = news.category ? news.category.split(',').map((c: string) => c.trim()) : [];
   const primaryCategory = categoryArray[0] || 'সর্বশেষ';
-  const cleanImageSource = news.image_source ? news.image_source.replace(/ছবি সংগৃহীত:\s*/g, '').trim() : '';
+  const cleanImageSource = news.image_source ? news.image_source.replace(/ছবি সংগৃহীত:\s*/g, '').trim() : 'বঙ্গীয় টাইমস';
 
   // ইংরেজি নাম থাকলে বাংলায় রূপান্তরের জন্য ডিকশনারি
   const sourceNameMap: { [key: string]: string } = {
@@ -263,7 +263,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                {news.image_url && !news.image_url.includes('via.placeholder.com') && (
                  <img src={news.image_url} alt={news.title} className="w-full h-auto max-h-[600px] object-cover" />
                )}
-               {cleanImageSource && cleanImageSource !== 'বঙ্গীয় টাইমস' && (
+               {cleanImageSource && (
                   <figcaption className="text-[14px] text-gray-500 mt-3 text-center border-b border-gray-100 pb-5 flex justify-center items-center gap-1">
                      <span className="font-bold">ছবি:</span> {cleanImageSource}
                   </figcaption>
