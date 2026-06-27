@@ -44,8 +44,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const allNews = newsItems || [];
   const totalPages = count ? Math.ceil(count / limitPerPage) : 1;
 
- 
- // --- Hero Section Data (Updated Layout Allocations) ---
+  // --- Hero Section Data (Updated Layout Allocations) ---
   let remainingNews = [...allNews];
   const headerNews = remainingNews.splice(0, 3);
   const topHighlightNews = remainingNews.splice(0, 4); 
@@ -75,7 +74,7 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
     const { data } = await supabase
       .from('news')
       .select('*')
-      .ilike('category', `%${catName}%`) // <--- এখানে পরিবর্তন করা হয়েছে
+      .ilike('category', `%${catName}%`) // <--- এখানে পরিবর্তন করা হয়েছে
       .eq('is_published', true)
       .order('created_at', { ascending: false })
       .limit(amt);
@@ -96,8 +95,10 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
   const featureNews = await fetchDirectCategory('ফিচার', 4); 
   const hasyroshNews = await fetchDirectCategory('হাস্যরস', 4);
   const religionNews = await fetchDirectCategory('ধর্ম', 8);
+  const legalAdviceNews = await fetchDirectCategory('আইনি পরামর্শ', 7);
+  const healthNews = await fetchDirectCategory('স্বাস্থ্য', 7);
 
-  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস"];
+  const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস", "আইনি পরামর্শ", "স্বাস্থ্য"];
 
   return (
     <div className="min-h-screen bg-white text-[#333] tracking-tight">
@@ -984,6 +985,107 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                )}
             </div>
 
+            {/* আইনি পরামর্শ ও স্বাস্থ্য */}
+            <div className="max-w-[1200px] mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 mb-8 border-b border-gray-300 pb-8">
+               {/* আইনি পরামর্শ */}
+               <div className="bg-[#f4f6fb] p-4 sm:p-5 border-t-[4px] border-[#4c71a3] rounded-sm min-h-[250px]">
+                  <div className="mb-5 border-b border-[#c8d4e6] pb-2">
+                     <a href="/?category=আইনি পরামর্শ" className="text-[20px] font-bold text-[#355580] hover:text-[#1d3557] tracking-tight">আইনি পরামর্শ <span className="text-[#4c71a3] ml-1">❯</span></a>
+                  </div>
+                  {legalAdviceNews.length === 0 ? (
+                     <div className="text-gray-400 text-center py-6">খবর আপডেট হচ্ছে...</div>
+                  ) : (
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
+                        <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#c8d4e6] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
+                           {legalAdviceNews[0] && (
+                              <a href={`/news/${legalAdviceNews[0].id}`} target="_blank" className="group block mb-4">
+                                 <SafeImage src={legalAdviceNews[0].image_url} alt={legalAdviceNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#355580] leading-snug">{legalAdviceNews[0].title}</h3>
+                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(legalAdviceNews[0].created_at)}</p>
+                              </a>
+                           )}
+                           <div className="mt-auto space-y-4 pt-3 border-t border-[#c8d4e6]">
+                              {legalAdviceNews[1] && (
+                                 <a href={`/news/${legalAdviceNews[1].id}`} target="_blank" className="group block">
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#355580] leading-snug">
+                                       <span className="text-[#4c71a3] mr-1">■</span> {legalAdviceNews[1].title}
+                                    </h3>
+                                 </a>
+                              )}
+                              {legalAdviceNews[2] && (
+                                 <a href={`/news/${legalAdviceNews[2].id}`} target="_blank" className="group block">
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#355580] leading-snug">
+                                       <span className="text-[#4c71a3] mr-1">■</span> {legalAdviceNews[2].title}
+                                    </h3>
+                                 </a>
+                              )}
+                           </div>
+                        </div>
+                        <div className="flex flex-col gap-4 divide-y divide-[#c8d4e6]">
+                           {legalAdviceNews.slice(3, 7).map((news, idx) => (
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                                 <div className="flex-1">
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#355580] leading-snug">{news.title}</h3>
+                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatDateTime(news.created_at)}</p>
+                                 </div>
+                                 <SafeImage src={news.image_url} alt={news.title} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                              </a>
+                           ))}
+                        </div>
+                     </div>
+                  )}
+               </div>
+
+               {/* স্বাস্থ্য */}
+               <div className="bg-[#f0fbf7] p-4 sm:p-5 border-t-[4px] border-[#3cb395] rounded-sm min-h-[250px]">
+                  <div className="mb-5 border-b border-[#bce8db] pb-2">
+                     <a href="/?category=স্বাস্থ্য" className="text-[20px] font-bold text-[#258c73] hover:text-[#165c4b] tracking-tight">স্বাস্থ্য <span className="text-[#3cb395] ml-1">❯</span></a>
+                  </div>
+                  {healthNews.length === 0 ? (
+                     <div className="text-gray-400 text-center py-6">খবর আপডেট হচ্ছে...</div>
+                  ) : (
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
+                        <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#bce8db] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
+                           {healthNews[0] && (
+                              <a href={`/news/${healthNews[0].id}`} target="_blank" className="group block mb-4">
+                                 <SafeImage src={healthNews[0].image_url} alt={healthNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#258c73] leading-snug">{healthNews[0].title}</h3>
+                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(healthNews[0].created_at)}</p>
+                              </a>
+                           )}
+                           <div className="mt-auto space-y-4 pt-3 border-t border-[#bce8db]">
+                              {healthNews[1] && (
+                                 <a href={`/news/${healthNews[1].id}`} target="_blank" className="group block">
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#258c73] leading-snug">
+                                       <span className="text-[#3cb395] mr-1">■</span> {healthNews[1].title}
+                                    </h3>
+                                 </a>
+                              )}
+                              {healthNews[2] && (
+                                 <a href={`/news/${healthNews[2].id}`} target="_blank" className="group block">
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#258c73] leading-snug">
+                                       <span className="text-[#3cb395] mr-1">■</span> {healthNews[2].title}
+                                    </h3>
+                                 </a>
+                              )}
+                           </div>
+                        </div>
+                        <div className="flex flex-col gap-4 divide-y divide-[#bce8db]">
+                           {healthNews.slice(3, 7).map((news, idx) => (
+                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                                 <div className="flex-1">
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#258c73] leading-snug">{news.title}</h3>
+                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatDateTime(news.created_at)}</p>
+                                 </div>
+                                 <SafeImage src={news.image_url} alt={news.title} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                              </a>
+                           ))}
+                        </div>
+                     </div>
+                  )}
+               </div>
+            </div>
+
           </>
         )}
       </main>
@@ -1016,7 +1118,7 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
              <p className="text-[14px] md:text-[15px] leading-relaxed text-gray-800 font-medium max-w-4xl mx-auto mb-3">
                বাংলাদেশ ও বিশ্বের সকল খবর, ব্রেকিং নিউজ, লাইভ নিউজ, রাজনীতি, বাণিজ্য, খেলা, বিনোদনসহ সকল সর্বশেষ সংবাদ সবার আগে পড়তে ক্লিক করুন বঙ্গীয় টাইমস ডট কম।
              </p>
-             <p className="text-[13px] md:text-[14px] text-gray-500 font-bold">&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত。</p>
+             <p className="text-[13px] md:text-[14px] text-gray-500 font-bold">&copy; {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
           </div>
           
         </div>
