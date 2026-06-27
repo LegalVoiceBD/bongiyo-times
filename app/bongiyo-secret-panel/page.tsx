@@ -17,7 +17,10 @@ export default function AdminDashboard() {
   const [title, setTitle] = useState('');
   const [snippet, setSnippet] = useState('');
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState('মতামত');
+  
+  // একাধিক ক্যাটাগরি সিলেক্ট করার জন্য State
+  const [selectedCats, setSelectedCats] = useState<string[]>(['বাংলাদেশ']);
+  
   const [sourceName, setSourceName] = useState('বঙ্গীয় টাইমস');
   const [imageUrl, setImageUrl] = useState('');
   const [imageSource, setImageSource] = useState('বঙ্গীয় টাইমস'); 
@@ -99,7 +102,10 @@ const handleLogin = async (e: React.FormEvent) => {
     setTitle(newsItem.title);
     setSnippet(newsItem.snippet || '');
     setContent(newsItem.content || '');
-    setCategory(newsItem.category);
+    
+    // ডাটাবেস থেকে একাধিক ক্যাটাগরি এনে চেকবক্সে সেট করা
+    setSelectedCats(newsItem.category ? newsItem.category.split(',').map((c: string) => c.trim()) : ['বাংলাদেশ']);
+    
     setSourceName(newsItem.source_name || '');
     setImageUrl(newsItem.image_url || '');
     setImageSource(newsItem.image_source || 'বঙ্গীয় টাইমস'); 
@@ -112,7 +118,7 @@ const handleLogin = async (e: React.FormEvent) => {
     setTitle(''); setSnippet(''); setContent(''); setImageUrl(''); 
     setImageSource('বঙ্গীয় টাইমস'); 
     setSourceName(user?.role === 'journalist' ? user.name || 'প্রতিনিধি' : 'বঙ্গীয় টাইমস'); 
-    setCategory('মতামত');
+    setSelectedCats(['বাংলাদেশ']);
     setMessage('');
   };
 
@@ -137,7 +143,6 @@ const handleLogin = async (e: React.FormEvent) => {
     formData.append('upload_preset', 'bongiyo_unsigned'); 
 
     try {
-      // ক্লাউডিনারি ইউআরএল ফিক্স করা হয়েছে: আপনার অরিজিনাল ক্লাউড নেম (dfgfvfvmk) সরাসরি দেওয়া হলো
       const res = await fetch(`https://api.cloudinary.com/v1_1/dfgfvfvmk/image/upload`, {
         method: 'POST', body: formData,
       });
@@ -160,6 +165,11 @@ const handleLogin = async (e: React.FormEvent) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (selectedCats.length === 0) {
+       alert('দয়া করে অন্তত একটি ক্যাটাগরি সিলেক্ট করুন!');
+       return;
+    }
     
     const isPublished = user?.role === 'admin' || user?.role === 'editor' ? true : false;
     
@@ -169,7 +179,7 @@ const handleLogin = async (e: React.FormEvent) => {
       title, 
       snippet, 
       content, 
-      category, 
+      category: selectedCats.join(', '), // কমা দিয়ে একাধিক ক্যাটাগরি সেভ করা হলো
       source_name: sourceName, 
       image_url: imageUrl, 
       image_source: imageSource,
@@ -235,7 +245,7 @@ const handleLogin = async (e: React.FormEvent) => {
   // নিউজের সাব-ট্যাব এবং সার্চ ফিল্টারিং লজিক
   const filteredNews = myNews.filter(news => {
      const matchesSearch = news.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           news.category.toLowerCase().includes(searchTerm.toLowerCase());
+                           (news.category && news.category.toLowerCase().includes(searchTerm.toLowerCase()));
      
      const isPub = news.is_published === false ? false : true;
 
@@ -293,12 +303,33 @@ const handleLogin = async (e: React.FormEvent) => {
             <textarea required placeholder="হোমপেজের জন্য সারাংশ স্নিপেট" value={snippet} onChange={(e) => setSnippet(e.target.value)} className="w-full border p-3 rounded h-16 focus:outline-none focus:ring-2 focus:ring-red-200 text-sm md:text-base" />
             <textarea required placeholder="খবরের পুরো বিস্তারিত বিবরণ (এখানে প্যারাগ্রাফ করে লিখুন)" value={content} onChange={(e) => setContent(e.target.value)} className="w-full border p-3 rounded h-40 md:h-52 focus:outline-none focus:ring-2 focus:ring-red-200" />
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="border p-3 rounded font-bold bg-white w-full text-sm md:text-base">
-                {allCategories.map((cat, idx) => <option key={idx}>{cat}</option>)}
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input required type="text" placeholder="সূত্র/প্রতিনিধির নাম" value={sourceName} onChange={(e) => setSourceName(e.target.value)} className="border p-3 rounded font-bold w-full text-sm md:text-base" />
               <input type="text" placeholder="ছবির ক্যাপশন/উৎস (যেমন: সংগৃহীত)" value={imageSource} onChange={(e) => setImageSource(e.target.value)} className="border p-3 rounded font-bold w-full text-sm md:text-base" />
+            </div>
+
+            {/* চেকবক্স স্টাইলে একাধিক ক্যাটাগরি সিস্টেম */}
+            <div className="border p-4 rounded bg-white mt-4 border-gray-300">
+              <label className="block text-sm font-bold text-gray-700 mb-3 border-b pb-2">ক্যাটাগরি নির্বাচন করুন (একাধিক সিলেক্ট করা যাবে)</label>
+              <div className="flex flex-wrap gap-4">
+                {allCategories.map(cat => (
+                  <label key={cat} className="flex items-center gap-2 cursor-pointer hover:text-[#104f96]">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedCats.includes(cat)}
+                      onChange={() => {
+                        if (selectedCats.includes(cat)) {
+                          setSelectedCats(selectedCats.filter(c => c !== cat));
+                        } else {
+                          setSelectedCats([...selectedCats, cat]);
+                        }
+                      }}
+                      className="w-4 h-4 cursor-pointer accent-[#104f96]"
+                    />
+                    <span className="font-bold text-gray-800 text-sm md:text-base">{cat}</span>
+                  </label>
+                ))}
+              </div>
             </div>
             
             <div className="border border-gray-300 p-4 md:p-6 rounded bg-gray-50 text-center">
@@ -352,11 +383,14 @@ const handleLogin = async (e: React.FormEvent) => {
                   return (
                   <div key={news.id} className={`flex flex-col lg:flex-row justify-between lg:items-center border p-3 md:p-4 rounded gap-3 md:gap-4 hover:shadow-sm transition ${!isPub ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50'}`}>
                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
                           <span className={`text-[10px] md:text-xs font-bold px-2 py-0.5 rounded text-white ${isPub ? 'bg-green-600' : 'bg-orange-500'}`}>
                             {isPub ? 'পাবলিশড' : 'পেন্ডিং / ড্রাফট'}
                           </span>
-                          <span className="text-[10px] md:text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded">{news.category}</span>
+                          {/* এখানে একাধিক ক্যাটাগরিগুলো ছোট ট্যাগ হিসেবে দেখানো হলো */}
+                          {news.category && news.category.split(',').map((cat: string, i: number) => (
+                             <span key={i} className="text-[10px] md:text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded">{cat.trim()}</span>
+                          ))}
                         </div>
                         <h3 className="font-bold text-base md:text-lg text-gray-800 leading-snug mb-1">{news.title}</h3>
                         <p className="text-xs text-gray-500 font-medium">
