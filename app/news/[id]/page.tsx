@@ -287,11 +287,13 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                )}
             </div>
 
-            <div className="mt-10 p-4 md:p-5 bg-gradient-to-r from-[#f4f7fc] to-white border-l-[4px] border-[#104f96] rounded-r-md shadow-sm">
-               <p className="text-[15px] md:text-[16px] text-gray-700 font-medium">
-                  এই বিশ্লেষণটি <span className="font-bold text-[#104f96]">{mappedSourceName}</span>-এর খবরের আলোকে বঙ্গীয় টাইমস কর্তৃক প্রস্তুতকৃত।
-               </p>
-            </div>
+            {!news.is_custom && (
+  <div className="mt-10 p-4 md:p-5 bg-gradient-to-r from-[#f4f7fc] to-white border-l-[4px] border-[#104f96] rounded-r-md shadow-sm">
+     <p className="text-[15px] md:text-[16px] text-gray-700 font-medium">
+        এই বিশ্লেষণটি <span className="font-bold text-[#104f96]">{mappedSourceName}</span>-এর খবরের আলোকে বঙ্গীয় টাইমস কর্তৃক প্রস্তুতকৃত।
+     </p>
+  </div>
+)}
 
             <div className="mt-12 pt-6 border-t border-gray-200">
                <h3 className="text-[17px] font-bold text-gray-800 mb-4 flex items-center gap-2">
