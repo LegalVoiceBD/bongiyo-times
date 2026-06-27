@@ -93,7 +93,7 @@ const handleLogin = async (e: React.FormEvent) => {
   const handleDelete = async (id: number) => {
     if (confirm('আপনি কি নিশ্চিত যে খবরটি ডিলিট করতে চান?')) {
       await supabase.from('news').delete().eq('id', id);
-      await fetch('/api/revalidate');
+      await fetch('/api/revalidate'); // <-- Cache Clear API Call
       fetchMyNews();
     }
   };
@@ -180,7 +180,7 @@ const handleLogin = async (e: React.FormEvent) => {
       title, 
       snippet, 
       content, 
-      category: selectedCats.join(', '), // কমা দিয়ে একাধিক ক্যাটাগরি সেভ করা হলো
+      category: selectedCats.join(', '), // কমা দিয়ে একাধিক ক্যাটাগরি সেভ করা হলো
       source_name: sourceName, 
       image_url: imageUrl, 
       image_source: imageSource,
@@ -195,6 +195,7 @@ const handleLogin = async (e: React.FormEvent) => {
         setMessage('এরর: ' + error.message);
       } else {
         setMessage('✅ সফলভাবে আপডেট হয়েছে!');
+        await fetch('/api/revalidate'); // <-- Cache Clear API Call
         fetchMyNews(); 
         resetForm(); 
       }
@@ -210,6 +211,7 @@ const handleLogin = async (e: React.FormEvent) => {
       } else if (data && data.length > 0) {
         await supabase.from('news').update({ source_url: `/news/${data[0].id}` }).eq('id', data[0].id);
         setMessage(isPublished ? '✅ সফলভাবে পাবলিশ হয়েছে!' : '✅ এডিটরের কাছে সফলভাবে পাঠানো হয়েছে!');
+        await fetch('/api/revalidate'); // <-- Cache Clear API Call
         fetchMyNews();
         resetForm();
       }
@@ -225,7 +227,10 @@ const handleLogin = async (e: React.FormEvent) => {
     if (!confirm(confirmMsg)) return;
 
     const { error } = await supabase.from('news').update({ is_published: !currentStatus }).eq('id', newsItem.id);
-    if (!error) fetchMyNews();
+    if (!error) {
+      await fetch('/api/revalidate'); // <-- Cache Clear API Call
+      fetchMyNews();
+    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -375,7 +380,7 @@ const handleLogin = async (e: React.FormEvent) => {
              <div className="mb-4">
                 <input type="text" placeholder="শিরোনাম বা ক্যাটাগরি দিয়ে খুঁজুন..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full border-2 border-red-700 p-2 md:p-3 rounded text-sm md:text-base font-bold focus:outline-none bg-red-50/30" />
              </div>
-             {filteredNews.length === 0 ? <p className="text-center text-gray-500 py-10 font-bold">কোনো খবর পাওয়া যায়নি।</p> : null}
+             {filteredNews.length === 0 ? <p className="text-center text-gray-500 py-10 font-bold">কোনো খবর পাওয়া যায়নি。</p> : null}
              
              <div className="flex flex-col gap-3 md:gap-4">
                {filteredNews.map(news => {
