@@ -12,11 +12,10 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Draft Mode with Rate Limit Handler)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Smart Mode with Deduplication)...");
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
-  // বাংলা নাম (bnName) যুক্ত করা হয়েছে
   const allSources = [
     { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ' },
@@ -123,16 +122,19 @@ async function runBot() {
 
   function isStrictlyValid(url) {
     const lowerUrl = url.toLowerCase();
-    const generalBadWords = ['tag', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo'];
+    // আরও কিছু ব্যাড-ওয়ার্ড যুক্ত করা হলো যাতে ক্যাটাগরি বা জগাখিচুড়ি পেজ না আসে
+    const generalBadWords = ['tag', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo', 'category', 'privacy', 'terms', 'about', 'contact'];
     if (generalBadWords.some(word => lowerUrl.includes(`/${word}`))) return false;
-    if (!/\d/.test(lowerUrl)) return false;
+    if (!/\d/.test(lowerUrl)) return false; // লিংকটিতে অবশ্যই কোনো সংখ্যা (ID/Date) থাকতে হবে
     return true;
   }
 
   let processedArticlesCount = 0;
   const MAX_ARTICLES_PER_RUN = 10; 
   
-  const todayBn = new Intl.DateTimeFormat('bn-BD', { timeZone: 'Asia/Dhaka', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+  // ডুপ্লিকেট নিউজ ঠেকানোর জন্য ডাটাবেস থেকে সর্বশেষ ৩০টি নিউজের শিরোনাম সংগ্রহ করা হচ্ছে
+  const { data: recentNewsRecords } = await supabase.from('news').select('title').order('created_at', { ascending: false }).limit(30);
+  const recentTitles = recentNewsRecords ? recentNewsRecords.map(n => n.title).join(' | ') : '';
 
   for (let source of sourcesToScrape) {
     if (processedArticlesCount >= MAX_ARTICLES_PER_RUN) break;
@@ -183,20 +185,28 @@ async function runBot() {
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
-            // প্রম্পট আপডেট: অ্যাডমিন প্যানেল ক্লিন রাখতে কোনো HTML ট্যাগ ব্যবহার করা হয়নি
+            // মডিফাইড প্রম্পট: ডুপ্লিকেট, জগাখিচুড়ি চেক এবং ডাইনামিক ইন্ট্রোর নির্দেশ
             const prompt = `
-           তুমি একজন টপ প্রফেশনাল এবং বিশ্লেষণধর্মী সাংবাদিক (যেমন- বিবিসি বাংলা বা নেত্র নিউজ)। নিচে একটি খবরের মূল অংশ দেওয়া হলো। তোমার কাজ হলো খবরটিকে সম্পূর্ণ নিজের ভাষায়, বস্তুনিষ্ঠভাবে এবং গভীরভাবে পর্যালোচনা করে নতুনভাবে বিশ্লেষণধর্মী নিউজ লেখা।
-            
-            শর্তসমূহ:
-            ১. খবরের শিরোনামে কোনোভাবেই মূল পত্রিকার নাম (যেমন- ${source.bnName}) থাকবে না। একদম ফ্রেশ, ইউনিক, বিশ্লেষণধর্মী শিরোনাম দিবে।
-            ২. খবরের প্রথম প্যারাগ্রাফ ঠিক এই ফরম্যাটে শুরু করতে হবে: 
-            "[খবরের মূল বিষয় বা থিম] নিয়ে <a href='${link}' target='_blank' style='color: #0056b3; text-decoration: underline;'>${source.bnName} পত্রিকা একটি খবর প্রকাশ করেছে</a>। এই খবরে বলা হয়েছে,..." 
-            (নির্দেশনা: এখানে [খবরের মূল বিষয় বা থিম] এর জায়গায় তুমি নিজে খবরটি পড়ে মূল বিষয়টি একটি ছোট বাক্যাংশে বসাবে। যেমন- "অন্তর্বর্তী সরকারের আমলে সেবা খাতে দুর্নীতি", "কোটা সংস্কার আন্দোলন", "নতুন পে-স্কেল" ইত্যাদি। এই ফরম্যাটটি হুবহু অনুসরণ করবে।)
-            ৩. খবরের মূল তথ্য ঠিক রেখে বিশ্লেষণমূলক অংশ লিখবে। কোনো <p>, <div> বা HTML ট্যাগ ব্যবহার করবে না (শুধুমাত্র উপরের লিংকের <a> ট্যাগটি ছাড়া)। প্রতিটি প্যারাগ্রাফ আলাদা করতে ডাবল এন্টার (\\n\\n) ব্যবহার করবে। 
-            ৪. পুরো লেখাটি অবশ্যই শুদ্ধ বাংলায় হতে হবে এবং খবরের শেষে কোনোভাবেই "ছবি সংগৃহীত" বা এ ধরনের কোনো অতিরিক্ত লাইন যুক্ত করা যাবে না।
-            ৫. কোন ভুল বা কাল্পনিক তথ্য দেয়া যাবে না। শুধু নিউজটাকে নিরপেক্ষভাবে বিশ্লেষণ করবে। এমনভাবে নিজস্ব ভাষায় লিখবে যাতে কপি মনে না হয়।  
-            ৬. আউটপুটটি শুধুমাত্র JSON ফরম্যাটে দিবে: {"title": "নতুন শিরোনাম", "content": "পুরো খবরের বিস্তারিত ক্লিন টেক্সট"}
-            
+            তুমি একজন টপ প্রফেশনাল এবং বিশ্লেষণধর্মী সাংবাদিক (যেমন- বিবিসি বাংলা বা নেত্র নিউজ)। নিচে একটি ওয়েবপেজ থেকে সংগৃহীত টেক্সট দেওয়া হলো।
+
+            তোমার প্রথম কাজ হলো টেক্সটটি যাচাই করা:
+            ১. এটি কি কোনো প্রাইভেসি পলিসি, নিয়মকানুন, মতামত বা ওয়েবসাইটের সাধারণ লেখা?
+            ২. এটি কি একাধিক ভিন্ন ভিন্ন খবরের শিরোনামের জগাখিচুড়ি?
+            ৩. এই খবরটি কি নিচে দেওয়া সাম্প্রতিক খবরের তালিকার কোনো খবরের সাথে হুবহু মিলে যায় (অর্থাৎ একই মূল ঘটনার খবর)?
+            সাম্প্রতিক খবরের তালিকা: [${recentTitles}]
+
+            যদি উপরের কোনো একটি প্রশ্নের উত্তর 'হ্যাঁ' হয়, অথবা এটি যদি প্রকৃত কোনো একক সংবাদ না হয়, তবে আউটপুটে শুধু লিখবে: {"skip": true}
+
+            আর যদি এটি একটি মানসম্মত, একক এবং নতুন সংবাদ হয়, তবে নিচের শর্ত মেনে একটি বিশ্লেষণধর্মী নিউজ তৈরি করো:
+            ১. শিরোনামটি একদম ফ্রেশ, ইউনিক এবং আকর্ষণীয় হতে হবে। মূল পত্রিকার নাম শিরোনামে থাকবে না।
+            ২. খবরের বিশ্লেষণের শুরুটা রোবোটিক বা একই রকম করবে না। একেক নিউজে একেকভাবে বৈচিত্র্য এনে শুরু করবে। তবে প্রথম প্যারার যেকোনো জায়গায় মূল সোর্সের ক্রেডিট হিসেবে এই HTML ট্যাগটি অবশ্যই বাক্যের সাথে মিলিয়ে স্বাভাবিকভাবে ব্যবহার করবে: <a href='${link}' target='_blank' style='color: #0056b3; text-decoration: underline;'>${source.bnName}</a> (যেমন: '${source.bnName} এর একটি প্রতিবেদনে উঠে এসেছে...', '${source.bnName} এর তথ্যমতে...', ইত্যাদি)।
+            ৩. খবরের মূল তথ্য ঠিক রেখে বিশ্লেষণমূলক অংশ লিখবে। কোনো HTML ট্যাগ (উপরের <a> ট্যাগটি ছাড়া) ব্যবহার করবে না। প্রতিটি প্যারাগ্রাফ আলাদা করতে ডাবল এন্টার (\\n\\n) ব্যবহার করবে।
+            ৪. কোন কাল্পনিক বা ভুল তথ্য দেয়া যাবে না। শেষে "ছবি সংগৃহীত" লেখা যাবে না।
+            ৫. আউটপুটটি শুধুমাত্র JSON ফরম্যাটে দিবে।
+
+            আউটপুট ফরম্যাট:
+            {"skip": false, "title": "নতুন শিরোনাম", "content": "পুরো খবরের বিস্তারিত টেক্সট"}
+
             মূল খবর:
             ${fullText}
             `;
@@ -222,7 +232,12 @@ async function runBot() {
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             const rewrittenData = JSON.parse(responseText);
 
-           // অটো নিউজ সরাসরি পাবলিশ হবে এবং ডিফল্ট ছবি ও ক্যাপশন বসবে
+            // যদি জেমিনি মনে করে এটি ডুপ্লিকেট বা জগাখিচুড়ি, তবে স্কিপ করবে
+            if (rewrittenData.skip) {
+                console.log(`⏭️ খবরটি স্কিপ করা হয়েছে (Duplicate, Opinion, or Non-news).`);
+                continue; 
+            }
+
             const { error: insertError } = await supabase.from('news').insert([{
               title: rewrittenData.title,
               content: rewrittenData.content,
@@ -231,14 +246,15 @@ async function runBot() {
               source_url: link,
               source_name: 'বঙ্গীয় টাইমস', 
               category: source.defaultCategory,
-              image_source: 'বঙ্গীয় টাইমস', // <--- ক্যাপশনে বঙ্গীয় টাইমস সেট করা হলো
-              is_published: true, // <--- এটি true করার ফলে সরাসরি পাবলিশ হয়ে যাবে
+              image_source: 'বঙ্গীয় টাইমস', 
+              is_published: true, 
               is_custom: false 
             }]);
+            
             if (insertError) {
                 console.error("❌ সুপাবেজ ডাটাবেস এরর:", insertError.message);
             } else {
-                console.log(`✅ সফলভাবে ড্রাফট হিসেবে সেভ হয়েছে: ${rewrittenData.title.substring(0, 40)}...`);
+                console.log(`✅ সফলভাবে পাবলিশ হয়েছে: ${rewrittenData.title.substring(0, 40)}...`);
                 processedArticlesCount++;
             }
             
@@ -254,7 +270,7 @@ async function runBot() {
       console.error(`❌ ${source.bnName} ক্র্যাশ করেছে:`, err.message);
     }
   }
-  console.log(`\n🎉 বটের কাজ সফলভাবে শেষ! মোট ড্রাফট করা নিউজ: ${processedArticlesCount}`);
+  console.log(`\n🎉 বটের কাজ সফলভাবে শেষ! মোট পাবলিশ করা নিউজ: ${processedArticlesCount}`);
 }
 
 runBot();
