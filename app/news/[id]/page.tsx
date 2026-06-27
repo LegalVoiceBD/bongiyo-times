@@ -66,7 +66,10 @@ export default async function NewsDetail({ params }: { params: { id: string } })
   // একাধিক ক্যাটাগরি আলাদা করার লজিক
   const categoryArray = news.category ? news.category.split(',').map((c: string) => c.trim()) : [];
   const primaryCategory = categoryArray[0] || 'সর্বশেষ';
-  const cleanImageSource = news.image_source ? news.image_source.replace(/ছবি সংগৃহীত:\s*/g, '').trim() : 'বঙ্গীয় টাইমস';
+  
+  // ছবির ডিফল্ট ক্যাপশন হিসেবে 'এআই জেনারেটেড' সেট করার লজিক
+  const rawImageSource = news.image_source ? news.image_source.replace(/ছবি সংগৃহীত:\s*/g, '').trim() : '';
+  const cleanImageSource = (rawImageSource === 'বঙ্গীয় টাইমস' || !rawImageSource) ? 'এআই জেনারেটেড' : rawImageSource;
 
   // ইংরেজি নাম থাকলে বাংলায় রূপান্তরের জন্য ডিকশনারি
   const sourceNameMap: { [key: string]: string } = {
@@ -97,12 +100,11 @@ export default async function NewsDetail({ params }: { params: { id: string } })
     'jugantor.com': 'যুগান্তর'
   };
 
+  // মূল পত্রিকার নাম বের করার সঠিক লজিক (ইমেজ সোর্স সম্পূর্ণ ইগনোর করা হয়েছে)
   let originalSourceName = 'সংশ্লিষ্ট সংবাদমাধ্যম';
   if (news.source_name && news.source_name !== 'বঙ্গীয় টাইমস') {
       originalSourceName = news.source_name;
-  } else if (news.image_source && news.image_source !== 'বঙ্গীয় টাইমস') {
-      originalSourceName = news.image_source;
-  } else if (news.source_url) {
+  } else if (news.source_url && news.source_url !== '#' && news.source_url.startsWith('http')) {
       try {
           const urlObj = new URL(news.source_url);
           originalSourceName = urlObj.hostname.replace('www.', '');
@@ -297,7 +299,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
                   বিষয়:
                </h3>
                <div className="flex flex-wrap gap-2.5">
-                  {/* লুপ চালিয়ে একাধিক ক্যাটাগরি দেখানো হলো */}
+                  {/* লুপ চালিয়ে একাধিক ক্যাটাগরি দেখানো হলো */}
                   {categoryArray.map((cat: string, index: number) => (
                       <a key={index} href={`/?category=${cat}`} className="bg-[#f4f7fc] hover:bg-red-50 text-[#104f96] hover:text-red-700 border border-transparent hover:border-red-200 px-4 py-2 rounded text-[15px] font-bold transition">
                          {cat}
