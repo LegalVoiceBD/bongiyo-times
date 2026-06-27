@@ -35,7 +35,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   if (searchQuery) {
     query = query.ilike('title', `%${searchQuery}%`).range(startRow, endRow);
   } else if (activeCategory) {
-    query = query.eq('category', activeCategory).range(startRow, endRow);
+    query = query.ilike('category', `%${activeCategory}%`).range(startRow, endRow);
   } else {
     query = query.limit(150); 
   }
@@ -54,17 +54,16 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const rightSideNews = allNews.slice(23, 28); 
   
   // --- Category Data Mapping (Live Fetch) ---
-  const fetchDirectCategory = async (catName: string, amt: number) => {
+const fetchDirectCategory = async (catName: string, amt: number) => {
     const { data } = await supabase
       .from('news')
       .select('*')
-      .eq('category', catName)
+      .ilike('category', `%${catName}%`) // <--- এখানে পরিবর্তন করা হয়েছে
       .eq('is_published', true)
       .order('created_at', { ascending: false })
       .limit(amt);
     return data || [];
   };
-
   const bdNews = await fetchDirectCategory('বাংলাদেশ', 8);
   const intlNews = await fetchDirectCategory('আন্তর্জাতিক', 7);
   const politicsNews = await fetchDirectCategory('রাজনীতি', 7); 
