@@ -39,7 +39,7 @@ export default function AdminDashboard() {
   const [newPassword, setNewPassword] = useState('');
   const [passMessage, setPassMessage] = useState('');
 
-  const allCategories = ["বাংলাদেশ", "আন্তর্জাতিক", "রাজনীতি", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ধর্ম", "ফিচার", "হাস্যরস"];
+  const allCategories = ["বাংলাদেশ", "আন্তর্জাতিক", "রাজনীতি", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ধর্ম", "ফিচার", "হাস্যরস", "আইন ও পরামর্শ", "সাহিত্য"];
   
   useEffect(() => {
     const loggedInUser = localStorage.getItem('bongiyo_admin');
