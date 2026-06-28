@@ -565,7 +565,8 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                               <a href={`/news/${lawNews[0].id}`} target="_blank" className="group block mb-4">
                                  <SafeImage src={lawNews[0].image_url} alt={lawNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm" />
                                  <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#d73f3f] leading-snug">{lawNews[0].title}</h3>
-                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(lawNews[0].created_at)}</p>
+                                <p className="text-[13px] md:text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{lawNews[0].snippet}</p>
+                                <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(lawNews[0].created_at)}</p>
                               </a>
                            )}
                            <div className="mt-auto space-y-4 pt-3 border-t border-[#fbcbcb]">
