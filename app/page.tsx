@@ -80,7 +80,7 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
       .limit(amt);
     return data || [];
   };
-  const bdNews = await fetchDirectCategory('বাংলাদেশ', 8);
+  const bdNews = await fetchDirectCategory('বাংলাদেশ', 11);
   const intlNews = await fetchDirectCategory('আন্তর্জাতিক', 7);
   const politicsNews = await fetchDirectCategory('রাজনীতি', 7); 
   const opinionNews = await fetchDirectCategory('মতামত', 5); 
