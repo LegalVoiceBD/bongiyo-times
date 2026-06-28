@@ -348,7 +348,7 @@ export default async function NewsDetail({ params }: { params: { id: string } })
              <a href="/" className="hover:text-red-700 transition">প্রচ্ছদ</a> <span className="text-gray-300">|</span>
              <a href="/privacy" className="hover:text-red-700 transition">গোপনীয়তার নীতি</a> <span className="text-gray-300">|</span>
              <a href="/terms" className="hover:text-red-700 transition">শর্তাবলি</a> <span className="text-gray-300">|</span>
-             <a href="/terms" className="hover:text-red-700 transition">ডিসক্লেইমার</a> <span className="text-gray-300">|</span>
+             <a href="/disclaimer" className="hover:text-red-700 transition">ডিসক্লেইমার</a> <span className="text-gray-300">|</span>
              <a href="/contact" className="hover:text-red-700 transition text-[#104f96]">বিজ্ঞাপন</a> <span className="text-gray-300">|</span>
              <a href="/contact" className="hover:text-red-700 transition">যোগাযোগ</a>
           </div>
