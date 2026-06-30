@@ -1,6 +1,14 @@
 const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const cloudinary = require('cloudinary').v2;
+
+// Cloudinary Configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -8,15 +16,53 @@ const supabase = createClient(
 );
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// AI Image Generate এবং Cloudinary তে Upload করার ফাংশন
+async function generateAndUploadImage(imagePrompt) {
+  try {
+    console.log(`🎨 ইমেজ জেনারেট হচ্ছে প্রম্পট দিয়ে: ${imagePrompt}`);
+    
+    // Pollinations AI ব্যবহার করে ফ্রি ইমেজ জেনারেশন (No API Key required)
+    const encodedPrompt = encodeURIComponent(imagePrompt);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=450&nologo=true`;
+
+    // ছবি ফেচ করে বাফারে কনভার্ট করা
+    const imageRes = await fetch(imageUrl);
+    if (!imageRes.ok) throw new Error("Image fetch failed");
+    
+    const arrayBuffer = await imageRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // বাফার থেকে সরাসরি ক্লাউডিনারিতে আপলোড
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: 'bongiyotimes_auto' }, 
+        (error, result) => {
+          if (error) {
+            console.error("❌ Cloudinary Upload Error:", error);
+            resolve(null);
+          } else {
+            console.log("✅ ছবি ক্লাউডিনারিতে আপলোড সফল!");
+            resolve(result.secure_url);
+          }
+        }
+      );
+      uploadStream.end(buffer);
+    });
+
+  } catch (error) {
+    console.error("❌ ইমেজ জেনারেট বা আপলোড করতে সমস্যা হয়েছে:", error.message);
+    return null;
+  }
+}
+
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Smart Mode with Deduplication)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Smart Mode with AI Image Gen)...");
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
-  const allSources = [
+   const allSources = [
     { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ' },
@@ -122,17 +168,15 @@ async function runBot() {
 
   function isStrictlyValid(url) {
     const lowerUrl = url.toLowerCase();
-    // আরও কিছু ব্যাড-ওয়ার্ড যুক্ত করা হলো যাতে ক্যাটাগরি বা জগাখিচুড়ি পেজ না আসে
     const generalBadWords = ['tag', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo', 'category', 'privacy', 'terms', 'about', 'contact'];
     if (generalBadWords.some(word => lowerUrl.includes(`/${word}`))) return false;
-    if (!/\d/.test(lowerUrl)) return false; // লিংকটিতে অবশ্যই কোনো সংখ্যা (ID/Date) থাকতে হবে
+    if (!/\d/.test(lowerUrl)) return false; 
     return true;
   }
 
   let processedArticlesCount = 0;
   const MAX_ARTICLES_PER_RUN = 10; 
   
-  // ডুপ্লিকেট নিউজ ঠেকানোর জন্য ডাটাবেস থেকে সর্বশেষ ৩০টি নিউজের শিরোনাম সংগ্রহ করা হচ্ছে
   const { data: recentNewsRecords } = await supabase.from('news').select('title').order('created_at', { ascending: false }).limit(30);
   const recentTitles = recentNewsRecords ? recentNewsRecords.map(n => n.title).join(' | ') : '';
 
@@ -185,28 +229,30 @@ async function runBot() {
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
-            // মডিফাইড প্রম্পট: ডুপ্লিকেট, জগাখিচুড়ি চেক এবং ডাইনামিক ইন্ট্রোর নির্দেশ
+            // মডিফাইড প্রম্পট: image_prompt যুক্ত করা হয়েছে
            const prompt = `
             তুমি একজন টপ প্রফেশনাল সাংবাদিক এবং নিউজ এডিটর। নিচে একটি ওয়েবপেজ থেকে সংগৃহীত টেক্সট দেওয়া হলো।
 
             তোমার প্রথম কাজ হলো টেক্সটটি যাচাই করা:
             ১. এটি কি কোনো প্রাইভেসি পলিসি, নিয়মকানুন, মতামত বা ওয়েবসাইটের সাধারণ লেখা?
             ২. এটি কি একাধিক ভিন্ন ভিন্ন খবরের শিরোনামের জগাখিচুড়ি?
-            ৩. এই খবরটি কি নিচে দেওয়া সাম্প্রতিক খবরের তালিকার কোনো খবরের সাথে হুবহু মিলে যায় (অর্থাৎ একই মূল ঘটনার খবর)?
+            ৩. এই খবরটি কি নিচে দেওয়া সাম্প্রতিক খবরের তালিকার কোনো খবরের সাথে হুবহু মিলে যায়?
             সাম্প্রতিক খবরের তালিকা: [${recentTitles}]
 
-            যদি উপরের কোনো একটি প্রশ্নের উত্তর 'হ্যাঁ' হয়, অথবা এটি যদি প্রকৃত কোনো একক সংবাদ না হয়, তবে আউটপুটে শুধু লিখবে: {"skip": true}
+            যদি উপরের কোনো একটি প্রশ্নের উত্তর 'হ্যাঁ' হয়, তবে আউটপুটে শুধু লিখবে: {"skip": true}
 
-            আর যদি এটি একটি মানসম্মত, একক এবং নতুন সংবাদ হয়, তবে নিচের শর্ত মেনে একটি প্রফেশনাল নিউজ তৈরি করো:
-            ১. খবরের শিরোনামের নিয়ম: শিরোনামটি অবশ্যই একটি স্ট্যান্ডার্ড দৈনিক পত্রিকার (যেমন- প্রথম আলো, যুগান্তর) মূল খবরের শিরোনামের মতো হতে হবে। শিরোনামে কোনোভাবেই কোলন (:) বা ড্যাশ (-) ব্যবহার করে দুই ভাগে ভাগ করা যাবে না। এটি কোনো প্রবন্ধ, ফিচার বা মতামতের শিরোনাম নয়, তাই শিরোনামটি সিঙ্গেল লাইনে, ছোট, আকর্ষণীয় এবং তীক্ষ্ণ হতে হবে। তবে তা অবশ্যই মূল খবরের শিরোনাম থেকে আলাদা ও ইউনিক হতে হবে। মূল পত্রিকার নাম শিরোনামে থাকবে না।
-            ২. খবরের শুরুর প্যারাগ্রাফ (Intro): প্রথম প্যারাগ্রাফটি কোনো নির্দিষ্ট ছকে বাঁধা বা রোবোটিক হবে না। প্রতিটি খবরের ধরন অনুযায়ী সম্পূর্ণ ডাইনামিক, ইউনিক এবং ন্যাচারালভাবে খবরটি শুরু করবে। তবে, প্রথম প্যারাগ্রাফের যেকোনো একটি মানানসই জায়গায় মূল সোর্সের ক্রেডিট হিসেবে এই HTML ট্যাগটি অবশ্যই খুব স্বাভাবিকভাবে যুক্ত করে দেবে: <a href='${link}' target='_blank' style='color: #0056b3; text-decoration: underline;'>${source.bnName}</a> (উদাহরণস্বরূপ: "সম্প্রতি <a href='...'>${source.bnName}</a>-এর একটি প্রতিবেদনে উঠে এসেছে...", অথবা "...এমনটাই জানিয়েছে <a href='...'>${source.bnName}</a> পত্রিকা।" ইত্যাদি। তুমি খবরের বাক্যের সাথে সবচেয়ে সুন্দরভাবে মানিয়ে যায় এমনভাবে ন্যাচারাল স্টাইলে লিংকটি বসাবে।)
-            ৩. খবরের মূল তথ্য ঠিক রেখে বিশ্লেষণমূলক অংশ লিখবে। কোনো <p>, <div> বা HTML ট্যাগ ব্যবহার করবে না (শুধুমাত্র উপরের লিংকের <a> ট্যাগটি ছাড়া)। প্রতিটি প্যারাগ্রাফ আলাদা করতে ডাবল এন্টার (\\n\\n) ব্যবহার করবে। বিশ্লেষণ বা খবরটি এমনভাবে লিখবে যাতে কপিরাইট ইস্যু না আসে। ইউনিক হতে হবে। 
+            আর যদি এটি একটি মানসম্মত নতুন সংবাদ হয়, তবে নিচের শর্ত মেনে একটি প্রফেশনাল নিউজ তৈরি করো:
+            ১. খবরের শিরোনামের নিয়ম: শিরোনামটি অবশ্যই একটি স্ট্যান্ডার্ড দৈনিক পত্রিকার মূল খবরের শিরোনামের মতো হতে হবে। কোলন (:) বা ড্যাশ (-) ব্যবহার করে দুই ভাগে ভাগ করা যাবে না।
+            ২. খবরের শুরুর প্যারাগ্রাফ (Intro): ডাইনামিক, ইউনিক এবং ন্যাচারালভাবে খবরটি শুরু করবে। প্রথম প্যারাগ্রাফের যেকোনো একটি মানানসই জায়গায় মূল সোর্সের ক্রেডিট হিসেবে এই HTML ট্যাগটি বসাবে: <a href='${link}' target='_blank' style='color: #0056b3; text-decoration: underline;'>${source.bnName}</a>
+            ৩. খবরের মূল তথ্য ঠিক রেখে বিশ্লেষণমূলক অংশ লিখবে। কোনো <p>, <div> বা HTML ট্যাগ ব্যবহার করবে না (<a> ট্যাগটি ছাড়া)। প্রতিটি প্যারাগ্রাফ আলাদা করতে ডাবল এন্টার (\\n\\n) ব্যবহার করবে।
             ৪. কোন কাল্পনিক বা ভুল তথ্য দেয়া যাবে না। শেষে "ছবি সংগৃহীত" লেখা যাবে না।
-            ৫. প্রাপ্ত খবরটি গভীরভাবে পর্যালোচনা করে দেখবেন এটি রাজনৈতিক, আন্তর্জাতিক, খেলাধুলা, বিনোদন, প্রযুক্তি, বাণিজ্য সংক্রান্ত খবর বা প্রতিবেদন কি না। যদি হ্যা হয়, তাহলে উক্ত খবর বা প্রতিবেদনটির বস্তুনিষ্ঠ, নিরপেক্ষ, নির্ভুল ও প্রফেশনালভাবে বিশ্লেষণ করবে।
-            ৬. আউটপুটটি শুধুমাত্র JSON ফরম্যাটে দিবে।
+            ৫. প্রাপ্ত খবরটি বস্তুনিষ্ঠ, নিরপেক্ষ, নির্ভুল ও প্রফেশনালভাবে বিশ্লেষণ করবে।
+            ৬. ইমেজ প্রম্পট (image_prompt): খবরটির মূল ভাবমূর্তির ওপর ভিত্তি করে AI Image Generator-এর জন্য ইংরেজিতে একটি সুন্দর, বর্ণনামূলক প্রম্পট তৈরি করো (সর্বোচ্চ ২০০ ক্যারেক্টার)। প্রম্পটের মধ্যে কোনো রাজনৈতিক ব্যক্তির নাম, লেখা (text) বা বিতর্কিত শব্দ ব্যবহার করবে না। শুধুমাত্র একটি ভিজ্যুয়াল দৃশ্য বর্ণনা করবে (যেমন: "A realistic wide angle shot of a busy highway in Bangladesh during sunset, high quality, 8k").
+
+            আউটপুটটি শুধুমাত্র JSON ফরম্যাটে দিবে।
 
             আউটপুট ফরম্যাট:
-            {"skip": false, "title": "নতুন সংবাদ শিরোনাম (কোলন ছাড়া সিঙ্গেল লাইনে)", "content": "পুরো খবরের বিস্তারিত ক্লিন টেক্সট"}
+            {"skip": false, "title": "নতুন সংবাদ শিরোনাম", "content": "পুরো খবরের বিস্তারিত ক্লিন টেক্সট", "image_prompt": "English prompt for AI image"}
 
             মূল খবর:
             ${fullText}
@@ -217,11 +263,10 @@ async function runBot() {
                 result = await model.generateContent(prompt);
             } catch (geminiError) {
                 if (geminiError.message.includes('429') || geminiError.message.includes('quota')) {
-                    console.log('⏳ কোটা লিমিট শেষ বা সার্ভার ব্যস্ত, ৬ সেকেন্ড অপেক্ষা করে আবার চেষ্টা করা হচ্ছে...');
+                    console.log('⏳ কোটা লিমিট শেষ, ৬ সেকেন্ড অপেক্ষা করে আবার চেষ্টা করা হচ্ছে...');
                     await delay(6000);
                     result = await model.generateContent(prompt);
                 } else if (geminiError.message.includes('503')) {
-                    console.log('⏳ সার্ভার বিজি, ১০ সেকেন্ড পর আবার চেষ্টা করছি...');
                     await delay(10000);
                     result = await model.generateContent(prompt);
                 } else {
@@ -233,17 +278,26 @@ async function runBot() {
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             const rewrittenData = JSON.parse(responseText);
 
-            // যদি জেমিনি মনে করে এটি ডুপ্লিকেট বা জগাখিচুড়ি, তবে স্কিপ করবে
             if (rewrittenData.skip) {
-                console.log(`⏭️ খবরটি স্কিপ করা হয়েছে (Duplicate, Opinion, or Non-news).`);
+                console.log(`⏭️ খবরটি স্কিপ করা হয়েছে।`);
                 continue; 
             }
 
+            // 🎨 ইমেজ জেনারেশন ও আপলোড ফ্লো
+            let finalImageUrl = defaultPlaceholder;
+            if (rewrittenData.image_prompt) {
+                const uploadedImageUrl = await generateAndUploadImage(rewrittenData.image_prompt);
+                if (uploadedImageUrl) {
+                    finalImageUrl = uploadedImageUrl;
+                }
+            }
+
+            // ডাটাবেসে সেভ করা
             const { error: insertError } = await supabase.from('news').insert([{
               title: rewrittenData.title,
               content: rewrittenData.content,
               snippet: rewrittenData.content.replace(/<[^>]*>?/gm, '').substring(0, 150) + "...", 
-              image_url: defaultPlaceholder, 
+              image_url: finalImageUrl, // জেনারেট করা ছবির লিংক
               source_url: link,
               source_name: 'বঙ্গীয় টাইমস', 
               category: source.defaultCategory,
