@@ -1,3 +1,4 @@
+
 const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -21,11 +22,11 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // AI Image Generate এবং Cloudinary তে Upload করার ফাংশন
 async function generateAndUploadImage(imagePrompt) {
   try {
-    console.log(`🎨 ইমেজ জেনারেট হচ্ছে প্রম্পট দিয়ে: ${imagePrompt}`);
+    console.log(`🎨 ইমেজ জেনারেট হচ্ছে (FLUX Model) প্রম্পট দিয়ে: ${imagePrompt}`);
     
-    // Pollinations AI ব্যবহার করে ফ্রি ইমেজ জেনারেশন (No API Key required)
+    // Pollinations AI-এর উন্নত FLUX মডেল, 1280x720 রেজ্যুলেশন এবং এনহ্যান্সমেন্ট ব্যবহার
     const encodedPrompt = encodeURIComponent(imagePrompt);
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=450&nologo=true`;
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=flux&width=1280&height=720&enhance=true&nologo=true&safe=true&seed=-1`;
 
     // ছবি ফেচ করে বাফারে কনভার্ট করা
     const imageRes = await fetch(imageUrl);
@@ -52,7 +53,7 @@ async function generateAndUploadImage(imagePrompt) {
     });
 
   } catch (error) {
-    console.error("❌ ইমেজ জেনারেট বা আপলোড করতে সমস্যা হয়েছে:", error.message);
+    console.error("❌ ইমেজ জেনারেট বা আপলোড করতে সমস্যা হয়েছে:", error.message);
     return null;
   }
 }
@@ -62,7 +63,7 @@ async function runBot() {
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
-   const allSources = [
+  const allSources = [
     { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ' },
@@ -229,9 +230,7 @@ async function runBot() {
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
-            // মডিফাইড প্রম্পট: প্রতীকী এবং অ্যাডসেন্স-বান্ধব ইমেজ প্রম্পট নির্দেশিকা
-           // Professional News Processing & AdSense-Safe Symbolic Image Prompt
-
+            // Professional News Processing & AdSense-Safe Symbolic Image Prompt
 const prompt = `
 তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। নিচে একটি ওয়েবপেজ থেকে সংগৃহীত টেক্সট দেওয়া হয়েছে।
 
@@ -277,27 +276,19 @@ const prompt = `
 যদি এটি একটি নতুন, নির্ভরযোগ্য এবং সম্পূর্ণ সংবাদ হয়, তাহলে নিচের নিয়মগুলো কঠোরভাবে অনুসরণ করবে।
 
 ### ১. শিরোনাম (Title)
-
 - শিরোনাম হবে জাতীয় দৈনিক পত্রিকার প্রথম পাতার মানের।
 - সংক্ষিপ্ত, শক্তিশালী, তথ্যসমৃদ্ধ এবং আকর্ষণীয় হবে।
-- Clickbait করা যাবে না।
+- Clickbait করা যাবে গান্ধা।
 - কোলন (:), ড্যাশ (-), পাইপ (|) বা দুই ভাগে বিভক্ত শিরোনাম ব্যবহার করা যাবে না।
 - শিরোনামে অতিরঞ্জিত বিশেষণ ব্যবহার করবে না।
 
 ### ২. ভূমিকা (Intro)
-
-প্রথম অনুচ্ছেদটি হবে সম্পূর্ণ নতুনভাবে লেখা।
-
-খবরের শুরুতেই স্বাভাবিকভাবে সোর্স উল্লেখ করবে।
-
-এই HTML ট্যাগটি অপরিবর্তিতভাবে ব্যবহার করবে:
-
-<a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>
-
-এই <a> ট্যাগ ছাড়া অন্য কোনো HTML ব্যবহার করা যাবে না।
+- প্রথম অনুচ্ছেদটি হবে সম্পূর্ণ নতুনভাবে লেখা।
+- খবরের একদম প্রথম বাক্যের ভেতরেই খুব সাবলীলভাবে সোর্সের ক্রেডিট যুক্ত করবে (যেমন: "সম্প্রতি <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>-এর একটি প্রতিবেদনে বলা হয়েছে..." অথবা "...এমনটাই জানিয়েছে <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>")।
+- লিংকের ঠিক আগে বা পরে কোনো অযাচিত ডট (.), কমা (,) বা স্পেস দিয়ে বাক্যের ফ্লো নষ্ট করবে না। বাক্যটি যেন পড়ার সময় একদম ন্যাচারাল বা মানুষের লেখার মতো মনে হয়।
+- এই <a> ট্যাগ ছাড়া অন্য কোনো HTML ব্যবহার করা যাবে না এবং ট্যাগটি হুবহু ব্যবহার করবে।
 
 ### ৩. মূল প্রতিবেদন
-
 - পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে।
 - মূল তথ্য বিকৃত করা যাবে না।
 - কোনো তথ্য বানানো যাবে না।
@@ -307,8 +298,6 @@ const prompt = `
 - প্রতিটি অনুচ্ছেদ আলাদা করতে শুধুমাত্র \\n\\n ব্যবহার করবে।
 - <p>, <div>, <br>, Markdown বা অন্য কোনো HTML ব্যবহার করা যাবে না।
 - "ছবি সংগৃহীত" বা অনুরূপ কোনো বাক্য যোগ করা যাবে না।
-
-========================
 
 ========================
 তৃতীয় ধাপ: AI Image Prompt
@@ -385,7 +374,6 @@ Vibrant colors, editorial news photography, documentary photography, realistic p
 অন্য কোনো ব্যাখ্যা লিখবে না।
 
 Output Format:
-
 {
   "skip": false,
   "title": "নতুন সংবাদ শিরোনাম",
@@ -396,7 +384,6 @@ Output Format:
 ========================
 মূল সংবাদ
 ========================
-
 ${fullText}
 `;
 
