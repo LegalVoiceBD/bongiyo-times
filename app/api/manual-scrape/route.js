@@ -1,4 +1,3 @@
-// app/api/manual-scrape/route.js
 import { NextResponse } from 'next/server';
 import cheerio from 'cheerio';
 import { createClient } from '@supabase/supabase-js';
@@ -69,9 +68,14 @@ export async function POST(req) {
       return NextResponse.json({ error: "খবরটি অনেক ছোট বা পড়া যাচ্ছে না।" }, { status: 400 });
     }
 
-    // 2. Gemini Analysis (আপনার ফাইনাল প্রম্পটটি এখানে ব্যবহার করা হয়েছে)
+    // 2. Gemini Analysis
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-   const prompt = `
+    
+    // ভেরিয়েবলগুলো ফিক্স করা হয়েছে যাতে ক্র্যাশ না করে
+    const sourceBnName = "সংশ্লিষ্ট সংবাদমাধ্যম";
+    const recentTitles = ""; 
+
+    const prompt = `
 তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। নিচে একটি ওয়েবপেজ থেকে সংগৃহীত টেক্সট দেওয়া হয়েছে।
 
 ========================
@@ -81,30 +85,11 @@ export async function POST(req) {
 প্রথমে নিচের বিষয়গুলো কঠোরভাবে যাচাই করবে।
 
 ১. এটি যদি নিম্নোক্ত যেকোনো ধরনের লেখা হয় তাহলে বাতিল করবে:
-- Privacy Policy
-- Terms & Conditions
-- About Us
-- Contact
-- Disclaimer
-- Advertisement
-- Cookie Policy
-- Editorial Policy
-- মতামত বা Opinion
-- ব্লগ
-- ক্যাটাগরি পেজ
-- আর্কাইভ
-- ট্যাগ পেজ
-- নেভিগেশন বা ওয়েবসাইটের সাধারণ লেখা
+- Privacy Policy, Terms & Conditions, About Us, Contact, Disclaimer, Advertisement, Cookie Policy, Editorial Policy, মতামত বা Opinion, ব্লগ, ক্যাটাগরি পেজ, আর্কাইভ, ট্যাগ পেজ, নেভিগেশন বা ওয়েবসাইটের সাধারণ লেখা
 
 ২. টেক্সটটি যদি একাধিক সম্পর্কহীন খবরের শিরোনাম বা নিউজের মিশ্রণ (Mixed Headlines) হয় তাহলে বাতিল করবে।
 
-৩. নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি একই ঘটনা, একই শিরোনাম অথবা একই সংবাদ পুনরাবৃত্তি হয় তাহলে বাতিল করবে।
-
-সাম্প্রতিক সংবাদ:
-[${recentTitles}]
-
 উপরের যেকোনো একটি শর্ত সত্য হলে শুধুমাত্র এই JSON রিটার্ন করবে:
-
 {"skip": true}
 
 এর বাইরে আর কোনো লেখা দেবে না।
@@ -116,81 +101,46 @@ export async function POST(req) {
 যদি এটি একটি নতুন, নির্ভরযোগ্য এবং সম্পূর্ণ সংবাদ হয়, তাহলে নিচের নিয়মগুলো কঠোরভাবে অনুসরণ করবে।
 
 ### ১. শিরোনাম (Title)
-
-- শিরোনাম হবে জাতীয় দৈনিক পত্রিকার প্রথম পাতার মানের।
-- সংক্ষিপ্ত, শক্তিশালী, তথ্যসমৃদ্ধ এবং আকর্ষণীয় হবে।
-- Clickbait করা যাবে না।
-- কোলন (:), ড্যাশ (-), পাইপ (|) বা দুই ভাগে বিভক্ত শিরোনাম ব্যবহার করা যাবে না।
-- শিরোনামে অতিরঞ্জিত বিশেষণ ব্যবহার করবে না।
+- শিরোনাম হবে জাতীয় দৈনিক পত্রিকার প্রথম পাতার মানের। সংক্ষিপ্ত, শক্তিশালী, তথ্যসমৃদ্ধ এবং আকর্ষণীয় হবে।
+- Clickbait করা যাবে না। কোলন (:), ড্যাশ (-), পাইপ (|) বা দুই ভাগে বিভক্ত শিরোনাম ব্যবহার করা যাবে না। অতিরঞ্জিত বিশেষণ ব্যবহার করবে না।
 
 ### ২. ভূমিকা (Intro)
-
-প্রথম অনুচ্ছেদটি হবে সম্পূর্ণ নতুনভাবে লেখা।
-
-খবরের শুরুতেই স্বাভাবিকভাবে সোর্স উল্লেখ করবে।
-
+প্রথম অনুচ্ছেদটি হবে সম্পূর্ণ নতুনভাবে লেখা। খবরের শুরুতেই স্বাভাবিকভাবে সোর্স উল্লেখ করবে।
 এই HTML ট্যাগটি অপরিবর্তিতভাবে ব্যবহার করবে:
-
-<a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>
+<a href='${url}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${sourceBnName}</a>
 
 এই <a> ট্যাগ ছাড়া অন্য কোনো HTML ব্যবহার করা যাবে না।
 
 ### ৩. মূল প্রতিবেদন
-
-- পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে।
-- মূল তথ্য বিকৃত করা যাবে না।
-- কোনো তথ্য বানানো যাবে না।
-- কোনো অনুমান যোগ করা যাবে না।
-- কোনো রাজনৈতিক বা ব্যক্তিগত পক্ষপাত থাকবে না।
-- সাংবাদিকতার নিরপেক্ষতা বজায় রাখতে হবে।
+- পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে। মূল তথ্য বিকৃত করা যাবে না। কোনো তথ্য বানানো যাবে না।
 - প্রতিটি অনুচ্ছেদ আলাদা করতে শুধুমাত্র \\n\\n ব্যবহার করবে।
-- <p>, <div>, <br>, Markdown বা অন্য কোনো HTML ব্যবহার করা যাবে না।
-- "ছবি সংগৃহীত" বা অনুরূপ কোনো বাক্য যোগ করা যাবে না।
+- <p>, <div>, <br>, Markdown বা অন্য কোনো HTML ব্যবহার করা যাবে না। "ছবি সংগৃহীত" লেখা যাবে না।
 
-========================
 ========================
 তৃতীয় ধাপ: AI Image Prompt
 ========================
 
-image_prompt অবশ্যই ইংরেজিতে লিখবে।
-
-এটি AI Image Generator-এর জন্য Professional Editorial Image Prompt হবে।
-
-সর্বোচ্চ ৩০০ অক্ষরের মধ্যে লিখবে।
+image_prompt অবশ্যই ইংরেজিতে লিখবে। এটি AI Image Generator-এর জন্য Professional Editorial Image Prompt হবে (সর্বোচ্চ ৩০০ অক্ষর)।
 
 নিচের নিয়মগুলো বাধ্যতামূলক:
+✔ ছবিটিকে অত্যন্ত ঝকঝকে, রঙিন (Colorful) এবং মডার্ন ফটোগ্রাফির মতো করতে প্রম্পটের শেষে এই কিওয়ার্ডগুলো অবশ্যই যুক্ত করবে: "Vibrant colors, modern digital photography, bright natural daylight, ultra-clear, vivid color palette, high contrast, 8k resolution, award-winning photojournalism, sharp focus."
 
-✔ ছবিটিকে কোনোভাবেই ধূসর বা অনুজ্জ্বল (grayish/dull) করা যাবে না। ছবিটিকে অত্যন্ত ঝকঝকে, রঙিন (Colorful) এবং মডার্ন ফটোগ্রাফির মতো করতে প্রম্পটের শেষে এই কিওয়ার্ডগুলো অবশ্যই যুক্ত করবে: "Vibrant colors, modern digital photography, bright natural daylight, ultra-clear, vivid color palette, high contrast, 8k resolution, award-winning photojournalism, sharp focus."
+✔ খুবই জরুরি: কোনো মানুষের হাতের ক্লোজ-আপ, আঙুল বা হাত দিয়ে কোনো কাগজ/সার্টিফিকেট ধরে রাখার দৃশ্য প্রম্পটে একদমই দেবে না। 
 
-✔ **খুবই জরুরি:** কোনো মানুষের হাতের ক্লোজ-আপ, আঙুল বা হাত দিয়ে কোনো কাগজ/সার্টিফিকেট ধরে রাখার দৃশ্য প্রম্পটে একদমই দেবে না (কারণ AI হাতের গঠন ঠিকমতো বানাতে পারে না)। 
-
-✔ **বিকল্প দৃশ্য:** শিক্ষার খবরের ক্ষেত্রে 'টেবিলের ওপর রাখা চশমা ও বই', অপরাধের ক্ষেত্রে 'অন্ধকার রাস্তায় পুলিশের গাড়ির লাল-নীল আলো', বিনোদনের ক্ষেত্রে 'একটি খালি ডিরেক্টরস চেয়ার বা সিনেমাটিক স্পটলাইট' — এ ধরনের নিরাপদ এবং টেক্সট-বিহীন (Text-free) দৃশ্য বর্ণনা করবে।
+✔ বিকল্প দৃশ্য: শিক্ষার খবরের ক্ষেত্রে 'টেবিলের ওপর রাখা চশমা ও বই', অপরাধের ক্ষেত্রে 'অন্ধকার রাস্তায় পুলিশের গাড়ির লাল-নীল আলো', বিনোদনের ক্ষেত্রে 'একটি খালি ডিরেক্টরস চেয়ার বা সিনেমাটিক স্পটলাইট' — এ ধরনের নিরাপদ এবং টেক্সট-বিহীন (Text-free) দৃশ্য বর্ণনা করবে।
 
 ✔ প্রম্পটে "cinematic lighting", "moody" বা "faded" জাতীয় শব্দ ব্যবহার করবে না।
-
 ✔ ছবিটি হবে সম্পূর্ণ প্রতীকী (Symbolic) কিন্তু একটি কংক্রিট দৃশ্য (Concrete Scene)। কোনো আজগুবি বা ভাসমান বস্তু তৈরি করবে না।
+✔ কোনো নির্দিষ্ট ব্যক্তি বা সেলিব্রিটির নাম লিখবে না।
+✔ ছবিতে কোনো Text, Typography, Caption, Watermark বা লেখা থাকবে না।
 
-✔ বাস্তব ঘটনাকে বিভ্রান্তিকরভাবে পুনর্নির্মাণ করবে না।
-
-✔ যদি কোনো ব্যক্তি বা প্রতিষ্ঠান নিয়ে সংবাদ হয়, তাহলে তাদের মুখ, পরিচয় বা নির্দিষ্ট চেহারা দেখাবে না। কোনো রাজনৈতিক নেতা, অভিনেতা, ক্রীড়াবিদ বা সেলিব্রিটির নাম লিখবে না।
-
-✔ Generic মানুষ (খুব দূরের শট), silhouette, cityscape, infrastructure, objects on desk, courtroom gavel, police lights, hospital corridor, school building, agriculture, technology ইত্যাদি প্রতীকী কিন্তু অত্যন্ত কালারফুল ও রিয়ালিস্টিক উপস্থাপনা ব্যবহার করবে।
-
-✔ ছবিতে কোনো Text, Typography, Caption, Watermark, Logo, Banner, Signboard, Number বা লেখা থাকবে না।
-
-✔ No blood, No injuries, No dead body, No violence, No weapon, No graphic content, No disturbing scene, No misleading reconstruction.
-
-✔ Google AdSense Safe, Editorial Safe, Family Friendly.
 ========================
 চতুর্থ ধাপ: JSON Output
 ========================
 
-শুধুমাত্র Valid JSON রিটার্ন করবে।
-
-অন্য কোনো ব্যাখ্যা লিখবে না।
+শুধুমাত্র Valid JSON রিটার্ন করবে। অন্য কোনো ব্যাখ্যা লিখবে না।
 
 Output Format:
-
 {
   "skip": false,
   "title": "নতুন সংবাদ শিরোনাম",
@@ -201,7 +151,6 @@ Output Format:
 ========================
 মূল সংবাদ
 ========================
-
 ${fullText}
 `;
 
@@ -214,7 +163,7 @@ ${fullText}
     }
 
     // 3. AI Image Generation
-    let finalImageUrl = 'https://res.cloudinary.com/.../default.jpg'; // আপনার ডিফল্ট ইমেজ লিংক দিন
+    let finalImageUrl = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg'; // ডিফল্ট ইমেজ লিংক
     if (rewrittenData.image_prompt) {
       const uploadedImageUrl = await generateAndUploadImage(rewrittenData.image_prompt);
       if (uploadedImageUrl) finalImageUrl = uploadedImageUrl;
@@ -228,9 +177,9 @@ ${fullText}
       image_url: finalImageUrl,
       source_url: url,
       source_name: 'বঙ্গীয় টাইমস',
-      category: 'সর্বশেষ', // বা ড্রপডাউন থেকে ডাইনামিক ক্যাটাগরি নিতে পারেন
+      category: 'সর্বশেষ', 
       image_source: 'এআই জেনারেটেড',
-      is_published: false, // ⚠️ ড্রাফট হিসেবে সেভ হবে
+      is_published: false,
       is_custom: true
     }]).select();
 
