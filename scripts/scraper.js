@@ -315,25 +315,27 @@ const prompt = `
 
 image_prompt অবশ্যই ইংরেজিতে লিখবে।
 
-এটি AI Image Generator-এর জন্য Professional Editorial Image Prompt হবে।
+এটি AI Image Generator-এর জন্য Professional Documentary Photography ও Editorial Image Prompt হবে।
 
 সর্বোচ্চ ৩০০ অক্ষরের মধ্যে লিখবে।
 
 নিচের নিয়মগুলো বাধ্যতামূলক:
 
-✔ ছবিটিকে অত্যন্ত ঝকঝকে, বাস্তবসম্মত এবং প্রফেশনাল করতে প্রম্পটের শেষে এই কিওয়ার্ডগুলো অবশ্যই যুক্ত করবে: "Hyper-realistic, shot on 35mm lens, DSLR, 8k resolution, highly detailed, dramatic cinematic lighting, sharp focus, award-winning photojournalism."
+✔ স্টাইল: ছবিটি হতে হবে ১০০% বাস্তবসম্মত ফটোগ্রাফি (Photorealistic Documentary Style)। কোনোভাবেই Abstract, Digital Art, Surrealism, Double Exposure, 3D Render বা Conceptual Art স্টাইল ব্যবহার করা যাবে না। 
 
-✔ ছবিটি হবে সম্পূর্ণ প্রতীকী (Symbolic) কিন্তু একটি কংক্রিট দৃশ্য (Concrete Scene)। কোনো আজগুবি বা ভাসমান বস্তু (যেমন- অর্ধেক শরীর, ভাসমান শার্ট) তৈরি করবে না। 
+✔ দৃশ্যপট (Concrete Scene): ছবিটি হতে হবে একটি সুনির্দিষ্ট ও বাস্তব দৃশ্যপট (যেমন- রাস্তায় ব্লু-প্রিন্ট হাতে কর্মরত নির্মাণ শ্রমিক, ফাইল হাতে হেঁটে যাওয়া সাধারণ মানুষ, কোর্টরুমের একটি নির্দিষ্ট অংশ, বাজারের ভিড় ইত্যাদি)। 
 
-✔ শুধুমাত্র খবরের বিষয়বস্তুর সাথে মানানসই একটি বাস্তবসম্মত দৃশ্যপট উপস্থাপন করবে। (যেমন: পুলিশের খবরের ক্ষেত্রে- একটি টেবিলের ওপর পুলিশের টুপি এবং ওয়াকিটকি, অথবা অপরাধের খবরের ক্ষেত্রে- অন্ধকার রাস্তায় পুলিশের গাড়ির লাল-নীল সাইরেনের আলো)।
+✔ প্রম্পটের শেষে এই ফটোগ্রাফিক কিওয়ার্ডগুলো অবশ্যই যুক্ত করবে: "Ultra-realistic documentary photography, shot on 35mm lens, DSLR, 8k resolution, highly detailed, natural lighting, sharp focus, award-winning photojournalism, real-world physics."
 
-✔ বাস্তব ঘটনাকে বিভ্রান্তিকরভাবে পুনর্নির্মাণ করবে না।
+✔ দৃশ্যটি এমন হবে যেন বাস্তবে কোনো ক্যামেরাম্যান ঘটনাস্থল থেকে ছবিটি তুলেছেন। কোনো আজগুবি, ভাসমান বস্তু বা অবাস্তব কিছু (যেমন- বাতাসে ভাসমান শার্ট, মানুষের মাথার ভেতর গাছপালা) তৈরি করা যাবে না। 
+
+✔ বাস্তব ঘটনাকে বিভ্রান্তিকরভাবে পুনর্নির্মাণ করবে না। 
 
 ✔ যদি কোনো ব্যক্তি বা প্রতিষ্ঠান নিয়ে সংবাদ হয়, তাহলে তাদের মুখ, পরিচয় বা নির্দিষ্ট চেহারা দেখাবে না। 
 
 ✔ কোনো রাজনৈতিক নেতা, অভিনেতা, ক্রীড়াবিদ, সেলিব্রিটি বা পরিচিত ব্যক্তির নাম লিখবে না।
 
-✔ Generic মানুষ, silhouette, hands, crowd, cityscape, infrastructure, documents, courtroom gavel, police lights, hospital corridor, school, road, agriculture, technology, economy, environment ইত্যাদি প্রতীকী কিন্তু অত্যন্ত রিয়ালিস্টিক উপস্থাপনা ব্যবহার করবে।
+✔ Generic মানুষ (যাদের মুখ দূর থেকে দেখা যাচ্ছে বা ব্লার), silhouette, hands, crowd, cityscape, infrastructure, documents, courtroom gavel, police lights, hospital corridor, school, road, agriculture, technology, economy, environment ইত্যাদি প্রতীকী কিন্তু অত্যন্ত রিয়ালিস্টিক উপাদান ব্যবহার করবে।
 
 ✔ ছবিতে কোনো Text, Typography, Caption, Watermark, Logo, Banner, Signboard, Number বা লেখা থাকবে না।
 
