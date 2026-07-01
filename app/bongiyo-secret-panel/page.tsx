@@ -39,6 +39,11 @@ export default function AdminDashboard() {
   const [newPassword, setNewPassword] = useState('');
   const [passMessage, setPassMessage] = useState('');
 
+  // Auto Fetcher States (নতুন যুক্ত করা হয়েছে)
+  const [fetchUrl, setFetchUrl] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchMessage, setFetchMessage] = useState({ text: '', type: '' });
+
   const allCategories = ["বাংলাদেশ", "আন্তর্জাতিক", "রাজনীতি", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ধর্ম", "ফিচার", "হাস্যরস", "আইন ও পরামর্শ", "সাহিত্য"];
   
   useEffect(() => {
@@ -46,7 +51,7 @@ export default function AdminDashboard() {
     if (loggedInUser) setUser(JSON.parse(loggedInUser));
   }, []);
 
-const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const { data, error } = await supabase.rpc('admin_login', { 
@@ -164,6 +169,36 @@ const handleLogin = async (e: React.FormEvent) => {
     }
   };
 
+  // লিংক পেস্ট করে অটো নিউজ ফেচ করার ফাংশন
+  const handleFetchNews = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fetchUrl) return;
+
+    setIsFetching(true);
+    setFetchMessage({ text: 'খবর বিশ্লেষণ ও ছবি জেনারেট হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...', type: 'info' });
+
+    try {
+      const res = await fetch('/api/manual-scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: fetchUrl })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setFetchMessage({ text: data.message || '✅ খবরটি সফলভাবে ড্রাফট করা হয়েছে!', type: 'success' });
+        setFetchUrl(''); 
+      } else {
+        setFetchMessage({ text: data.error || '❌ খবরটি বিশ্লেষণ করতে সমস্যা হয়েছে।', type: 'error' });
+      }
+    } catch (err) {
+      setFetchMessage({ text: '❌ নেটওয়ার্ক বা সার্ভার ত্রুটি!', type: 'error' });
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -180,7 +215,7 @@ const handleLogin = async (e: React.FormEvent) => {
       title, 
       snippet, 
       content, 
-      category: selectedCats.join(', '), // কমা দিয়ে একাধিক ক্যাটাগরি সেভ করা হলো
+      category: selectedCats.join(', '), 
       source_name: sourceName, 
       image_url: imageUrl, 
       image_source: imageSource,
@@ -195,7 +230,7 @@ const handleLogin = async (e: React.FormEvent) => {
         setMessage('এরর: ' + error.message);
       } else {
         setMessage('✅ সফলভাবে আপডেট হয়েছে!');
-        await fetch('/api/revalidate'); // <-- Cache Clear API Call
+        await fetch('/api/revalidate'); 
         fetchMyNews(); 
         resetForm(); 
       }
@@ -211,7 +246,7 @@ const handleLogin = async (e: React.FormEvent) => {
       } else if (data && data.length > 0) {
         await supabase.from('news').update({ source_url: `/news/${data[0].id}` }).eq('id', data[0].id);
         setMessage(isPublished ? '✅ সফলভাবে পাবলিশ হয়েছে!' : '✅ এডিটরের কাছে সফলভাবে পাঠানো হয়েছে!');
-        await fetch('/api/revalidate'); // <-- Cache Clear API Call
+        await fetch('/api/revalidate'); 
         fetchMyNews();
         resetForm();
       }
@@ -228,7 +263,7 @@ const handleLogin = async (e: React.FormEvent) => {
 
     const { error } = await supabase.from('news').update({ is_published: !currentStatus }).eq('id', newsItem.id);
     if (!error) {
-      await fetch('/api/revalidate'); // <-- Cache Clear API Call
+      await fetch('/api/revalidate'); 
       fetchMyNews();
     }
   };
@@ -304,69 +339,119 @@ const handleLogin = async (e: React.FormEvent) => {
         </div>
 
         {activeTab === 'add' && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input required type="text" placeholder="শিরোনাম" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border p-3 rounded font-bold focus:outline-none focus:ring-2 focus:ring-red-200" />
-            <textarea required placeholder="হোমপেজের জন্য সারাংশ স্নিপেট" value={snippet} onChange={(e) => setSnippet(e.target.value)} className="w-full border p-3 rounded h-16 focus:outline-none focus:ring-2 focus:ring-red-200 text-sm md:text-base" />
-            <textarea required placeholder="খবরের পুরো বিস্তারিত বিবরণ (এখানে প্যারাগ্রাফ করে লিখুন)" value={content} onChange={(e) => setContent(e.target.value)} className="w-full border p-3 rounded h-40 md:h-52 focus:outline-none focus:ring-2 focus:ring-red-200" />
+          <div className="space-y-6">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input required type="text" placeholder="সূত্র/প্রতিনিধির নাম" value={sourceName} onChange={(e) => setSourceName(e.target.value)} className="border p-3 rounded font-bold w-full text-sm md:text-base" />
-              <input type="text" placeholder="ছবির ক্যাপশন/উৎস (যেমন: সংগৃহীত)" value={imageSource} onChange={(e) => setImageSource(e.target.value)} className="border p-3 rounded font-bold w-full text-sm md:text-base" />
-            </div>
-
-            {/* চেকবক্স স্টাইলে একাধিক ক্যাটাগরি সিস্টেম */}
-            <div className="border p-4 rounded bg-white mt-4 border-gray-300">
-              <label className="block text-sm font-bold text-gray-700 mb-3 border-b pb-2">ক্যাটাগরি নির্বাচন করুন (একাধিক সিলেক্ট করা যাবে)</label>
-              <div className="flex flex-wrap gap-4">
-                {allCategories.map(cat => (
-                  <label key={cat} className="flex items-center gap-2 cursor-pointer hover:text-[#104f96]">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedCats.includes(cat)}
-                      onChange={() => {
-                        if (selectedCats.includes(cat)) {
-                          setSelectedCats(selectedCats.filter(c => c !== cat));
-                        } else {
-                          setSelectedCats([...selectedCats, cat]);
-                        }
-                      }}
-                      className="w-4 h-4 cursor-pointer accent-[#104f96]"
-                    />
-                    <span className="font-bold text-gray-800 text-sm md:text-base">{cat}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            
-            <div className="border border-gray-300 p-4 md:p-6 rounded bg-gray-50 text-center">
-               <label className="block font-bold mb-3 md:mb-4 text-gray-700 text-sm md:text-base">ছবি আপলোড (Cloudinary)</label>
-               <input type="file" onChange={handleImageUpload} className="mb-2 text-xs md:text-sm block mx-auto w-full md:w-auto" />
-               <p className="text-gray-400 text-xs md:text-sm my-2">- অথবা সরাসরি ছবির ইউআরএল দিন -</p>
-               <input type="text" placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full border p-2 rounded text-xs md:text-sm mb-4 outline-none focus:border-red-400" />
-               
-               {imageUrl && (
-                  <div className="mt-2 md:mt-4 border p-2 bg-white rounded shadow-sm inline-block">
-                     <p className="text-[10px] md:text-xs font-bold text-green-600 mb-2">ছবির প্রিভিউ:</p>
-                     <img src={imageUrl} alt="Preview" className="w-32 h-24 md:w-48 md:h-32 object-cover rounded mx-auto" />
-                  </div>
-               )}
-            </div>
-
-            {message && <div className={`p-3 text-sm md:text-base font-bold text-center rounded ${message.includes('✅') ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-800'}`}>{message}</div>}
-            
-            <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-               <button type="submit" disabled={isUploading || !imageUrl || !title} className="flex-1 bg-red-700 text-white font-bold text-base md:text-lg py-3 rounded hover:bg-red-800 disabled:bg-gray-400 transition shadow-sm">
-                  {isUploading ? 'ছবি আপলোড হচ্ছে...' : (
-                    editingId ? 'আপডেট করুন' : (user?.role === 'admin' || user?.role === 'editor' ? 'পাবলিশ করুন' : 'সেন্ড টু এডিটর')
-                  )}
-               </button>
-               {editingId && (
-                  <button type="button" onClick={resetForm} className="bg-gray-500 text-white font-bold text-base md:text-lg py-3 px-6 rounded hover:bg-gray-600 transition shadow-sm">
-                     বাতিল
+            {/* অটো নিউজ ফেচার সেকশন (শুধুমাত্র নতুন খবরের ক্ষেত্রে দেখাবে) */}
+            {!editingId && (
+              <div className="p-4 md:p-6 bg-[#f4f7fc] rounded border border-[#104f96]/20 shadow-sm">
+                <h2 className="text-lg md:text-xl font-bold text-[#104f96] mb-2">অটো নিউজ ফেচার (লিংক পেস্ট)</h2>
+                <p className="text-xs md:text-sm text-gray-600 mb-4">যেকোনো খবরের লিংক পেস্ট করুন। এআই স্বয়ংক্রিয়ভাবে খবরটি বিশ্লেষণ করে ছবিসহ ড্রাফটে সেভ করবে।</p>
+                
+                <form onSubmit={handleFetchNews} className="flex flex-col sm:flex-row gap-3">
+                  <input 
+                    type="url" 
+                    value={fetchUrl}
+                    onChange={(e) => setFetchUrl(e.target.value)}
+                    placeholder="এখানে খবরের লিংক পেস্ট করুন..." 
+                    required
+                    disabled={isFetching}
+                    className="flex-1 px-4 py-2 border border-blue-200 rounded text-sm md:text-base focus:outline-none focus:border-[#104f96]"
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={isFetching}
+                    className={`px-6 py-2 font-bold rounded text-white text-sm md:text-base transition ${isFetching ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#104f96] hover:bg-blue-800'}`}
+                  >
+                    {isFetching ? 'প্রসেস হচ্ছে...' : 'GO'}
                   </button>
-               )}
-            </div>
-          </form>
+                </form>
+
+                {fetchMessage.text && (
+                  <div className={`mt-4 p-2.5 rounded font-bold text-xs md:text-sm text-center border ${
+                    fetchMessage.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : 
+                    fetchMessage.type === 'error' ? 'bg-red-100 text-red-700 border-red-200' : 
+                    'bg-blue-100 text-blue-700 border-blue-200'
+                  }`}>
+                    {fetchMessage.text}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* বিভাজক রেখা (Divider) */}
+            {!editingId && (
+              <div className="flex items-center gap-4 my-2">
+                <hr className="flex-1 border-gray-300" />
+                <span className="text-xs md:text-sm font-bold text-gray-400">অথবা ম্যানুয়ালি যুক্ত করুন</span>
+                <hr className="flex-1 border-gray-300" />
+              </div>
+            )}
+
+            {/* ম্যানুয়াল ফর্ম */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input required type="text" placeholder="শিরোনাম" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border p-3 rounded font-bold focus:outline-none focus:ring-2 focus:ring-red-200" />
+              <textarea required placeholder="হোমপেজের জন্য সারাংশ স্নিপেট" value={snippet} onChange={(e) => setSnippet(e.target.value)} className="w-full border p-3 rounded h-16 focus:outline-none focus:ring-2 focus:ring-red-200 text-sm md:text-base" />
+              <textarea required placeholder="খবরের পুরো বিস্তারিত বিবরণ (এখানে প্যারাগ্রাফ করে লিখুন)" value={content} onChange={(e) => setContent(e.target.value)} className="w-full border p-3 rounded h-40 md:h-52 focus:outline-none focus:ring-2 focus:ring-red-200" />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input required type="text" placeholder="সূত্র/প্রতিনিধির নাম" value={sourceName} onChange={(e) => setSourceName(e.target.value)} className="border p-3 rounded font-bold w-full text-sm md:text-base" />
+                <input type="text" placeholder="ছবির ক্যাপশন/উৎস (যেমন: সংগৃহীত)" value={imageSource} onChange={(e) => setImageSource(e.target.value)} className="border p-3 rounded font-bold w-full text-sm md:text-base" />
+              </div>
+
+              {/* চেকবক্স স্টাইলে একাধিক ক্যাটাগরি সিস্টেম */}
+              <div className="border p-4 rounded bg-white mt-4 border-gray-300">
+                <label className="block text-sm font-bold text-gray-700 mb-3 border-b pb-2">ক্যাটাগরি নির্বাচন করুন (একাধিক সিলেক্ট করা যাবে)</label>
+                <div className="flex flex-wrap gap-4">
+                  {allCategories.map(cat => (
+                    <label key={cat} className="flex items-center gap-2 cursor-pointer hover:text-[#104f96]">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedCats.includes(cat)}
+                        onChange={() => {
+                          if (selectedCats.includes(cat)) {
+                            setSelectedCats(selectedCats.filter(c => c !== cat));
+                          } else {
+                            setSelectedCats([...selectedCats, cat]);
+                          }
+                        }}
+                        className="w-4 h-4 cursor-pointer accent-[#104f96]"
+                      />
+                      <span className="font-bold text-gray-800 text-sm md:text-base">{cat}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="border border-gray-300 p-4 md:p-6 rounded bg-gray-50 text-center">
+                 <label className="block font-bold mb-3 md:mb-4 text-gray-700 text-sm md:text-base">ছবি আপলোড (Cloudinary)</label>
+                 <input type="file" onChange={handleImageUpload} className="mb-2 text-xs md:text-sm block mx-auto w-full md:w-auto" />
+                 <p className="text-gray-400 text-xs md:text-sm my-2">- অথবা সরাসরি ছবির ইউআরএল দিন -</p>
+                 <input type="text" placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full border p-2 rounded text-xs md:text-sm mb-4 outline-none focus:border-red-400" />
+                 
+                 {imageUrl && (
+                    <div className="mt-2 md:mt-4 border p-2 bg-white rounded shadow-sm inline-block">
+                       <p className="text-[10px] md:text-xs font-bold text-green-600 mb-2">ছবির প্রিভিউ:</p>
+                       <img src={imageUrl} alt="Preview" className="w-32 h-24 md:w-48 md:h-32 object-cover rounded mx-auto" />
+                    </div>
+                 )}
+              </div>
+
+              {message && <div className={`p-3 text-sm md:text-base font-bold text-center rounded ${message.includes('✅') ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-800'}`}>{message}</div>}
+              
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+                 <button type="submit" disabled={isUploading || !imageUrl || !title} className="flex-1 bg-red-700 text-white font-bold text-base md:text-lg py-3 rounded hover:bg-red-800 disabled:bg-gray-400 transition shadow-sm">
+                    {isUploading ? 'ছবি আপলোড হচ্ছে...' : (
+                      editingId ? 'আপডেট করুন' : (user?.role === 'admin' || user?.role === 'editor' ? 'পাবলিশ করুন' : 'সেন্ড টু এডিটর')
+                    )}
+                 </button>
+                 {editingId && (
+                    <button type="button" onClick={resetForm} className="bg-gray-500 text-white font-bold text-base md:text-lg py-3 px-6 rounded hover:bg-gray-600 transition shadow-sm">
+                       বাতিল
+                    </button>
+                 )}
+              </div>
+            </form>
+          </div>
         )}
 
         {activeTab === 'manage' && (
@@ -393,7 +478,6 @@ const handleLogin = async (e: React.FormEvent) => {
                           <span className={`text-[10px] md:text-xs font-bold px-2 py-0.5 rounded text-white ${isPub ? 'bg-green-600' : 'bg-orange-500'}`}>
                             {isPub ? 'পাবলিশড' : 'পেন্ডিং / ড্রাফট'}
                           </span>
-                          {/* এখানে একাধিক ক্যাটাগরিগুলো ছোট ট্যাগ হিসেবে দেখানো হলো */}
                           {news.category && news.category.split(',').map((cat: string, i: number) => (
                              <span key={i} className="text-[10px] md:text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded">{cat.trim()}</span>
                           ))}
