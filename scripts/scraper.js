@@ -309,6 +309,7 @@ const prompt = `
 - "ছবি সংগৃহীত" বা অনুরূপ কোনো বাক্য যোগ করা যাবে না।
 
 ========================
+========================
 তৃতীয় ধাপ: AI Image Prompt
 ========================
 
@@ -316,56 +317,29 @@ image_prompt অবশ্যই ইংরেজিতে লিখবে।
 
 এটি AI Image Generator-এর জন্য Professional Editorial Image Prompt হবে।
 
-সর্বোচ্চ ২৫০ অক্ষরের মধ্যে লিখবে।
+সর্বোচ্চ ৩০০ অক্ষরের মধ্যে লিখবে।
 
 নিচের নিয়মগুলো বাধ্যতামূলক:
 
-✔ ছবিটি হবে সম্পূর্ণ প্রতীকী (Symbolic)।
+✔ ছবিটিকে অত্যন্ত ঝকঝকে, বাস্তবসম্মত এবং প্রফেশনাল করতে প্রম্পটের শেষে এই কিওয়ার্ডগুলো অবশ্যই যুক্ত করবে: "Hyper-realistic, shot on 35mm lens, DSLR, 8k resolution, highly detailed, dramatic cinematic lighting, sharp focus, award-winning photojournalism."
 
-✔ ছবিটি হবে Editorial Quality, Photorealistic, Cinematic এবং Newspaper Front Page মানের।
+✔ ছবিটি হবে সম্পূর্ণ প্রতীকী (Symbolic) কিন্তু একটি কংক্রিট দৃশ্য (Concrete Scene)। কোনো আজগুবি বা ভাসমান বস্তু (যেমন- অর্ধেক শরীর, ভাসমান শার্ট) তৈরি করবে না। 
 
-✔ শুধুমাত্র খবরের বিষয়বস্তু উপস্থাপন করবে।
+✔ শুধুমাত্র খবরের বিষয়বস্তুর সাথে মানানসই একটি বাস্তবসম্মত দৃশ্যপট উপস্থাপন করবে। (যেমন: পুলিশের খবরের ক্ষেত্রে- একটি টেবিলের ওপর পুলিশের টুপি এবং ওয়াকিটকি, অথবা অপরাধের খবরের ক্ষেত্রে- অন্ধকার রাস্তায় পুলিশের গাড়ির লাল-নীল সাইরেনের আলো)।
 
 ✔ বাস্তব ঘটনাকে বিভ্রান্তিকরভাবে পুনর্নির্মাণ করবে না।
 
-✔ যদি কোনো ব্যক্তি বা প্রতিষ্ঠান নিয়ে সংবাদ হয়, তাহলে তাদের মুখ, পরিচয় বা নির্দিষ্ট চেহারা দেখাবে না।
+✔ যদি কোনো ব্যক্তি বা প্রতিষ্ঠান নিয়ে সংবাদ হয়, তাহলে তাদের মুখ, পরিচয় বা নির্দিষ্ট চেহারা দেখাবে না। 
 
 ✔ কোনো রাজনৈতিক নেতা, অভিনেতা, ক্রীড়াবিদ, সেলিব্রিটি বা পরিচিত ব্যক্তির নাম লিখবে না।
 
-✔ Generic মানুষ, silhouette, hands, crowd, cityscape, infrastructure, documents, courtroom, parliament building, ballot box, hospital corridor, school, road, agriculture, technology, economy, environment ইত্যাদি প্রতীকী উপস্থাপনা ব্যবহার করবে।
+✔ Generic মানুষ, silhouette, hands, crowd, cityscape, infrastructure, documents, courtroom gavel, police lights, hospital corridor, school, road, agriculture, technology, economy, environment ইত্যাদি প্রতীকী কিন্তু অত্যন্ত রিয়ালিস্টিক উপস্থাপনা ব্যবহার করবে।
 
 ✔ ছবিতে কোনো Text, Typography, Caption, Watermark, Logo, Banner, Signboard, Number বা লেখা থাকবে না।
 
-✔ No blood
+✔ No blood, No injuries, No dead body, No violence, No weapon, No graphic content, No disturbing scene, No misleading reconstruction.
 
-✔ No injuries
-
-✔ No dead body
-
-✔ No violence
-
-✔ No weapon
-
-✔ No graphic content
-
-✔ No disturbing scene
-
-✔ No misleading reconstruction
-
-✔ Google AdSense Safe
-
-✔ Editorial Safe
-
-✔ Family Friendly
-
-✔ High realism
-
-✔ Soft natural lighting
-
-✔ Ultra detailed
-
-✔ Professional photojournalism style
-
+✔ Google AdSense Safe, Editorial Safe, Family Friendly.
 ========================
 চতুর্থ ধাপ: JSON Output
 ========================
