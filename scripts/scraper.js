@@ -319,7 +319,7 @@ image_prompt অবশ্যই ইংরেজিতে লিখবে।
 
 সর্বোচ্চ ৩০০ অক্ষরের মধ্যে লিখবে।
 
-নিচের নিয়মগুলো বাধ্যতামূলক:
+প্রম্পটে নিচের নিয়মগুলো বাধ্যতামূলক লিখবে:
 
 ✔ ছবিটিকে কোনোভাবেই ধূসর বা অনুজ্জ্বল (grayish/dull) করা যাবে না। ছবিটিকে অত্যন্ত ঝকঝকে, রঙিন (Colorful) এবং মডার্ন ফটোগ্রাফির মতো করতে প্রম্পটের শেষে এই কিওয়ার্ডগুলো অবশ্যই যুক্ত করবে: "Vibrant colors, modern digital photography, bright natural daylight, ultra-clear, vivid color palette, high contrast, 8k resolution, award-winning photojournalism, sharp focus."
 
@@ -329,7 +329,7 @@ image_prompt অবশ্যই ইংরেজিতে লিখবে।
 
 ✔ প্রম্পটে "cinematic lighting", "moody" বা "faded" জাতীয় শব্দ ব্যবহার করবে না।
 
-✔ ছবিটি হবে সম্পূর্ণ প্রতীকী (Symbolic) কিন্তু একটি কংক্রিট দৃশ্য (Concrete Scene)। কোনো আজগুবি বা ভাসমান বস্তু তৈরি করবে না।
+✔ ছবিটি হবে সম্পূর্ণ প্রতীকী (Symbolic) কিন্তু একটি কংক্রিট অর্থবহুল দৃশ্য (Concrete Scene)। কোনো আজগুবি বা ভাসমান বস্তু তৈরি করবে না।
 
 ✔ বাস্তব ঘটনাকে বিভ্রান্তিকরভাবে পুনর্নির্মাণ করবে না।
 
@@ -339,9 +339,9 @@ image_prompt অবশ্যই ইংরেজিতে লিখবে।
 
 ✔ ছবিতে কোনো Text, Typography, Caption, Watermark, Logo, Banner, Signboard, Number বা লেখা থাকবে না।
 
-✔ No blood, No injuries, No dead body, No violence, No weapon, No graphic content, No disturbing scene, No misleading reconstruction.
+✔  No dead body, No violence, No weapon, No graphic content, No disturbing scene, No misleading reconstruction.
 
-✔ Google AdSense Safe, Editorial Safe, Family Friendly.
+✔  Editorial Safe, Family Friendly.
 ========================
 চতুর্থ ধাপ: JSON Output
 ========================
