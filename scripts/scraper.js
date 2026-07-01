@@ -1,4 +1,3 @@
-
 const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -19,23 +18,21 @@ const supabase = createClient(
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// AI Image Generate এবং Cloudinary তে Upload করার ফাংশন
+// AI Image Generate (FLUX) এবং Cloudinary তে Upload করার ফাংশন
 async function generateAndUploadImage(imagePrompt) {
   try {
-    console.log(`🎨 ইমেজ জেনারেট হচ্ছে (FLUX Model) প্রম্পট দিয়ে: ${imagePrompt}`);
+    console.log(`🎨 ইমেজ জেনারেট হচ্ছে (FLUX Model) প্রম্পট দিয়ে...`);
     
     // Pollinations AI-এর উন্নত FLUX মডেল, 1280x720 রেজ্যুলেশন এবং এনহ্যান্সমেন্ট ব্যবহার
     const encodedPrompt = encodeURIComponent(imagePrompt);
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=flux&width=1280&height=720&enhance=true&nologo=true&safe=true&seed=-1`;
 
-    // ছবি ফেচ করে বাফারে কনভার্ট করা
     const imageRes = await fetch(imageUrl);
     if (!imageRes.ok) throw new Error("Image fetch failed");
     
     const arrayBuffer = await imageRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // বাফার থেকে সরাসরি ক্লাউডিনারিতে আপলোড
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         { folder: 'bongiyotimes_auto' }, 
@@ -58,8 +55,26 @@ async function generateAndUploadImage(imagePrompt) {
   }
 }
 
+// মূল নিউজের ছবি Base64 এ কনভার্ট করার ফাংশন (Gemini Vision এর জন্য)
+async function fetchImageForGemini(imageUrl) {
+    try {
+        const response = await fetch(imageUrl);
+        if (!response.ok) return null;
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        return {
+            inlineData: {
+                data: buffer.toString("base64"),
+                mimeType: response.headers.get("content-type") || "image/jpeg"
+            }
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Smart Mode with AI Image Gen)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Vision AI Redraw Mode)...");
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
@@ -215,6 +230,14 @@ async function runBot() {
         const articleHtml = await articleRes.text();
         const article$ = cheerio.load(articleHtml);
 
+        // 🖼️ মূল নিউজের ফিচার ইমেজ (og:image) সংগ্রহ করা
+        const ogImageUrl = article$('meta[property="og:image"]').attr('content');
+        let geminiImagePart = null;
+        if (ogImageUrl) {
+            console.log(`📸 মূল নিউজের ছবি সংগ্রহ করা হয়েছে, জেমিনি ভিশন দিয়ে রেড-ড্র করা হবে...`);
+            geminiImagePart = await fetchImageForGemini(ogImageUrl);
+        }
+
         const fullTextArray = [];
         article$('p').each((i, el) => {
           const text = article$(el).text().trim();
@@ -225,14 +248,13 @@ async function runBot() {
         if (fullText.length < 300) continue; 
 
         if (fullText) {
-          console.log(`🧠 জেমিনি এপিআই দিয়ে বিশ্লেষণ শুরু হচ্ছে...`);
+          console.log(`🧠 জেমিনি ভিশন এপিআই দিয়ে বিশ্লেষণ ও রেড-ড্র প্রম্পট তৈরি শুরু হচ্ছে...`);
           
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
-            // Professional News Processing & AdSense-Safe Symbolic Image Prompt
 const prompt = `
-তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। নিচে একটি ওয়েবপেজ থেকে সংগৃহীত টেক্সট দেওয়া হয়েছে।
+তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। নিচে একটি ওয়েবপেজ থেকে সংগৃহীত টেক্সট দেওয়া হয়েছে এবং সাথে মূল খবরের ছবিটিও (যদি পাওয়া যায়) সংযুক্ত করা হয়েছে।
 
 ========================
 প্রথম ধাপ: সংবাদ যাচাই (Mandatory Validation)
@@ -278,7 +300,7 @@ const prompt = `
 ### ১. শিরোনাম (Title)
 - শিরোনাম হবে জাতীয় দৈনিক পত্রিকার প্রথম পাতার মানের।
 - সংক্ষিপ্ত, শক্তিশালী, তথ্যসমৃদ্ধ এবং আকর্ষণীয় হবে।
-- Clickbait করা যাবে গান্ধা।
+- Clickbait করা যাবে না।
 - কোলন (:), ড্যাশ (-), পাইপ (|) বা দুই ভাগে বিভক্ত শিরোনাম ব্যবহার করা যাবে না।
 - শিরোনামে অতিরঞ্জিত বিশেষণ ব্যবহার করবে না।
 
@@ -300,78 +322,27 @@ const prompt = `
 - "ছবি সংগৃহীত" বা অনুরূপ কোনো বাক্য যোগ করা যাবে না।
 
 ========================
-তৃতীয় ধাপ: AI Image Prompt
+তৃতীয় ধাপ: AI Redraw Image Prompt (Vision)
 ========================
 
-Write image_prompt in English only.
+আমি মূল নিউজের ছবি সংযুক্ত করেছি (যদি পাওয়া গিয়ে থাকে)। ছবিটি খুব মনোযোগ দিয়ে দেখো।
+এই ছবিটিকে হুবহু নতুন করে (Copyright-free) তৈরি করার জন্য AI Image Generator-এর উপযোগী একটি অত্যন্ত বিস্তারিত প্রম্পট (image_prompt) দাও।
 
-Generate ONE Professional Editorial AI Image Prompt.
+Write image_prompt in English only. Max 300 characters.
 
-Maximum 300 characters.
+নিয়মাবলী:
+- প্রম্পটের শুরুতেই অবশ্যই এই বাক্যটি লিখবে: "Realistic editorial news photograph of..."
+- ছবির মূল বিষয়বস্তু, কালার, লাইটিং এবং কম্পোজিশন হুবহু রাখবে যাতে নতুন তৈরি হওয়া ছবিটি মূল ছবির মতোই দেখতে হয়, কিন্তু সম্পূর্ণ কপিরাইট মুক্ত হয়।
+- ছবিতে থাকা নির্দিষ্ট কোনো রাজনৈতিক নেতা, অভিনেতা বা পরিচিত ব্যক্তির চেহারা হুবহু বর্ণনা করবে না। তার বদলে Generic মানুষ বা সিলুয়েট ব্যবহার করে দৃশ্যটি ফুটিয়ে তুলবে।
+- ছবিতে কোনো Text, Typography, Logo, Watermark, Banner, Signboard বা লেখা প্রম্পটে রাখবে না।
+- No blood, No violence, Google AdSense Safe.
+- প্রম্পটের শেষে হুবহু এই কিওয়ার্ডগুলো যুক্ত করবে: "editorial news photography, documentary photography, professional DSLR, realistic perspective, authentic environment, wide-angle composition, natural lighting, ultra realistic, high detail, 8k"
 
-The prompt must describe a hyper-realistic, symbolic but meaningful concrete scene that naturally represents the news topic.
-
-First identify the news category automatically and choose the most suitable symbolic scene.
-
-Examples:
-Economy & Banking → POS terminal, payment counter, bank interior, financial desk.
-Business → office, warehouse, logistics, shipping containers.
-Politics → parliament exterior, government building, podium, national flag without text.
-Law & Court → courthouse exterior, judge's gavel on desk, legal documents without text.
-Crime → police vehicle lights on empty street, forensic tape, courthouse exterior.
-Education → books, glasses on desk, classroom, library, university campus.
-Health → hospital corridor, laboratory, medical equipment.
-Technology → server racks, data center, computer hardware, research lab.
-Science → laboratory, microscope, scientific instruments.
-Agriculture → crop fields, irrigation, tractors, farming equipment.
-Environment → rivers, trees, wetlands, renewable energy.
-Weather → clouds, rainfall, flooded roads, lightning, strong wind.
-Flood → drainage canal, embankment, rescue boat, waterlogged streets.
-Fire → fire service vehicles outside a building, smoke only, no victims.
-Transport → highway, railway, metro station, bridge, airport.
-Construction → cranes, engineers, infrastructure, road works.
-International → airport terminal, world skyline, diplomatic buildings.
-Entertainment → empty director chair, film camera, clapperboard, studio lights.
-Sports → empty stadium, football, cricket bat, running track.
-Religion → mosque exterior, prayer hall, Islamic architecture.
-Jobs → office workspace, interview room, laptop on desk.
-Lifestyle → home interior, kitchen, fitness equipment, park.
-Travel → scenic destination, luggage, airport terminal.
-Cyber Security → computer servers, cybersecurity interface without text.
-Digital Payment → POS terminal, blank QR stand, payment infrastructure.
-Energy → power station, solar panels, electric grid.
-Industry → factory exterior, machinery.
-Maritime → cargo port, container terminal, ships.
-Aviation → airport runway, passenger aircraft.
-Railway → railway station, train tracks.
-Housing → residential buildings, urban skyline.
-
-Use realistic environments, documentary-style editorial photography, authentic perspective, wide-angle composition, modern digital photography.
-
-Do NOT reconstruct the real event.
-
-Do NOT show recognizable faces, celebrities, politicians or public figures.
-
-Avoid close-up hands, fingers or people holding documents.
-
-No text, typography, logo, watermark, banner, signboard, QR details, screen UI, numbers or labels.
-
-No illustration, painting, cartoon, CGI, fantasy, floating objects, exaggerated HDR, cinematic lighting, moody or faded effects.
-
-No dead body, violence, weapon, graphic content, disturbing scene or misleading reconstruction.
-
-Editorial Safe. Family Friendly.
-
-Always end EXACTLY with:
-
-Vibrant colors, editorial news photography, documentary photography, realistic perspective, authentic environment, wide-angle composition, professional DSLR, modern digital photography, bright natural daylight, ultra-clear, vivid color palette, high contrast, 8k resolution, award-winning photojournalism, sharp focus.
 ========================
 চতুর্থ ধাপ: JSON Output
 ========================
 
 শুধুমাত্র Valid JSON রিটার্ন করবে।
-
-অন্য কোনো ব্যাখ্যা লিখবে না।
 
 Output Format:
 {
@@ -387,17 +358,20 @@ Output Format:
 ${fullText}
 `;
 
+            // 💡 যদি ছবি পাওয়া যায়, তবে টেক্সটের সাথে ছবিও জেমিনিকে পাঠানো হবে
+            const geminiPayload = geminiImagePart ? [prompt, geminiImagePart] : [prompt];
+            
             let result;
             try {
-                result = await model.generateContent(prompt);
+                result = await model.generateContent(geminiPayload);
             } catch (geminiError) {
                 if (geminiError.message.includes('429') || geminiError.message.includes('quota')) {
                     console.log('⏳ কোটা লিমিট শেষ, ৬ সেকেন্ড অপেক্ষা করে আবার চেষ্টা করা হচ্ছে...');
                     await delay(6000);
-                    result = await model.generateContent(prompt);
+                    result = await model.generateContent(geminiPayload);
                 } else if (geminiError.message.includes('503')) {
                     await delay(10000);
-                    result = await model.generateContent(prompt);
+                    result = await model.generateContent(geminiPayload);
                 } else {
                     throw geminiError;
                 }
@@ -412,7 +386,7 @@ ${fullText}
                 continue; 
             }
 
-            // 🎨 ইমেজ জেনারেশন ও আপলোড ফ্লো
+            // 🎨 ইমেজ জেনারেশন ও আপলোড ফ্লো (AI Redraw)
             let finalImageUrl = defaultPlaceholder;
             if (rewrittenData.image_prompt) {
                 const uploadedImageUrl = await generateAndUploadImage(rewrittenData.image_prompt);
@@ -426,11 +400,11 @@ ${fullText}
               title: rewrittenData.title,
               content: rewrittenData.content,
               snippet: rewrittenData.content.replace(/<[^>]*>?/gm, '').substring(0, 150) + "...", 
-              image_url: finalImageUrl, // জেনারেট করা ছবির লিংক
+              image_url: finalImageUrl, 
               source_url: link,
               source_name: 'বঙ্গীয় টাইমস', 
               category: source.defaultCategory,
-              image_source: 'বঙ্গীয় টাইমস', 
+              image_source: 'এআই জেনারেটেড', 
               is_published: true, 
               is_custom: false 
             }]);
