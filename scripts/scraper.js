@@ -309,39 +309,73 @@ const prompt = `
 - "ছবি সংগৃহীত" বা অনুরূপ কোনো বাক্য যোগ করা যাবে না।
 
 ========================
+
 ========================
 তৃতীয় ধাপ: AI Image Prompt
 ========================
 
-image_prompt অবশ্যই ইংরেজিতে লিখবে।
+Write image_prompt in English only.
 
-এটি AI Image Generator-এর জন্য Professional Editorial Image Prompt হবে।
+Generate ONE Professional Editorial AI Image Prompt.
 
-সর্বোচ্চ ৩০০ অক্ষরের মধ্যে লিখবে।
+Maximum 300 characters.
 
-প্রম্পটে নিচের নিয়মগুলো বাধ্যতামূলক লিখবে:
+The prompt must describe a hyper-realistic, symbolic but meaningful concrete scene that naturally represents the news topic.
 
-✔ ছবিটিকে কোনোভাবেই ধূসর বা অনুজ্জ্বল (grayish/dull) করা যাবে না। ছবিটিকে অত্যন্ত ঝকঝকে, রঙিন (Colorful) এবং মডার্ন ফটোগ্রাফির মতো করতে প্রম্পটের শেষে এই কিওয়ার্ডগুলো অবশ্যই যুক্ত করবে: "Vibrant colors, modern digital photography, bright natural daylight, ultra-clear, vivid color palette, high contrast, 8k resolution, award-winning photojournalism, sharp focus."
+First identify the news category automatically and choose the most suitable symbolic scene.
 
-✔ **খুবই জরুরি:** কোনো মানুষের হাতের ক্লোজ-আপ, আঙুল বা হাত দিয়ে কোনো কাগজ/সার্টিফিকেট ধরে রাখার দৃশ্য প্রম্পটে একদমই দেবে না (কারণ AI হাতের গঠন ঠিকমতো বানাতে পারে না)। 
+Examples:
+Economy & Banking → POS terminal, payment counter, bank interior, financial desk.
+Business → office, warehouse, logistics, shipping containers.
+Politics → parliament exterior, government building, podium, national flag without text.
+Law & Court → courthouse exterior, judge's gavel on desk, legal documents without text.
+Crime → police vehicle lights on empty street, forensic tape, courthouse exterior.
+Education → books, glasses on desk, classroom, library, university campus.
+Health → hospital corridor, laboratory, medical equipment.
+Technology → server racks, data center, computer hardware, research lab.
+Science → laboratory, microscope, scientific instruments.
+Agriculture → crop fields, irrigation, tractors, farming equipment.
+Environment → rivers, trees, wetlands, renewable energy.
+Weather → clouds, rainfall, flooded roads, lightning, strong wind.
+Flood → drainage canal, embankment, rescue boat, waterlogged streets.
+Fire → fire service vehicles outside a building, smoke only, no victims.
+Transport → highway, railway, metro station, bridge, airport.
+Construction → cranes, engineers, infrastructure, road works.
+International → airport terminal, world skyline, diplomatic buildings.
+Entertainment → empty director chair, film camera, clapperboard, studio lights.
+Sports → empty stadium, football, cricket bat, running track.
+Religion → mosque exterior, prayer hall, Islamic architecture.
+Jobs → office workspace, interview room, laptop on desk.
+Lifestyle → home interior, kitchen, fitness equipment, park.
+Travel → scenic destination, luggage, airport terminal.
+Cyber Security → computer servers, cybersecurity interface without text.
+Digital Payment → POS terminal, blank QR stand, payment infrastructure.
+Energy → power station, solar panels, electric grid.
+Industry → factory exterior, machinery.
+Maritime → cargo port, container terminal, ships.
+Aviation → airport runway, passenger aircraft.
+Railway → railway station, train tracks.
+Housing → residential buildings, urban skyline.
 
-✔ **বিকল্প দৃশ্য:** শিক্ষার খবরের ক্ষেত্রে 'টেবিলের ওপর রাখা চশমা ও বই', অপরাধের ক্ষেত্রে 'অন্ধকার রাস্তায় পুলিশের গাড়ির লাল-নীল আলো', বিনোদনের ক্ষেত্রে 'একটি খালি ডিরেক্টরস চেয়ার বা সিনেমাটিক স্পটলাইট' — এ ধরনের নিরাপদ এবং টেক্সট-বিহীন (Text-free) দৃশ্য বর্ণনা করবে।
+Use realistic environments, documentary-style editorial photography, authentic perspective, wide-angle composition, modern digital photography.
 
-✔ প্রম্পটে "cinematic lighting", "moody" বা "faded" জাতীয় শব্দ ব্যবহার করবে না।
+Do NOT reconstruct the real event.
 
-✔ ছবিটি হবে সম্পূর্ণ প্রতীকী (Symbolic) কিন্তু একটি কংক্রিট অর্থবহুল দৃশ্য (Concrete Scene)। কোনো আজগুবি বা ভাসমান বস্তু তৈরি করবে না।
+Do NOT show recognizable faces, celebrities, politicians or public figures.
 
-✔ বাস্তব ঘটনাকে বিভ্রান্তিকরভাবে পুনর্নির্মাণ করবে না।
+Avoid close-up hands, fingers or people holding documents.
 
-✔ যদি কোনো ব্যক্তি বা প্রতিষ্ঠান নিয়ে সংবাদ হয়, তাহলে তাদের মুখ, পরিচয় বা নির্দিষ্ট চেহারা দেখাবে না। কোনো রাজনৈতিক নেতা, অভিনেতা, ক্রীড়াবিদ বা সেলিব্রিটির নাম লিখবে না।
+No text, typography, logo, watermark, banner, signboard, QR details, screen UI, numbers or labels.
 
-✔ Generic মানুষ (খুব দূরের শট), silhouette, cityscape, infrastructure, objects on desk, courtroom gavel, police lights, hospital corridor, school building, agriculture, technology ইত্যাদি প্রতীকী কিন্তু অত্যন্ত কালারফুল ও রিয়ালিস্টিক উপস্থাপনা ব্যবহার করবে।
+No illustration, painting, cartoon, CGI, fantasy, floating objects, exaggerated HDR, cinematic lighting, moody or faded effects.
 
-✔ ছবিতে কোনো Text, Typography, Caption, Watermark, Logo, Banner, Signboard, Number বা লেখা থাকবে না।
+No dead body, violence, weapon, graphic content, disturbing scene or misleading reconstruction.
 
-✔  No dead body, No violence, No weapon, No graphic content, No disturbing scene, No misleading reconstruction.
+Editorial Safe. Family Friendly.
 
-✔  Editorial Safe, Family Friendly.
+Always end EXACTLY with:
+
+Vibrant colors, editorial news photography, documentary photography, realistic perspective, authentic environment, wide-angle composition, professional DSLR, modern digital photography, bright natural daylight, ultra-clear, vivid color palette, high contrast, 8k resolution, award-winning photojournalism, sharp focus.
 ========================
 চতুর্থ ধাপ: JSON Output
 ========================
