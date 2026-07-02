@@ -18,7 +18,54 @@ const supabase = createClient(
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// AI Image Generate (FLUX) এবং Cloudinary তে Upload করার ফাংশন
+// ১. Unsplash থেকে ছবি খোঁজার ফাংশন
+async function searchUnsplash(keyword) {
+  try {
+    console.log(`🔍 Unsplash-এ ছবি খোঁজা হচ্ছে: ${keyword}`);
+    const url = `https://api.unsplash.com/search/photos?page=1&per_page=1&query=${encodeURIComponent(keyword)}&orientation=landscape&client_id=${process.env.UNSPLASH_ACCESS_KEY}`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data.results && data.results.length > 0) return data.results[0].urls.regular; 
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
+// ২. Pexels থেকে ছবি খোঁজার ফাংশন
+async function searchPexels(keyword) {
+  try {
+    console.log(`🔍 Pexels-এ ছবি খোঁজা হচ্ছে: ${keyword}`);
+    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(keyword)}&per_page=1&orientation=landscape`;
+    const response = await fetch(url, {
+      headers: { Authorization: process.env.PEXELS_API_KEY }
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data.photos && data.photos.length > 0) return data.photos[0].src.landscape || data.photos[0].src.large; 
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
+// ৩. Pixabay থেকে ছবি খোঁজার ফাংশন
+async function searchPixabay(keyword) {
+  try {
+    console.log(`🔍 Pixabay-তে ছবি খোঁজা হচ্ছে: ${keyword}`);
+    const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(keyword)}&image_type=photo&orientation=horizontal&per_page=3`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data.hits && data.hits.length > 0) return data.hits[0].largeImageURL; 
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
+// ৪. AI Image Generate (FLUX) এবং Cloudinary তে Upload করার ফাংশন
 async function generateAndUploadImage(imagePrompt) {
   try {
     console.log(`🎨 ইমেজ জেনারেট হচ্ছে (FLUX Model) প্রম্পট দিয়ে...`);
@@ -55,7 +102,7 @@ async function generateAndUploadImage(imagePrompt) {
   }
 }
 
-// মূল নিউজের ছবি Base64 এ কনভার্ট করার ফাংশন (Gemini Vision এর জন্য)
+// ৫. মূল নিউজের ছবি Base64 এ কনভার্ট করার ফাংশন (Gemini Vision এর জন্য)
 async function fetchImageForGemini(imageUrl) {
     try {
         const response = await fetch(imageUrl);
@@ -74,7 +121,7 @@ async function fetchImageForGemini(imageUrl) {
 }
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Vision AI Redraw Mode)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Vision AI + Stock Search + AI Redraw)...");
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
@@ -322,34 +369,31 @@ const prompt = `
 - "ছবি সংগৃহীত" বা অনুরূপ কোনো বাক্য যোগ করা যাবে না।
 
 ========================
-তৃতীয় ধাপ: AI Redraw Image Prompt (Vision)
+তৃতীয় ধাপ: Image Sourcing & Fallback AI Prompt
 ========================
+১. search_keyword: Unsplash, Pexels এবং Pixabay-তে স্টক ছবি খোঁজার জন্য খবরের থিম অনুযায়ী সর্বোচ্চ ১-২ শব্দের একটি নিখুঁত ইংরেজি কিওয়ার্ড দাও (যেমন: "hospital", "police", "money", "court")। 
+২. image_prompt: যদি স্টক সাইটে ছবি না পাওয়া যায়, তবে AI (FLUX) দিয়ে সম্পূর্ণ কপিরাইট-মুক্ত ছবি জেনারেট করার জন্য প্রম্পট তৈরি করো।
 
-আমি মূল নিউজের ছবি সংযুক্ত করেছি (যদি পাওয়া গিয়ে থাকে)। ছবিটি খুব মনোযোগ দিয়ে দেখো।
-এই ছবিটিকে হুবহু নতুন করে (Copyright-free) তৈরি করার জন্য AI Image Generator-এর উপযোগী একটি অত্যন্ত বিস্তারিত প্রম্পট (image_prompt) দাও।
-
-Write image_prompt in English only. Max 300 characters.
-
-নিয়মাবলী:
-- প্রম্পটের শুরুতেই অবশ্যই এই বাক্যটি লিখবে: "Realistic editorial news photograph of..."
-- ছবির মূল বিষয়বস্তু, কালার, লাইটিং এবং কম্পোজিশন হুবহু রাখবে যাতে নতুন তৈরি হওয়া ছবিটি মূল ছবির মতোই দেখতে হয়, কিন্তু সম্পূর্ণ কপিরাইট মুক্ত হয়।
-- ছবিতে থাকা নির্দিষ্ট কোনো রাজনৈতিক নেতা, অভিনেতা বা পরিচিত ব্যক্তির চেহারা হুবহু বর্ণনা করবে না। তার বদলে Generic মানুষ বা সিলুয়েট ব্যবহার করে দৃশ্যটি ফুটিয়ে তুলবে।
-- ছবিতে কোনো Text, Typography, Logo, Watermark, Banner, Signboard বা লেখা প্রম্পটে রাখবে না।
-- No blood, No violence, Google AdSense Safe.
-- প্রম্পটের শেষে হুবহু এই কিওয়ার্ডগুলো যুক্ত করবে: "editorial news photography, documentary photography, professional DSLR, realistic perspective, authentic environment, wide-angle composition, natural lighting, ultra realistic, high detail, 8k"
+AI Image Prompt নিয়মাবলী:
+- Write image_prompt in English only. Max 300 characters.
+- প্রম্পটের শুরুতেই লিখবে: "Realistic editorial news photograph of..."
+- WARNING: কোনোভাবেই কোনো মানুষের চেহারা (Face), চোখ, হাত, পেট বা শরীরের কোনো অঙ্গ-প্রত্যঙ্গ (Body parts/Anatomy) প্রম্পটে রাখা যাবে না। 
+- মানুষের পরিবর্তে খবরের সাথে সম্পর্কিত প্রতীকী অবজেক্ট (Objects) এবং পরিবেশ (Environment) ব্যবহার করবে। (যেমন: হাসপাতালের খবর হলে স্টেথোস্কোপ, আইনের খবর হলে হাতুড়ি, বিনোদনের খবর হলে সিনেমাটিক ক্যামেরা বা লাল গালিচা)।
+- ছবিতে কোনো Text, Typography, Logo, Watermark বা লেখা প্রম্পটে রাখবে না।
+- No blood, No violence, No body horror, No distorted faces. Google AdSense Safe.
+- প্রম্পটের শেষে হুবহু এই কিওয়ার্ডগুলো যুক্ত করবে: "editorial news photography, documentary photography, professional DSLR, realistic perspective, authentic environment, wide-angle composition, empty scene without people, natural lighting, ultra realistic, high detail, 8k"
 
 ========================
 চতুর্থ ধাপ: JSON Output
 ========================
-
-শুধুমাত্র Valid JSON রিটার্ন করবে।
 
 Output Format:
 {
   "skip": false,
   "title": "নতুন সংবাদ শিরোনাম",
   "content": "সম্পূর্ণ সংবাদ",
-  "image_prompt": "Professional symbolic editorial AI image prompt in English"
+  "search_keyword": "keyword for stock sites",
+  "image_prompt": "Professional symbolic object-based editorial AI image prompt in English"
 }
 
 ========================
@@ -386,13 +430,45 @@ ${fullText}
                 continue; 
             }
 
-            // 🎨 ইমেজ জেনারেশন ও আপলোড ফ্লো (AI Redraw)
+            // 🎨 ইমেজ হান্টিং এবং ফলব্যাক এআই জেনারেশন ফ্লো
             let finalImageUrl = defaultPlaceholder;
-            if (rewrittenData.image_prompt) {
-                const uploadedImageUrl = await generateAndUploadImage(rewrittenData.image_prompt);
-                if (uploadedImageUrl) {
-                    finalImageUrl = uploadedImageUrl;
+            let imageSourceCredit = "বঙ্গীয় টাইমস";
+
+            if (rewrittenData.search_keyword) {
+                // ১. প্রথমে Unsplash এ খুঁজবে
+                let stockUrl = await searchUnsplash(rewrittenData.search_keyword);
+                
+                // ২. না পেলে Pexels এ খুঁজবে
+                if (!stockUrl) {
+                    stockUrl = await searchPexels(rewrittenData.search_keyword);
                 }
+
+                // ৩. না পেলে Pixabay তে খুঁজবে
+                if (!stockUrl) {
+                    stockUrl = await searchPixabay(rewrittenData.search_keyword);
+                }
+
+                // ৪. যদি স্টক সাইটে পাওয়া যায়
+                if (stockUrl) {
+                    finalImageUrl = stockUrl;
+                    imageSourceCredit = "ছবি: সংগৃহীত (প্রতীকী)";
+                } 
+                // ৫. স্টক সাইটেও না পেলে AI দিয়ে জেনারেট করবে
+                else if (rewrittenData.image_prompt) {
+                    console.log("⚠️ স্টক সাইটে ছবি পাওয়া যায়নি। AI (FLUX) দিয়ে অবজেক্ট-ভিত্তিক ছবি জেনারেট করা হচ্ছে...");
+                    const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
+                    if (fluxUrl) {
+                        finalImageUrl = fluxUrl;
+                        imageSourceCredit = "ছবি: এআই জেনারেটেড";
+                    }
+                }
+            } else if (rewrittenData.image_prompt) {
+                 // Fallback if no search_keyword but image_prompt exists
+                 const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
+                 if (fluxUrl) {
+                     finalImageUrl = fluxUrl;
+                     imageSourceCredit = "ছবি: এআই জেনারেটেড";
+                 }
             }
 
             // ডাটাবেসে সেভ করা
@@ -404,7 +480,7 @@ ${fullText}
               source_url: link,
               source_name: 'বঙ্গীয় টাইমস', 
               category: source.defaultCategory,
-              image_source: 'এআই জেনারেটেড', 
+              image_source: imageSourceCredit, 
               is_published: true, 
               is_custom: false 
             }]);
