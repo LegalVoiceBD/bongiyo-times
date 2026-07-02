@@ -226,8 +226,20 @@ async function runBot() {
     return array;
   }
 
-  const sourcesToScrape = shuffleArray([...allSources]).slice(0, 15);
+ // --- নতুন ও প্রফেশনাল সোর্স ফিল্টারিং লজিক ---
+  const coreCategories = ['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'খেলাধুলা', 'বাণিজ্য','আইন-আদালত'];
+  
+  const coreSources = allSources.filter(src => coreCategories.includes(src.defaultCategory));
+  const otherSources = allSources.filter(src => !coreCategories.includes(src.defaultCategory));
+
+  const selectedCore = shuffleArray([...coreSources]).slice(0, 10);
+  const selectedOthers = shuffleArray([...otherSources]).slice(0, 5);
+
+  const sourcesToScrape = [...selectedCore, ...selectedOthers];
+  shuffleArray(sourcesToScrape);
+  
   const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
+  // ----------------------------------------------
 
   function isStrictlyValid(url) {
     const lowerUrl = url.toLowerCase();
