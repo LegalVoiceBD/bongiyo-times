@@ -430,7 +430,7 @@ ${fullText}
                 continue; 
             }
 
-            // 🎨 ইমেজ হান্টিং এবং ফলব্যাক এআই জেনারেশন ফ্লো
+           // 🎨 ইমেজ হান্টিং এবং ফলব্যাক এআই জেনারেশন ফ্লো
             let finalImageUrl = defaultPlaceholder;
             let imageSourceCredit = "বঙ্গীয় টাইমস";
 
@@ -451,7 +451,7 @@ ${fullText}
                 // ৪. যদি স্টক সাইটে পাওয়া যায়
                 if (stockUrl) {
                     finalImageUrl = stockUrl;
-                    imageSourceCredit = "ছবি: সংগৃহীত (প্রতীকী)";
+                    imageSourceCredit = "সংগৃহীত (প্রতীকী)"; // <-- এখান থেকে 'ছবি:' বাদ দেওয়া হয়েছে
                 } 
                 // ৫. স্টক সাইটেও না পেলে AI দিয়ে জেনারেট করবে
                 else if (rewrittenData.image_prompt) {
@@ -459,7 +459,7 @@ ${fullText}
                     const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
                     if (fluxUrl) {
                         finalImageUrl = fluxUrl;
-                        imageSourceCredit = "ছবি: এআই জেনারেটেড";
+                        imageSourceCredit = "এআই জেনারেটেড"; // <-- এখান থেকে 'ছবি:' বাদ দেওয়া হয়েছে
                     }
                 }
             } else if (rewrittenData.image_prompt) {
@@ -467,7 +467,7 @@ ${fullText}
                  const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
                  if (fluxUrl) {
                      finalImageUrl = fluxUrl;
-                     imageSourceCredit = "ছবি: এআই জেনারেটেড";
+                     imageSourceCredit = "এআই জেনারেটেড"; // <-- এখান থেকে 'ছবি:' বাদ দেওয়া হয়েছে
                  }
             }
 
@@ -484,7 +484,6 @@ ${fullText}
               is_published: true, 
               is_custom: false 
             }]);
-            
             if (insertError) {
                 console.error("❌ সুপাবেজ ডাটাবেস এরর:", insertError.message);
             } else {
