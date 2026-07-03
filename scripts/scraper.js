@@ -97,11 +97,11 @@ async function fetchImageForGemini(imageUrl) {
 }
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V2: Dynamic Threshold & Smart Selectors)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V3: Ultimate News Desk Edition)...");
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
- const allSources = [
+  const allSources = [
     { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ' },
@@ -202,22 +202,26 @@ async function runBot() {
     return array;
   }
 
-  // --- REFORM 2: Priority Sources Selection ---
-  // এই শীর্ষ ডোমেইনগুলো সবসময় প্রায়োরিটি পাবে
-  const topTierDomains = [
-    'prothomalo.com', 'bdnews24.com', 'bbc.com', 
-    'jugantor.com', 'kalerkantho.com', 'jamuna.tv', 
-    'dhakapost.com', 'ittefaq.com.bd', 'samakal.com', 'bd-pratidin.com'
-  ];
+  // --- REFORM 1: Smart Priority Source Selection ---
+  const priorityCategories = ['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক'];
+  const secondaryCategories = ['আইন-আদালত', 'বাণিজ্য', 'খেলাধুলা'];
+  const optionalCategories = ['বিনোদন', 'প্রযুক্তি', 'শিক্ষা', 'ধর্ম', 'জীবনযাপন', 'চাকরি', 'ফিচার', 'হাস্যরস'];
 
-  const mustHaveSources = allSources.filter(s => topTierDomains.includes(s.domain));
-  const otherSources = allSources.filter(s => !topTierDomains.includes(s.domain));
+  const prioritySources = allSources.filter(s => priorityCategories.includes(s.defaultCategory));
+  const secondarySources = allSources.filter(s => secondaryCategories.includes(s.defaultCategory));
+  const optionalSources = allSources.filter(s => optionalCategories.includes(s.defaultCategory));
 
-  // প্রায়োরিটি সোর্সগুলো প্রথমে রেখে, অন্যান্যগুলো থেকে ৫টি র‍্যান্ডম নেওয়া হলো
-  const sourcesToScrape = [
-    ...shuffleArray([...mustHaveSources]), 
-    ...shuffleArray([...otherSources]).slice(0, 5)
-  ];
+  // ফিক্সড প্রায়োরিটি সোর্স (এগুলো সবসময় থাকবে)
+  const fixedSourceNames = ['Prothom Alo', 'Ittefaq', 'BBC Bangla', 'Inqilab', 'Jugantor', 'BD Pratidin'];
+  
+  const fixedPriority = prioritySources.filter(s => fixedSourceNames.includes(s.name));
+  const randomPriority = shuffleArray(prioritySources.filter(s => !fixedSourceNames.includes(s.name))).slice(0, 5);
+  
+  const selectedPriority = [...fixedPriority, ...randomPriority];
+  const selectedSecondary = shuffleArray([...secondarySources]).slice(0, 5);
+  const selectedOptional = shuffleArray([...optionalSources]).slice(0, 3);
+
+  const sourcesToScrape = [...selectedPriority, ...selectedSecondary, ...selectedOptional];
   
   const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
 
@@ -239,18 +243,17 @@ async function runBot() {
     'শিক্ষা': 1, 'ধর্ম': 1, 'জীবনযাপন': 1, 'চাকরি': 1, 'ফিচার': 1
   };
 
-  // --- REFORM 1: Dynamic Minimum Score ---
+  // --- REFORM 4: Dynamic Minimum Score ---
   const minimumScore = {
     'বাংলাদেশ': 8, 'রাজনীতি': 8, 'আন্তর্জাতিক': 8, 'আইন-আদালত': 8,
     'বাণিজ্য': 7, 'খেলাধুলা': 6, 'প্রযুক্তি': 6, 'শিক্ষা': 6,
     'চাকরি': 6, 'বিনোদন': 5, 'জীবনযাপন': 5, 'ধর্ম': 5, 'ফিচার': 4
   };
   
-  // --- REFORM 4: Semantic Duplicate Detection Context ---
-  // Title + Snippet + Category মিলিয়ে কনটেক্সট তৈরি
+  // --- REFORM 3: Comprehensive Duplicate Detection Context ---
   const { data: recentNewsRecords } = await supabase
     .from('news')
-    .select('title, snippet, category')
+    .select('title, snippet, category') // Added snippet and category
     .order('created_at', { ascending: false })
     .limit(30);
     
@@ -280,7 +283,6 @@ async function runBot() {
         }
       });
 
-      // --- REFORM 3: Link Selection (AI Picked From Top 5) ---
       const topLinks = links.slice(0, 5); 
       
       for (let link of topLinks) {
@@ -299,9 +301,9 @@ async function runBot() {
             geminiImagePart = await fetchImageForGemini(ogImageUrl);
         }
 
-        // --- REFORM 5: Smart CSS Selectors for Content ---
-        const fullTextArray = [];
-        const contentSelectors = ['article', 'main', '.story', '.news-content', '.entry-content', '.post-content', '.article-body'];
+        // --- REFORM 2: Smart DOM Extraction (No more random sidebars/footers) ---
+        let fullTextArray = [];
+        const contentSelectors = ['article', 'main', '.news-content', '.entry-content', '.post-content', '.story', '.article-body'];
         let contentFound = false;
 
         for (const selector of contentSelectors) {
@@ -317,7 +319,7 @@ async function runBot() {
             }
         }
 
-        // ফেইলব্যাক হিসেবে পুরনো $('p')
+        // Fallback to basic 'p' parsing only if smart extraction failed
         if (!contentFound) {
             article$('p').each((i, el) => {
                 const text = article$(el).text().trim();
@@ -342,7 +344,7 @@ async function runBot() {
             ========================
             ১. Privacy Policy, Advertisement, Opinion, Blog, Category, Archive ইত্যাদি হলে বাতিল করবে।
             ২. একাধিক শিরোনামের মিশ্রণ হলে বাতিল করবে।
-            ৩. নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি একই ঘটনা/সংবাদ মিলে যায় (Title & Snippet Context) তাহলে বাতিল করবে:
+            ৩. নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি একই ঘটনা/সংবাদ মিলে যায় (Title, Snippet ও Category Context মিলিয়ে) তাহলে বাতিল করবে:
             
             সাম্প্রতিক সংবাদ:
             ${recentContext}
@@ -356,7 +358,7 @@ async function runBot() {
             - প্রথম বাক্যে ন্যাচারালভাবে সোর্সের ক্রেডিট যুক্ত করবে: (যেমন: <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>)
             - পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে। কোনো <p>, <div> ব্যবহার করবে না, শুধু \\n\\n।
 
-            ### সঠিক ক্যাটাগরি নির্বাচন (Crucial Step - REFORM 8)
+            ### সঠিক ক্যাটাগরি নির্বাচন
             - Never classify a news as a specific category just because of the source URL or website name.
             - Read the content carefully and determine the real category.
             - Ignore sidebars, related news, and page title biases.
@@ -374,6 +376,9 @@ async function runBot() {
             3 = Minor news
             1-2 = Ad / Opinion
 
+            ### Breaking News Boost (REFORM Feature)
+            যদি সংবাদটি প্রধানমন্ত্রী, রাষ্ট্রপতি, সুপ্রিম কোর্টের ঐতিহাসিক রায়, নির্বাচন, বড় দুর্ঘটনা, যুদ্ধ, প্রাকৃতিক দুর্যোগ, অর্থনৈতিক নীতি, জাতীয় নিরাপত্তা বা আন্তর্জাতিক সংকট সম্পর্কিত হয়, তাহলে breaking_news: true রিটার্ন করবে।
+
             ========================
             Step 3: Image Sourcing & AI Fallback
             ========================
@@ -390,7 +395,8 @@ async function runBot() {
               "true_category": "সঠিক ক্যাটাগরি",
               "search_keyword": "keyword",
               "image_prompt": "prompt",
-              "importance_score": 9
+              "importance_score": 9,
+              "breaking_news": true
             }
 
             ========================
@@ -425,7 +431,7 @@ async function runBot() {
                 continue; 
             }
 
-            // --- REFORM 1: Apply Dynamic Minimum Score ---
+            // Apply Dynamic Minimum Score
             const actualCategory = rewrittenData.true_category || source.defaultCategory;
             const requiredScore = minimumScore[actualCategory] || 7;
 
@@ -434,7 +440,7 @@ async function runBot() {
                 continue;
             }
 
-            // ক্যাটাগরি লিমিট চেক
+            // Category Limit Check
             publishedCount[actualCategory] = publishedCount[actualCategory] || 0;
             if (publishedCount[actualCategory] >= (CATEGORY_LIMITS[actualCategory] || 1)) {
                 console.log(`⏭️ ${actualCategory} limit reached`);
@@ -468,8 +474,9 @@ async function runBot() {
                  }
             }
 
-            // --- REFORM 6: is_lead Logic ---
+            // --- REFORM 5 & 6: Lead News & Breaking News variables ---
             const isLeadNews = (rewrittenData.importance_score >= 9);
+            const isBreakingNews = rewrittenData.breaking_news || false;
 
             const { error: insertError } = await supabase.from('news').insert([{
               title: rewrittenData.title,
@@ -482,13 +489,15 @@ async function runBot() {
               image_source: imageSourceCredit, 
               is_published: true, 
               is_custom: false,
-              is_lead: isLeadNews // নতুন কলাম যুক্ত হলো
+              is_lead: isLeadNews, 
+              importance: rewrittenData.importance_score || 0,
+              breaking_news: isBreakingNews
             }]);
 
             if (insertError) {
                 console.error("❌ সুপাবেজ ডাটাবেস এরর:", insertError.message);
             } else {
-                console.log(`✅ পাবলিশ: [${actualCategory}] ${rewrittenData.title.substring(0, 40)}... | Score: ${rewrittenData.importance_score} | Lead: ${isLeadNews}`);
+                console.log(`✅ পাবলিশ: [${actualCategory}] ${rewrittenData.title.substring(0, 40)}... | Score: ${rewrittenData.importance_score} | Lead: ${isLeadNews} | Breaking: ${isBreakingNews}`);
                 publishedCount[actualCategory]++; 
                 processedArticlesCount++;
             }
@@ -512,10 +521,10 @@ runBot();
 
 
 /* ==========================================================================
-   REFORM 7: HOMEPAGE / SUPABASE QUERIES (To use in your Next.js/Frontend API)
+   HOMEPAGE / SUPABASE QUERIES (To use in your Next.js/Frontend API)
    ==========================================================================
    
-   // ১. Lead Section (Top Breaking/Important News)
+   // ১. Lead Section Query (Top Breaking/Important News where is_lead = true)
    async function getLeadNews() {
      const { data, error } = await supabase
        .from('news')
@@ -527,38 +536,15 @@ runBot();
      return data;
    }
 
-   // ২. Latest Section (All recent news chronologically)
-   async function getLatestNews() {
+   // ২. Breaking News Ticker / Hero Query
+   async function getBreakingNews() {
      const { data, error } = await supabase
        .from('news')
-       .select('*')
+       .select('title, category, created_at') // Fetching only needed fields for ticker
        .eq('is_published', true)
+       .eq('breaking_news', true)
        .order('created_at', { ascending: false })
-       .limit(20);
-     return data;
-   }
-
-   // ৩. Popular Section (Can be based on views if you have a views column, otherwise random/score based)
-   async function getPopularNews() {
-     const { data, error } = await supabase
-       .from('news')
-       .select('*')
-       .eq('is_published', true)
-       .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
-       // .order('views', { ascending: false }) // If views column exists
-       .limit(10);
-     return data;
-   }
-
-   // ৪. Category Specific News (Example: Sports)
-   async function getCategoryNews(categoryName) {
-     const { data, error } = await supabase
-       .from('news')
-       .select('*')
-       .eq('is_published', true)
-       .eq('category', categoryName)
-       .order('created_at', { ascending: false })
-       .limit(10);
+       .limit(5);
      return data;
    }
 ========================================================================== */
