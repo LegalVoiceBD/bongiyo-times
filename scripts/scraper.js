@@ -226,7 +226,7 @@ async function runBot() {
     return array;
   }
 
- // --- নতুন ও প্রফেশনাল সোর্স ফিল্টারিং লজিক ---
+  // --- নতুন ও প্রফেশনাল সোর্স ফিল্টারিং লজিক ---
   const coreCategories = ['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'খেলাধুলা', 'বাণিজ্য','আইন-আদালত'];
   
   const coreSources = allSources.filter(src => coreCategories.includes(src.defaultCategory));
@@ -293,7 +293,7 @@ async function runBot() {
         const ogImageUrl = article$('meta[property="og:image"]').attr('content');
         let geminiImagePart = null;
         if (ogImageUrl) {
-            console.log(`📸 মূল নিউজের ছবি সংগ্রহ করা হয়েছে, জেমিনি ভিশন দিয়ে রেড-ড্র করা হবে...`);
+            console.log(`📸 মূল নিউজের ছবি সংগ্রহ করা হয়েছে, জেমিনি ভিশন দিয়ে বিশ্লেষণ করা হবে...`);
             geminiImagePart = await fetchImageForGemini(ogImageUrl);
         }
 
@@ -307,7 +307,7 @@ async function runBot() {
         if (fullText.length < 300) continue; 
 
         if (fullText) {
-          console.log(`🧠 জেমিনি ভিশন এপিআই দিয়ে বিশ্লেষণ ও রেড-ড্র প্রম্পট তৈরি শুরু হচ্ছে...`);
+          console.log(`🧠 জেমিনি ভিশন এপিআই দিয়ে বিশ্লেষণ ও প্রম্পট তৈরি শুরু হচ্ছে...`);
           
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
@@ -351,7 +351,7 @@ const prompt = `
 এর বাইরে আর কোনো লেখা দেবে না।
 
 ========================
-দ্বিতীয় ধাপ: সংবাদ তৈরি
+দ্বিতীয় ধাপ: সংবাদ তৈরি ও সঠিক ক্যাটাগরি নির্বাচন
 ========================
 
 যদি এটি একটি নতুন, নির্ভরযোগ্য এবং সম্পূর্ণ সংবাদ হয়, তাহলে নিচের নিয়মগুলো কঠোরভাবে অনুসরণ করবে।
@@ -380,30 +380,38 @@ const prompt = `
 - <p>, <div>, <br>, Markdown বা অন্য কোনো HTML ব্যবহার করা যাবে না।
 - "ছবি সংগৃহীত" বা অনুরূপ কোনো বাক্য যোগ করা যাবে না।
 
-========================
-তৃতীয় ধাপ: Image Sourcing & Fallback AI Prompt
-========================
-১. search_keyword: Unsplash, Pexels এবং Pixabay-তে স্টক ছবি খোঁজার জন্য খবরের থিম অনুযায়ী সর্বোচ্চ ১-২ শব্দের একটি নিখুঁত ইংরেজি কিওয়ার্ড দাও (যেমন: "hospital", "police", "money", "court")। 
-২. image_prompt: যদি স্টক সাইটে ছবি না পাওয়া যায়, তবে AI (FLUX) দিয়ে সম্পূর্ণ কপিরাইট-মুক্ত ছবি জেনারেট করার জন্য প্রম্পট তৈরি করো।
-
-AI Image Prompt নিয়মাবলী:
-- Write image_prompt in English only. Max 300 characters.
-- প্রম্পটের শুরুতেই লিখবে: "Realistic editorial news photograph of..."
-- WARNING: কোনোভাবেই কোনো মানুষের চেহারা (Face), চোখ, হাত, পেট বা শরীরের কোনো অঙ্গ-প্রত্যঙ্গ (Body parts/Anatomy) প্রম্পটে রাখা যাবে না। 
-- মানুষের পরিবর্তে খবরের সাথে সম্পর্কিত প্রতীকী অবজেক্ট (Objects) এবং পরিবেশ (Environment) ব্যবহার করবে। (যেমন: হাসপাতালের খবর হলে স্টেথোস্কোপ, আইনের খবর হলে হাতুড়ি, বিনোদনের খবর হলে সিনেমাটিক ক্যামেরা বা লাল গালিচা)।
-- ছবিতে কোনো Text, Typography, Logo, Watermark বা লেখা প্রম্পটে রাখবে না।
-- No blood, No violence, No body horror, No distorted faces. Google AdSense Safe.
-- প্রম্পটের শেষে হুবহু এই কিওয়ার্ডগুলো যুক্ত করবে: "editorial news photography, documentary photography, professional DSLR, realistic perspective, authentic environment, wide-angle composition, empty scene without people, natural lighting, ultra realistic, high detail, 8k"
+### ৪. সঠিক ক্যাটাগরি নির্বাচন (Crucial Step)
+- সংবাদটি মনোযোগ দিয়ে পড়ে এর প্রকৃত ক্যাটাগরি নির্ধারণ করবে। সাইডবারের কারণে অনেক সময় 'ফিচার', 'বিনোদন' বা 'চাকরি' এর খবর 'বাংলাদেশ' বা 'রাজনীতি' ক্যাটাগরিতে স্ক্র্যাপ হয়ে যায়।
+- তাই খবরের মূল বিষয়বস্তু বুঝে নিচের যেকোনো একটি সঠিক ক্যাটাগরি নির্বাচন করবে: [বাংলাদেশ, রাজনীতি, আন্তর্জাতিক, আইন-আদালত, বাণিজ্য, খেলাধুলা, বিনোদন, শিক্ষা, প্রযুক্তি, ধর্ম, জীবনযাপন, চাকরি, ফিচার, হাস্যরস, মতামত, সাহিত্য, আইন ও পরামর্শ]।
 
 ========================
-চতুর্থ ধাপ: JSON Output
+Step 3: Image Sourcing & Fallback AI Prompt
 ========================
+
+1. search_keyword: Provide 1-2 precise English keywords for searching stock image sites (Unsplash, Pexels, Pixabay). Ensure the keyword captures the core theme (e.g., "hospital", "police", "currency", "courtroom").
+
+2. image_prompt: If no stock image is found, generate a detailed prompt for AI (FLUX) to create a copyright-free image.
+
+AI Image Prompt Guidelines:
+- Must begin with: "Realistic editorial news photograph of..."
+- STRICT CONSTRAINT: Do NOT include any human faces, eyes, hands, limbs, or body parts.
+- Symbolic Representation: Use relevant objects, infrastructure, or environments instead of people. (e.g., if it's health news, use a stethoscope; for legal news, use a courtroom gavel; for entertainment, use a cinematic camera or red carpet).
+- CLEAN IMAGE: Absolutely NO text, typography, logos, watermarks, banners, signboards, or text labels within the image.
+- SAFETY: No blood, no violence, no body horror, no distorted faces. Must be 100% Google AdSense Safe and family-friendly.
+- ESSENTIAL KEYWORDS (Append at the end): "editorial news photography, documentary photography, professional DSLR, realistic perspective, authentic environment, wide-angle composition, empty scene without people, natural lighting, ultra realistic, high detail, 8k, vivid colors, modern digital photography"
+
+========================
+Step 4: JSON Output
+========================
+
+Only return a valid JSON object. No extra text.
 
 Output Format:
 {
   "skip": false,
   "title": "নতুন সংবাদ শিরোনাম",
   "content": "সম্পূর্ণ সংবাদ",
+  "true_category": "সঠিক ক্যাটাগরি (যেমন: রাজনীতি, বিনোদন, চাকরি ইত্যাদি)",
   "search_keyword": "keyword for stock sites",
   "image_prompt": "Professional symbolic object-based editorial AI image prompt in English"
 }
@@ -463,7 +471,7 @@ ${fullText}
                 // ৪. যদি স্টক সাইটে পাওয়া যায়
                 if (stockUrl) {
                     finalImageUrl = stockUrl;
-                    imageSourceCredit = "সংগৃহীত (প্রতীকী)"; // <-- এখান থেকে 'ছবি:' বাদ দেওয়া হয়েছে
+                    imageSourceCredit = "সংগৃহীত (প্রতীকী)";
                 } 
                 // ৫. স্টক সাইটেও না পেলে AI দিয়ে জেনারেট করবে
                 else if (rewrittenData.image_prompt) {
@@ -471,7 +479,7 @@ ${fullText}
                     const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
                     if (fluxUrl) {
                         finalImageUrl = fluxUrl;
-                        imageSourceCredit = "এআই জেনারেটেড"; // <-- এখান থেকে 'ছবি:' বাদ দেওয়া হয়েছে
+                        imageSourceCredit = "এআই জেনারেটেড"; 
                     }
                 }
             } else if (rewrittenData.image_prompt) {
@@ -479,9 +487,12 @@ ${fullText}
                  const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
                  if (fluxUrl) {
                      finalImageUrl = fluxUrl;
-                     imageSourceCredit = "এআই জেনারেটেড"; // <-- এখান থেকে 'ছবি:' বাদ দেওয়া হয়েছে
+                     imageSourceCredit = "এআই জেনারেটেড"; 
                  }
             }
+
+            // 🏷️ ক্যাটাগরি ফিক্সিং লজিক
+            const actualCategory = rewrittenData.true_category || source.defaultCategory;
 
             // ডাটাবেসে সেভ করা
             const { error: insertError } = await supabase.from('news').insert([{
@@ -491,7 +502,7 @@ ${fullText}
               image_url: finalImageUrl, 
               source_url: link,
               source_name: 'বঙ্গীয় টাইমস', 
-              category: source.defaultCategory,
+              category: actualCategory, 
               image_source: imageSourceCredit, 
               is_published: true, 
               is_custom: false 
@@ -499,7 +510,7 @@ ${fullText}
             if (insertError) {
                 console.error("❌ সুপাবেজ ডাটাবেস এরর:", insertError.message);
             } else {
-                console.log(`✅ সফলভাবে পাবলিশ হয়েছে: ${rewrittenData.title.substring(0, 40)}...`);
+                console.log(`✅ সফলভাবে পাবলিশ হয়েছে: [${actualCategory}] ${rewrittenData.title.substring(0, 40)}...`);
                 processedArticlesCount++;
             }
             
