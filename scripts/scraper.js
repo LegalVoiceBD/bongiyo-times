@@ -203,24 +203,88 @@ async function runBot() {
     return array;
   }
 
-  // --- REFORM 1: Tier-1 & Random Source Selection ---
-  
-  // ১. আপনার পছন্দের Tier-1 সোর্সগুলোর নাম (এগুলো সবসময় থাকবে)
-  const tier1Names = ['Prothom Alo', 'BBC Bangla', 'Inqilab', 'BD Pratidin', 'Ittefaq', 'Nayadiganta', 'Jugantor'];
-  
-  // Tier-1 সোর্সগুলো মূল লিস্ট থেকে আলাদা করা
-  const tier1Sources = allSources.filter(s => tier1Names.includes(s.name));
-  
-  // ২. Tier-1 বাদে বাকি সব সোর্স আলাদা করা
-  const remainingSources = allSources.filter(s => !tier1Names.includes(s.name));
-  
-  // ৩. বাকিগুলো থেকে র‍্যান্ডমলি সিলেক্ট করা (এখানে ১০টি নেওয়া হয়েছে, আপনার প্রয়োজন অনুযায়ী slice(0, 10) পরিবর্তন করতে পারেন)
-  const randomSelectedSources = shuffleArray([...remainingSources]).slice(0, 10);
-  
-  // ৪. চূড়ান্ত স্ক্র্যাপিং লিস্ট তৈরি (Tier-1 + Random)
-  const sourcesToScrape = [...tier1Sources, ...randomSelectedSources];
-  const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
+  // ======================================================================
+// REFORM 1: Professional Tier-1 + Random + Source Diversity Selection
+// ======================================================================
 
+// Tier-1 (শুধু গুরুত্বপূর্ণ ক্যাটাগরি)
+const tier1Config = [
+  { name: 'Prothom Alo', category: 'বাংলাদেশ' },
+  { name: 'Prothom Alo', category: 'রাজনীতি' },
+
+  { name: 'BBC Bangla', category: 'আন্তর্জাতিক' },
+
+  { name: 'Jugantor', category: 'বাংলাদেশ' },
+
+  { name: 'Ittefaq', category: 'বাংলাদেশ' },
+
+  { name: 'BD Pratidin', category: 'রাজনীতি' },
+
+  { name: 'Inqilab', category: 'বাংলাদেশ' },
+
+  { name: 'Nayadiganta', category: 'বাংলাদেশ' }
+];
+
+// Tier-1 সোর্স নির্বাচন
+const tier1Sources = allSources.filter(source =>
+  tier1Config.some(item =>
+    item.name === source.name &&
+    item.category === source.defaultCategory
+  )
+);
+
+// Tier-1 বাদে বাকি সোর্স
+const remainingSources = allSources.filter(source =>
+  !tier1Config.some(item =>
+    item.name === source.name &&
+    item.category === source.defaultCategory
+  )
+);
+
+// Shuffle
+const shuffledRemaining = shuffleArray([...remainingSources]);
+
+// ======================================================================
+// Source Diversity
+// একই পত্রিকা থেকে সর্বোচ্চ ২টি ক্যাটাগরি নেওয়া হবে
+// ======================================================================
+
+const sourceCounter = {};
+const randomSelectedSources = [];
+
+for (const source of shuffledRemaining) {
+
+  sourceCounter[source.name] = sourceCounter[source.name] || 0;
+
+  if (sourceCounter[source.name] >= 2) {
+    continue;
+  }
+
+  randomSelectedSources.push(source);
+  sourceCounter[source.name]++;
+
+  if (randomSelectedSources.length >= 12) {
+    break;
+  }
+}
+
+// ======================================================================
+// Final Scraping List
+// ======================================================================
+
+const sourcesToScrape = [
+  ...tier1Sources,
+  ...randomSelectedSources
+];
+
+console.log(
+  `📰 Tier-1: ${tier1Sources.length}, Random: ${randomSelectedSources.length}, Total: ${sourcesToScrape.length}`
+);
+
+const headers = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+};
   function isStrictlyValid(url) {
     const lowerUrl = url.toLowerCase();
     const generalBadWords = ['tag', 'author', 'video', 'topic', 'page', 'login', 'archive', 'photo', 'category', 'privacy', 'terms', 'about', 'contact'];
