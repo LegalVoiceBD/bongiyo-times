@@ -70,7 +70,6 @@ async function generateAndUploadImage(imagePrompt) {
   try {
     console.log(`🎨 ইমেজ জেনারেট হচ্ছে (FLUX Model) প্রম্পট দিয়ে...`);
     
-    // Pollinations AI-এর উন্নত FLUX মডেল, 1280x720 রেজ্যুলেশন এবং এনহ্যান্সমেন্ট ব্যবহার
     const encodedPrompt = encodeURIComponent(imagePrompt);
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=flux&width=1280&height=720&enhance=true&nologo=true&safe=true&seed=-1`;
 
@@ -121,7 +120,7 @@ async function fetchImageForGemini(imageUrl) {
 }
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Vision AI + Stock Search + AI Redraw)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (Vision AI + Source Selection Algorithm + Importance Filter)...");
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
@@ -226,17 +225,51 @@ async function runBot() {
     return array;
   }
 
-  // --- নতুন ও প্রফেশনাল সোর্স ফিল্টারিং লজিক ---
-  const coreCategories = ['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'খেলাধুলা', 'বাণিজ্য','আইন-আদালত'];
-  
-  const coreSources = allSources.filter(src => coreCategories.includes(src.defaultCategory));
-  const otherSources = allSources.filter(src => !coreCategories.includes(src.defaultCategory));
+  // --- STEP-1 & STEP-2: নতুন ও প্রফেশনাল সোর্স ফিল্টারিং লজিক ---
+  const priorityCategories = [
+    'বাংলাদেশ',
+    'রাজনীতি',
+    'আন্তর্জাতিক'
+  ];
 
-  const selectedCore = shuffleArray([...coreSources]).slice(0, 10);
-  const selectedOthers = shuffleArray([...otherSources]).slice(0, 5);
+  const secondaryCategories = [
+    'আইন-আদালত',
+    'বাণিজ্য',
+    'খেলাধুলা'
+  ];
 
-  const sourcesToScrape = [...selectedCore, ...selectedOthers];
-  shuffleArray(sourcesToScrape);
+  const optionalCategories = [
+    'বিনোদন',
+    'প্রযুক্তি',
+    'শিক্ষা',
+    'ধর্ম',
+    'জীবনযাপন',
+    'চাকরি',
+    'ফিচার',
+    'হাস্যরস'
+  ];
+
+  const prioritySources = allSources.filter(s =>
+    priorityCategories.includes(s.defaultCategory)
+  );
+
+  const secondarySources = allSources.filter(s =>
+    secondaryCategories.includes(s.defaultCategory)
+  );
+
+  const optionalSources = allSources.filter(s =>
+    optionalCategories.includes(s.defaultCategory)
+  );
+
+  const selectedPriority = shuffleArray([...prioritySources]).slice(0, 12);
+  const selectedSecondary = shuffleArray([...secondarySources]).slice(0, 5);
+  const selectedOptional = shuffleArray([...optionalSources]).slice(0, 3);
+
+  const sourcesToScrape = [
+    ...selectedPriority,
+    ...selectedSecondary,
+    ...selectedOptional
+  ];
   
   const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
   // ----------------------------------------------
@@ -249,8 +282,28 @@ async function runBot() {
     return true;
   }
 
+  // --- STEP-3: ক্যাটাগরি লিমিট কনফিগারেশন ---
   let processedArticlesCount = 0;
-  const MAX_ARTICLES_PER_RUN = 10; 
+
+  const CATEGORY_LIMITS = {
+    'বাংলাদেশ': 4,
+    'রাজনীতি': 2,
+    'আন্তর্জাতিক': 2,
+    'আইন-আদালত': 1,
+    'বাণিজ্য': 1,
+    'খেলাধুলা': 1,
+    'বিনোদন': 1,
+    'প্রযুক্তি': 1,
+    'শিক্ষা': 1,
+    'ধর্ম': 1,
+    'জীবনযাপন': 1,
+    'চাকরি': 1,
+    'ফিচার': 1
+  };
+
+  const publishedCount = {};
+  const MAX_ARTICLES_PER_RUN = 16;
+  // ------------------------------------------
   
   const { data: recentNewsRecords } = await supabase.from('news').select('title').order('created_at', { ascending: false }).limit(30);
   const recentTitles = recentNewsRecords ? recentNewsRecords.map(n => n.title).join(' | ') : '';
@@ -277,7 +330,8 @@ async function runBot() {
         }
       });
 
-      const topLinks = links.slice(0, 2); 
+      // --- STEP-7: প্রথম ৫টি লিংক স্লাইস করা ---
+      const topLinks = links.slice(0, 5); 
       
       for (let link of topLinks) {
         if (processedArticlesCount >= MAX_ARTICLES_PER_RUN) break;
@@ -289,7 +343,6 @@ async function runBot() {
         const articleHtml = await articleRes.text();
         const article$ = cheerio.load(articleHtml);
 
-        // 🖼️ মূল নিউজের ফিচার ইমেজ (og:image) সংগ্রহ করা
         const ogImageUrl = article$('meta[property="og:image"]').attr('content');
         let geminiImagePart = null;
         if (ogImageUrl) {
@@ -312,117 +365,135 @@ async function runBot() {
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
-const prompt = `
-তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। নিচে একটি ওয়েবপেজ থেকে সংগৃহীত টেক্সট দেওয়া হয়েছে এবং সাথে মূল খবরের ছবিটিও (যদি পাওয়া যায়) সংযুক্ত করা হয়েছে।
+            // --- STEP-5: প্রম্পটে Importance Score এর রুলস সংযুক্তিকরণ ---
+            const prompt = `
+            তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। নিচে একটি ওবেপেজ থেকে সংগৃহীত টেক্সট দেওয়া হয়েছে এবং সাথে মূল খবরের ছবিটিও (যদি পাওয়া যায়) সংযুক্ত করা হয়েছে।
 
-========================
-প্রথম ধাপ: সংবাদ যাচাই (Mandatory Validation)
-========================
+            ========================
+            প্রথম ধাপ: সংবাদ যাচাই (Mandatory Validation)
+            ========================
 
-প্রথমে নিচের বিষয়গুলো কঠোরভাবে যাচাই করবে।
+            প্রথমে নিচের বিষয়গুলো কঠোরভাবে যাচাই করবে।
 
-১. এটি যদি নিম্নোক্ত যেকোনো ধরনের লেখা হয় তাহলে বাতিল করবে:
-- Privacy Policy
-- Terms & Conditions
-- About Us
-- Contact
-- Disclaimer
-- Advertisement
-- Cookie Policy
-- Editorial Policy
-- মতামত বা Opinion
-- ব্লগ
-- ক্যাটাগরি পেজ
-- আর্কাইভ
-- ট্যাগ পেজ
-- নেভিগেশন বা ওয়েবসাইটের সাধারণ লেখা
+            ১. এটি যদি নিম্নোক্ত যেকোনো ধরনের লেখা হয় তাহলে বাতিল করবে:
+            - Privacy Policy
+            - Terms & Conditions
+            - About Us
+            - Contact
+            - Disclaimer
+            - Advertisement
+            - Cookie Policy
+            - Editorial Policy
+            - মতামত বা Opinion
+            - ব্লগ
+            - ক্যাটাগরি পেজ
+            - আর্কাইভ
+            - ট্যাগ পেজ
+            - নেভিগেশন বা ওয়েবসাইটের সাধারণ লেখা
 
-২. টেক্সটটি যদি একাধিক সম্পর্কহীন খবরের শিরোনাম বা নিউজের মিশ্রণ (Mixed Headlines) হয় তাহলে বাতিল করবে।
+            ২. টেক্সটটি যদি একাধিক সম্পর্কহীন খবরের শিরোনাম বা নিউজের মিশ্রণ (Mixed Headlines) হয় তাহলে বাতিল করবে।
 
-৩. নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি একই ঘটনা, একই শিরোনাম অথবা একই সংবাদ পুনরাবৃত্তি হয় তাহলে বাতিল করবে।
+            ৩. নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি একই ঘটনা, একই শিরোনাম অথবা একই সংবাদ পুনরাবৃত্তি হয় তাহলে বাতিল করবে।
 
-সাম্প্রতিক সংবাদ:
-[${recentTitles}]
+            সাম্প্রতিক সংবাদ:
+            [${recentTitles}]
 
-উপরের যেকোনো একটি শর্ত সত্য হলে শুধুমাত্র এই JSON রিটার্ন করবে:
+            উপরের যেকোনো একটি শর্ত সত্য হলে শুধুমাত্র এই JSON রিটার্ন করবে:
 
-{"skip": true}
+            {"skip": true}
 
-এর বাইরে আর কোনো লেখা দেবে না।
+            এর বাইরে আর কোনো লেখা দেবে না।
 
-========================
-দ্বিতীয় ধাপ: সংবাদ তৈরি ও সঠিক ক্যাটাগরি নির্বাচন
-========================
+            ========================
+            দ্বিতীয় ধাপ: সংবাদ তৈরি ও সঠিক ক্যাটাগরি নির্বাচন
+            ========================
 
-যদি এটি একটি নতুন, নির্ভরযোগ্য এবং সম্পূর্ণ সংবাদ হয়, তাহলে নিচের নিয়মগুলো কঠোরভাবে অনুসরণ করবে।
+            যদি এটি একটি নতুন, নির্ভরযোগ্য এবং সম্পূর্ণ সংবাদ হয়, তাহলে নিচের নিয়মগুলো কঠোরভাবে অনুসরণ করবে।
 
-### ১. শিরোনাম (Title)
-- শিরোনাম হবে জাতীয় দৈনিক পত্রিকার প্রথম পাতার মানের।
-- সংক্ষিপ্ত, শক্তিশালী, তথ্যসমৃদ্ধ এবং আকর্ষণীয় হবে।
-- Clickbait করা যাবে না।
-- কোলন (:), ড্যাশ (-), পাইপ (|) বা দুই ভাগে বিভক্ত শিরোনাম ব্যবহার করা যাবে না।
-- শিরোনামে অতিরঞ্জিত বিশেষণ ব্যবহার করবে না।
+            ### ১. শিরোনাম (Title)
+            - শিরোনাম হবে জাতীয় দৈনিক পত্রিকার প্রথম পাতার মানের।
+            - সংক্ষিপ্ত, শক্তিশালী, তথ্যসমৃদ্ধ এবং আকর্ষণীয় হবে।
+            - Clickbait করা যাবে না।
+            - কোলন (:), ড্যাশ (-), পাইপ (|) বা দুই ভাগে বিভক্ত শিরোনাম ব্যবহার করা যাবে না।
+            - শিরোনামে অতিরঞ্জিত বিশেষণ ব্যবহার করবে না।
 
-### ২. ভূমিকা (Intro)
-- প্রথম অনুচ্ছেদটি হবে সম্পূর্ণ নতুনভাবে লেখা।
-- খবরের একদম প্রথম বাক্যের ভেতরেই খুব সাবলীলভাবে সোর্সের ক্রেডিট যুক্ত করবে (যেমন: "সম্প্রতি <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>-এর একটি প্রতিবেদনে বলা হয়েছে..." অথবা "...এমনটাই জানিয়েছে <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>")।
-- লিংকের ঠিক আগে বা পরে কোনো অযাচিত ডট (.), কমা (,) বা স্পেস দিয়ে বাক্যের ফ্লো নষ্ট করবে না। বাক্যটি যেন পড়ার সময় একদম ন্যাচারাল বা মানুষের লেখার মতো মনে হয়।
-- এই <a> ট্যাগ ছাড়া অন্য কোনো HTML ব্যবহার করা যাবে না এবং ট্যাগটি হুবহু ব্যবহার করবে।
+            ### ২. ভূমিকা (Intro)
+            - প্রথম অনুচ্ছেদটি হবে সম্পূর্ণ নতুনভাবে লেখা।
+            - খবরের একদম প্রথম বাক্যের ভেতরেই খুব সাবলেইলভাবে সোর্সের ক্রেডিট যুক্ত করবে (যেমন: "সম্প্রতি <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>-এর একটি প্রতিবেদনে বলা হয়েছে..." অথবা "...এমনটাই জানিয়েছে <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>")।
+            - লিংকের ঠিক আগে বা পরে কোনো অযাচিত ডট (.), কমা (,) বা স্পেস দিয়ে বাক্যের ফ্লো নষ্ট করবে না। বাক্যটি যেন পড়ার সময় একদম ন্যাচারাল বা মানুষের লেখার মতো মনে হয়।
+            - এই <a> ট্যাগ ছাড়া অন্য কোনো HTML ব্যবহার করা যাবে না এবং ট্যাগটি হুবহু ব্যবহার করবে।
 
-### ৩. মূল প্রতিবেদন
-- পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে।
-- মূল তথ্য বিকৃত করা যাবে না।
-- কোনো তথ্য বানানো যাবে না।
-- কোনো অনুমান যোগ করা যাবে না।
-- কোনো রাজনৈতিক বা ব্যক্তিগত পক্ষপাত থাকবে না।
-- সাংবাদিকতার নিরপেক্ষতা বজায় রাখতে হবে।
-- প্রতিটি অনুচ্ছেদ আলাদা করতে শুধুমাত্র \\n\\n ব্যবহার করবে।
-- <p>, <div>, <br>, Markdown বা অন্য কোনো HTML ব্যবহার করা যাবে না।
-- "ছবি সংগৃহীত" বা অনুরূপ কোনো বাক্য যোগ করা যাবে না।
+            ### ৩. মূল প্রতিবেদন
+            - পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে।
+            - মূল তথ্য বিকৃত করা যাবে না।
+            - কোনো তথ্য বানানো যাবে না।
+            - কোনো অনুমান যোগ করা যাবে না।
+            - কোনো রাজনৈতিক বা ব্যক্তিগত পক্ষপাত থাকবে না।
+            - সাংবাদিকতার নিরপেক্ষতা বজায় রাখতে হবে।
+            - প্রতিটি অনুচ্ছেদ আলাদা করতে শুধুমাত্র \\n\\n ব্যবহার করবে।
+            - <p>, <div>, <br>, Markdown বা অন্য কোনো HTML ব্যবহার করা যাবে না।
+            - "ছবি সংগৃহীত" বা অনুরূপ কোনো বাক্য যোগ করা যাবে না।
 
-### ৪. সঠিক ক্যাটাগরি নির্বাচন (Crucial Step)
-- সংবাদটি মনোযোগ দিয়ে পড়ে এর প্রকৃত ক্যাটাগরি নির্ধারণ করবে। সাইডবারের কারণে অনেক সময় 'ফিচার', 'বিনোদন' বা 'চাকরি' এর খবর 'বাংলাদেশ' বা 'রাজনীতি' ক্যাটাগরিতে স্ক্র্যাপ হয়ে যায়।
-- তাই খবরের মূল বিষয়বস্তু বুঝে নিচের যেকোনো একটি সঠিক ক্যাটাগরি নির্বাচন করবে: [বাংলাদেশ, রাজনীতি, আন্তর্জাতিক, আইন-আদালত, বাণিজ্য, খেলাধুলা, বিনোদন, শিক্ষা, প্রযুক্তি, ধর্ম, জীবনযাপন, চাকরি, ফিচার, হাস্যরস, মতামত, সাহিত্য, আইন ও পরামর্শ]।
+            ### ৪. সঠিক ক্যাটাগরি নির্বাচন (Crucial Step)
+            - সংবাদটি মনোযোগ দিয়ে পড়ে এর প্রকৃত ক্যাটাগরি নির্ধারণ করবে। সাইডবারের কারণে অনেক সময় 'ফিচার', 'বিনোদন' বা 'চাকরি' এর খবর 'বাংলাদেশ' বা 'রাজনীতি' ক্যাটাগরিতে স্ক্র্যাপ হয়ে যায়।
+            - তাই খবরের মূল বিষয়বস্তু বুঝে নিচের যেকোনো একটি সঠিক ক্যাটাগরি নির্বাচন করবে: [বাংলাদেশ, রাজনীতি, আন্তর্জাতিক, আইন-আদালত, বাণিজ্য, খেলাধুলা, বিনোদন, শিক্ষা, প্রযুক্তি, ধর্ম, জীবনযাপন, চাকরি, ফিচার, হাস্যরস, মতামত, সাহিত্য, আইন ও পরামর্শ]।
 
-========================
-Step 3: Image Sourcing & Fallback AI Prompt
-========================
+            ### ৫. Importance Score
+            Evaluate the news.
+            Return importance_score from 1-10
+            Rules:
+            10 = National breaking news
+            9 = Major political event
+            8 = Government decision
+            8 = Major accident
+            8 = Court judgement
+            7 = Economy
+            6 = Sports
+            5 = Entertainment
+            4 = Lifestyle
+            3 = Feature
+            2 = Opinion
+            1 = Advertisement
 
-1. search_keyword: Provide 1-2 precise English keywords for searching stock image sites (Unsplash, Pexels, Pixabay). Ensure the keyword captures the core theme (e.g., "hospital", "police", "currency", "courtroom").
+            ========================
+            Step 3: Image Sourcing & Fallback AI Prompt
+            ========================
 
-2. image_prompt: If no stock image is found, generate a detailed prompt for AI (FLUX) to create a copyright-free image.
+            1. search_keyword: Provide 1-2 precise English keywords for searching stock image sites (Unsplash, Pexels, Pixabay). Ensure the keyword captures the core theme (e.g., "hospital", "police", "currency", "courtroom").
 
-AI Image Prompt Guidelines:
-- Must begin with: "Realistic editorial news photograph of..."
-- STRICT CONSTRAINT: Do NOT include any human faces, eyes, hands, limbs, or body parts.
-- Symbolic Representation: Use relevant objects, infrastructure, or environments instead of people. (e.g., if it's health news, use a stethoscope; for legal news, use a courtroom gavel; for entertainment, use a cinematic camera or red carpet).
-- CLEAN IMAGE: Absolutely NO text, typography, logos, watermarks, banners, signboards, or text labels within the image.
-- SAFETY: No blood, no violence, no body horror, no distorted faces. Must be 100% Google AdSense Safe and family-friendly.
-- ESSENTIAL KEYWORDS (Append at the end): "editorial news photography, documentary photography, professional DSLR, realistic perspective, authentic environment, wide-angle composition, empty scene without people, natural lighting, ultra realistic, high detail, 8k, vivid colors, modern digital photography"
+            2. image_prompt: If no stock image is found, generate a detailed prompt for AI (FLUX) to create a copyright-free image.
 
-========================
-Step 4: JSON Output
-========================
+            AI Image Prompt Guidelines:
+            - Must begin with: "Realistic editorial news photograph of..."
+            - STRICT CONSTRAINT: Do NOT include any human faces, eyes, hands, limbs, or body parts.
+            - Symbolic Representation: Use relevant objects, infrastructure, or environments instead of people. (e.g., if it's health news, use a stethoscope; for legal news, use a courtroom gavel; for entertainment, use a cinematic camera or red carpet).
+            - CLEAN IMAGE: Absolutely NO text, typography, logos, watermarks, banners, signboards, or text labels within the image.
+            - SAFETY: No blood, no violence, no body horror, no distorted faces. Must be 100% Google AdSense Safe and family-friendly.
+            - ESSENTIAL KEYWORDS (Append at the end): "editorial news photography, documentary photography, professional DSLR, realistic perspective, authentic environment, wide-angle composition, empty scene without people, natural lighting, ultra realistic, high detail, 8k, vivid colors, modern digital photography"
 
-Only return a valid JSON object. No extra text.
+            ========================
+            Step 4: JSON Output
+            ========================
 
-Output Format:
-{
-  "skip": false,
-  "title": "নতুন সংবাদ শিরোনাম",
-  "content": "সম্পূর্ণ সংবাদ",
-  "true_category": "সঠিক ক্যাটাগরি (যেমন: রাজনীতি, বিনোদন, চাকরি ইত্যাদি)",
-  "search_keyword": "keyword for stock sites",
-  "image_prompt": "Professional symbolic object-based editorial AI image prompt in English"
-}
+            Only return a valid JSON object. No extra text.
 
-========================
-মূল সংবাদ
-========================
-${fullText}
-`;
+            Output Format:
+            {
+              "skip": false,
+              "title": "নতুন সংবাদ শিরোনাম",
+              "content": "সম্পূর্ণ সংবাদ",
+              "true_category": "সঠিক ক্যাটাগরি (যেমন: রাজনীতি, বিনোদন, চাকরি ইত্যাদি)",
+              "search_keyword": "keyword for stock sites",
+              "image_prompt": "Professional symbolic object-based editorial AI image prompt in English",
+              "importance_score": 9
+            }
 
-            // 💡 যদি ছবি পাওয়া যায়, তবে টেক্সটের সাথে ছবিও জেমিনিকে পাঠানো হবে
+            ========================
+            মূল সংবাদ
+            ========================
+            ${fullText}
+            `;
+
             const geminiPayload = geminiImagePart ? [prompt, geminiImagePart] : [prompt];
             
             let result;
@@ -450,30 +521,31 @@ ${fullText}
                 continue; 
             }
 
-           // 🎨 ইমেজ হান্টিং এবং ফলব্যাক এআই জেনারেশন ফ্লো
+            // --- STEP-6: Importance Score ফিল্টারিং (৭ এর নিচে হলে স্কিপ) ---
+            if ((rewrittenData.importance_score || 0) < 7) {
+                console.log("⏭️ Low importance score skipped");
+                continue;
+            }
+            // --------------------------------------------------------
+
             let finalImageUrl = defaultPlaceholder;
             let imageSourceCredit = "বঙ্গীয় টাইমস";
 
             if (rewrittenData.search_keyword) {
-                // ১. প্রথমে Unsplash এ খুঁজবে
                 let stockUrl = await searchUnsplash(rewrittenData.search_keyword);
                 
-                // ২. না পেলে Pexels এ খুঁজবে
                 if (!stockUrl) {
                     stockUrl = await searchPexels(rewrittenData.search_keyword);
                 }
 
-                // ৩. না পেলে Pixabay তে খুঁজবে
                 if (!stockUrl) {
                     stockUrl = await searchPixabay(rewrittenData.search_keyword);
                 }
 
-                // ৪. যদি স্টক সাইটে পাওয়া যায়
                 if (stockUrl) {
                     finalImageUrl = stockUrl;
                     imageSourceCredit = "সংগৃহীত (প্রতীকী)";
                 } 
-                // ৫. স্টক সাইটেও না পেলে AI দিয়ে জেনারেট করবে
                 else if (rewrittenData.image_prompt) {
                     console.log("⚠️ স্টক সাইটে ছবি পাওয়া যায়নি। AI (FLUX) দিয়ে অবজেক্ট-ভিত্তিক ছবি জেনারেট করা হচ্ছে...");
                     const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
@@ -483,7 +555,6 @@ ${fullText}
                     }
                 }
             } else if (rewrittenData.image_prompt) {
-                 // Fallback if no search_keyword but image_prompt exists
                  const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
                  if (fluxUrl) {
                      finalImageUrl = fluxUrl;
@@ -491,8 +562,16 @@ ${fullText}
                  }
             }
 
-            // 🏷️ ক্যাটাগরি ফিক্সিং লজিক
+            // --- STEP-4: ক্যাটাগরি ফিক্সিং এবং লিমিট চেক লজিক ---
             const actualCategory = rewrittenData.true_category || source.defaultCategory;
+
+            publishedCount[actualCategory] = publishedCount[actualCategory] || 0;
+
+            if (publishedCount[actualCategory] >= (CATEGORY_LIMITS[actualCategory] || 1)) {
+                console.log(`⏭️ ${actualCategory} limit reached`);
+                continue;
+            }
+            // ----------------------------------------------------
 
             // ডাটাবেসে সেভ করা
             const { error: insertError } = await supabase.from('news').insert([{
@@ -507,10 +586,12 @@ ${fullText}
               is_published: true, 
               is_custom: false 
             }]);
+
             if (insertError) {
                 console.error("❌ সুপাবেজ ডাটাবেস এরর:", insertError.message);
             } else {
                 console.log(`✅ সফলভাবে পাবলিশ হয়েছে: [${actualCategory}] ${rewrittenData.title.substring(0, 40)}...`);
+                publishedCount[actualCategory]++; // STEP-4: সফল পাবলিশের পর কাউন্টার বৃদ্ধি
                 processedArticlesCount++;
             }
             
@@ -530,3 +611,39 @@ ${fullText}
 }
 
 runBot();
+
+
+/* ==========================================================================
+   STEP-8: HOMEPAGE API / SUPABASE QUERY IMPLEMENTATION
+   ==========================================================================
+   আপনার নির্দেশনা অনুযায়ী এই লজিকটি স্ক্র্যাপিং ফাইলে রান হবে না। এটি আপনার ফ্রন্টেন্ড 
+   API রুট (Next.js API route / Express routing) বা যেখানে হোমপেজের ডেটা ফেচ করেন 
+   সেখানে ব্যবহার করতে হবে। নিচে Supabase JS SDK সিনট্যাক্স দিয়ে রেডি কোড দেওয়া হলো:
+
+   // ১. উপরের Lead Section এর জন্য কুয়েরি (শুধু বাংলাদেশ, রাজনীতি, আন্তর্জাতিক)
+   async function getLeadSectionNews() {
+     const { data, error } = await supabase
+       .from('news')
+       .select('*')
+       .in('category', ['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক'])
+       .eq('is_published', true)
+       .order('created_at', { ascending: false })
+       .limit(12);
+       
+     if (error) console.error("Lead Section Error:", error.message);
+     return data;
+   }
+
+   // ২. নিচের সাধারণ ফিডের জন্য কুয়েরি (সব ক্যাটাগরি মিশ্রিত)
+   async function getAllGeneralNews() {
+     const { data, error } = await supabase
+       .from('news')
+       .select('*')
+       .eq('is_published', true)
+       .order('created_at', { ascending: false })
+       .limit(100);
+       
+     if (error) console.error("General Feed Error:", error.message);
+     return data;
+   }
+========================================================================== */
