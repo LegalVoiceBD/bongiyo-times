@@ -97,11 +97,11 @@ async function fetchImageForGemini(imageUrl) {
 }
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V3: Ultimate News Desk Edition)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V4: Editorial Engine & Event Hash Edition)...");
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
-  const allSources = [
+ const allSources = [
     { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ' },
@@ -194,6 +194,7 @@ async function runBot() {
     { name: 'Amader Shomoy', bnName: 'আমাদের সময়', url: 'https://dainikamadershomoy.com/category/all/feature', domain: 'dainikamadershomoy.com', defaultCategory: 'ফিচার' }
   ];
 
+
   function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -202,7 +203,7 @@ async function runBot() {
     return array;
   }
 
-  // --- REFORM 1: Smart Priority Source Selection ---
+  // --- REFORM 1: Tier-1 & Tier-2 Priority Source Selection ---
   const priorityCategories = ['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক'];
   const secondaryCategories = ['আইন-আদালত', 'বাণিজ্য', 'খেলাধুলা'];
   const optionalCategories = ['বিনোদন', 'প্রযুক্তি', 'শিক্ষা', 'ধর্ম', 'জীবনযাপন', 'চাকরি', 'ফিচার', 'হাস্যরস'];
@@ -211,13 +212,14 @@ async function runBot() {
   const secondarySources = allSources.filter(s => secondaryCategories.includes(s.defaultCategory));
   const optionalSources = allSources.filter(s => optionalCategories.includes(s.defaultCategory));
 
-  // ফিক্সড প্রায়োরিটি সোর্স (এগুলো সবসময় থাকবে)
-  const fixedSourceNames = ['Prothom Alo', 'Ittefaq', 'BBC Bangla', 'Inqilab', 'Jugantor', 'BD Pratidin'];
+  // Tier-1: সবসময় থাকবে (Fixed)
+  const tier1Names = ['Prothom Alo', 'Jugantor', 'BBC Bangla', 'Inqilab', 'Ittefaq', 'Nayadiganta', 'BD Pratidin'];
   
-  const fixedPriority = prioritySources.filter(s => fixedSourceNames.includes(s.name));
-  const randomPriority = shuffleArray(prioritySources.filter(s => !fixedSourceNames.includes(s.name))).slice(0, 5);
+  const tier1Priority = prioritySources.filter(s => tier1Names.includes(s.name));
+  // Tier-2: বাকিগুলো থেকে র‍্যান্ডম
+  const tier2Priority = shuffleArray(prioritySources.filter(s => !tier1Names.includes(s.name))).slice(0, 5);
   
-  const selectedPriority = [...fixedPriority, ...randomPriority];
+  const selectedPriority = [...tier1Priority, ...tier2Priority];
   const selectedSecondary = shuffleArray([...secondarySources]).slice(0, 5);
   const selectedOptional = shuffleArray([...optionalSources]).slice(0, 3);
 
@@ -243,22 +245,21 @@ async function runBot() {
     'শিক্ষা': 1, 'ধর্ম': 1, 'জীবনযাপন': 1, 'চাকরি': 1, 'ফিচার': 1
   };
 
-  // --- REFORM 4: Dynamic Minimum Score ---
   const minimumScore = {
     'বাংলাদেশ': 8, 'রাজনীতি': 8, 'আন্তর্জাতিক': 8, 'আইন-আদালত': 8,
     'বাণিজ্য': 7, 'খেলাধুলা': 6, 'প্রযুক্তি': 6, 'শিক্ষা': 6,
     'চাকরি': 6, 'বিনোদন': 5, 'জীবনযাপন': 5, 'ধর্ম': 5, 'ফিচার': 4
   };
   
-  // --- REFORM 3: Comprehensive Duplicate Detection Context ---
+  // --- REFORM 3, 4, 5: Event Hash & Duplicate Context ---
   const { data: recentNewsRecords } = await supabase
     .from('news')
-    .select('title, snippet, category') // Added snippet and category
+    .select('title, snippet, category, event_hash') 
     .order('created_at', { ascending: false })
-    .limit(30);
+    .limit(40);
     
   const recentContext = recentNewsRecords 
-    ? recentNewsRecords.map(n => `[${n.category}] ${n.title} - ${n.snippet || ''}`).join('\n') 
+    ? recentNewsRecords.map(n => `[${n.category}] Title: ${n.title} | Snippet: ${n.snippet || ''} | Hash: ${n.event_hash || 'N/A'}`).join('\n') 
     : '';
 
   for (let source of sourcesToScrape) {
@@ -283,7 +284,8 @@ async function runBot() {
         }
       });
 
-      const topLinks = links.slice(0, 5); 
+      // --- REFORM 6: 10 Links Selection ---
+      const topLinks = links.slice(0, 10); 
       
       for (let link of topLinks) {
         if (processedArticlesCount >= MAX_ARTICLES_PER_RUN) break;
@@ -301,13 +303,15 @@ async function runBot() {
             geminiImagePart = await fetchImageForGemini(ogImageUrl);
         }
 
-        // --- REFORM 2: Smart DOM Extraction (No more random sidebars/footers) ---
+        // --- REFORM 2: Smart & Strict Article Extraction ---
         let fullTextArray = [];
-        const contentSelectors = ['article', 'main', '.news-content', '.entry-content', '.post-content', '.story', '.article-body'];
+        const contentSelectors = ['article', 'main', '.story', '.news-content', '.entry-content', '.post-content', '.article-body'];
         let contentFound = false;
 
         for (const selector of contentSelectors) {
             if (article$(selector).length > 0) {
+                // exclude unwanted elements specifically inside the main wrapper
+                article$(selector).find('footer, .author, .related, .advertisement, script, style, .social-share').remove();
                 article$(selector).find('p').each((i, el) => {
                     const text = article$(el).text().trim();
                     if (text.length > 30) fullTextArray.push(text);
@@ -319,7 +323,7 @@ async function runBot() {
             }
         }
 
-        // Fallback to basic 'p' parsing only if smart extraction failed
+        // Fallback
         if (!contentFound) {
             article$('p').each((i, el) => {
                 const text = article$(el).text().trim();
@@ -331,7 +335,7 @@ async function runBot() {
         if (fullText.length < 300) continue; 
 
         if (fullText) {
-          console.log(`🧠 জেমিনি বিশ্লেষণ করছে...`);
+          console.log(`🧠 জেমিনি বিশ্লেষণ করছে (${link})...`);
           
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
@@ -340,53 +344,40 @@ async function runBot() {
             তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। 
 
             ========================
-            প্রথম ধাপ: সংবাদ যাচাই (Mandatory Validation)
+            প্রথম ধাপ: সংবাদ যাচাই ও Event Hash (CRITICAL)
             ========================
             ১. Privacy Policy, Advertisement, Opinion, Blog, Category, Archive ইত্যাদি হলে বাতিল করবে।
-            ২. একাধিক শিরোনামের মিশ্রণ হলে বাতিল করবে।
-            ৩. নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি একই ঘটনা/সংবাদ মিলে যায় (Title, Snippet ও Category Context মিলিয়ে) তাহলে বাতিল করবে:
+            ২. Mixed Content / Multiple unrelated news: If the webpage contains multiple unrelated news, extract ONLY ONE most important news. Ignore sidebar, related news, footer, advertisement, header.
+            ৩. Duplicate Event Check: নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি এই সংবাদটি হুবহু একই ঘটনার হয় (Title, Snippet ও Hash মিলিয়ে, এমনকি যদি ভিন্ন পত্রিকার ভিন্ন ভাষার শব্দও হয় যেমন "ঢাকায় ভারী বৃষ্টি" = "রাজধানীতে প্রবল বর্ষণ"), তাহলে অবশ্যই রিটার্ন করবে: {"skip": true}
             
-            সাম্প্রতিক সংবাদ:
+            সাম্প্রতিক সংবাদ কনটেক্সট:
             ${recentContext}
 
-            যেকোনো শর্ত সত্য হলে রিটার্ন করবে: {"skip": true}
-
             ========================
-            দ্বিতীয় ধাপ: সংবাদ তৈরি ও সঠিক ক্যাটাগরি নির্বাচন
+            দ্বিতীয় ধাপ: সংবাদ তৈরি ও ক্যাটাগরি
             ========================
             - শিরোনাম হবে জাতীয় পত্রিকার মানের, কোনো ক্লিকবেট নয়।
             - প্রথম বাক্যে ন্যাচারালভাবে সোর্সের ক্রেডিট যুক্ত করবে: (যেমন: <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>)
-            - পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে। কোনো <p>, <div> ব্যবহার করবে না, শুধু \\n\\n।
-
-            ### সঠিক ক্যাটাগরি নির্বাচন
-            - Never classify a news as a specific category just because of the source URL or website name.
-            - Read the content carefully and determine the real category.
-            - Ignore sidebars, related news, and page title biases.
-            - Select strictly from: [বাংলাদেশ, রাজনীতি, আন্তর্জাতিক, আইন-আদালত, বাণিজ্য, খেলাধুলা, বিনোদন, শিক্ষা, প্রযুক্তি, ধর্ম, জীবনযাপন, চাকরি, ফিচার, হাস্যরস]।
-
-            ### Importance Score
-            Evaluate the news (1-10):
-            10 = National breaking news
-            9 = Major political event / Big breaking
-            8 = Government decision / Major accident / Court judgement
-            7 = Economy
-            6 = Sports / Tech / Edu
-            5 = Entertainment / Lifestyle
-            4 = Feature
-            3 = Minor news
-            1-2 = Ad / Opinion
-
-            ### Breaking News Boost (REFORM Feature)
-            যদি সংবাদটি প্রধানমন্ত্রী, রাষ্ট্রপতি, সুপ্রিম কোর্টের ঐতিহাসিক রায়, নির্বাচন, বড় দুর্ঘটনা, যুদ্ধ, প্রাকৃতিক দুর্যোগ, অর্থনৈতিক নীতি, জাতীয় নিরাপত্তা বা আন্তর্জাতিক সংকট সম্পর্কিত হয়, তাহলে breaking_news: true রিটার্ন করবে।
+            - পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে। কোনো HTML ট্যাগ নয়, শুধু \\n\\n।
+            - Never classify a news strictly by source URL. Read the content. Ignore sidebars. Select strictly from: [বাংলাদেশ, রাজনীতি, আন্তর্জাতিক, আইন-আদালত, বাণিজ্য, খেলাধুলা, বিনোদন, শিক্ষা, প্রযুক্তি, ধর্ম, জীবনযাপন, চাকরি, ফিচার, হাস্যরস]।
 
             ========================
-            Step 3: Image Sourcing & AI Fallback
+            তৃতীয় ধাপ: Editorial Score Engine
+            ========================
+            - importance_score (1-10): 10=National breaking, 9=Major event, 8=Govt decision/Accident, 7=Economy, 6=Sports/Tech, 5=Entertainment, 1-4=Minor/Feature.
+            - editorial_score (1-100): A granular score for homepage ranking. 95+ for PM resignation, 80 for major policy, 50 for regular sports, 20 for minor feature.
+            - breaking_news (boolean): যদি প্রধানমন্ত্রী, রাষ্ট্রপতি, সুপ্রিম কোর্টের ঐতিহাসিক রায়, নির্বাচন, বড় দুর্ঘটনা, যুদ্ধ, প্রাকৃতিক দুর্যোগ, অর্থনৈতিক নীতি, জাতীয় নিরাপত্তা বা আন্তর্জাতিক সংকট সম্পর্কিত হয়, তাহলে true।
+            - event_hash: A snake_case unique identifier for this event (e.g., "dhaka_heavy_rain_2026", "world_cup_final_argentina"). If it's a completely new event, create a new hash.
+            - event_type: A short string (e.g., "Politics", "Accident", "Economy").
+
+            ========================
+            Step 4: Image Sourcing & Fallback
             ========================
             1. search_keyword: 1-2 English keywords for stock sites.
             2. image_prompt: Object-based FLUX prompt (No humans/faces/text). End with: "editorial news photography, DSLR, 8k, realistic".
 
             ========================
-            Step 4: JSON Output Format
+            Step 5: JSON Output Format
             ========================
             {
               "skip": false,
@@ -396,7 +387,10 @@ async function runBot() {
               "search_keyword": "keyword",
               "image_prompt": "prompt",
               "importance_score": 9,
-              "breaking_news": true
+              "editorial_score": 92,
+              "breaking_news": true,
+              "event_hash": "bd_election_schedule_2026",
+              "event_type": "Politics"
             }
 
             ========================
@@ -427,20 +421,18 @@ async function runBot() {
             const rewrittenData = JSON.parse(responseText);
 
             if (rewrittenData.skip) {
-                console.log(`⏭️ Duplicate বা Invalid খবর স্কিপ করা হয়েছে।`);
+                console.log(`⏭️ Duplicate Event বা Invalid খবর স্কিপ করা হয়েছে।`);
                 continue; 
             }
 
-            // Apply Dynamic Minimum Score
             const actualCategory = rewrittenData.true_category || source.defaultCategory;
             const requiredScore = minimumScore[actualCategory] || 7;
 
             if ((rewrittenData.importance_score || 0) < requiredScore) {
-                console.log(`⏭️ Low score for ${actualCategory} (${rewrittenData.importance_score} < ${requiredScore}) - Skipped`);
+                console.log(`⏭️ Low importance for ${actualCategory} (${rewrittenData.importance_score} < ${requiredScore}) - Skipped`);
                 continue;
             }
 
-            // Category Limit Check
             publishedCount[actualCategory] = publishedCount[actualCategory] || 0;
             if (publishedCount[actualCategory] >= (CATEGORY_LIMITS[actualCategory] || 1)) {
                 console.log(`⏭️ ${actualCategory} limit reached`);
@@ -474,7 +466,6 @@ async function runBot() {
                  }
             }
 
-            // --- REFORM 5 & 6: Lead News & Breaking News variables ---
             const isLeadNews = (rewrittenData.importance_score >= 9);
             const isBreakingNews = rewrittenData.breaking_news || false;
 
@@ -489,20 +480,23 @@ async function runBot() {
               image_source: imageSourceCredit, 
               is_published: true, 
               is_custom: false,
-              is_lead: isLeadNews, 
-              importance: rewrittenData.importance_score || 0,
-              breaking_news: isBreakingNews
+              is_lead: isLeadNews,
+              importance_score: rewrittenData.importance_score || 0,
+              editorial_score: rewrittenData.editorial_score || 0,
+              breaking_news: isBreakingNews,
+              event_hash: rewrittenData.event_hash || null,
+              event_type: rewrittenData.event_type || 'General'
             }]);
 
             if (insertError) {
                 console.error("❌ সুপাবেজ ডাটাবেস এরর:", insertError.message);
             } else {
-                console.log(`✅ পাবলিশ: [${actualCategory}] ${rewrittenData.title.substring(0, 40)}... | Score: ${rewrittenData.importance_score} | Lead: ${isLeadNews} | Breaking: ${isBreakingNews}`);
+                console.log(`✅ পাবলিশ: [${actualCategory}] ${rewrittenData.title.substring(0, 30)}... | Ed.Score: ${rewrittenData.editorial_score} | Hash: ${rewrittenData.event_hash}`);
                 publishedCount[actualCategory]++; 
                 processedArticlesCount++;
             }
             
-            await delay(10000);
+            await delay(10000); // 10s delay to respect Gemini & Cloudinary rate limits
 
           } catch (apiError) {
             console.error("❌ জেমিনি বা JSON পার্সিং এরর:", apiError.message);
@@ -521,26 +515,38 @@ runBot();
 
 
 /* ==========================================================================
-   HOMEPAGE / SUPABASE QUERIES (To use in your Next.js/Frontend API)
+   HOMEPAGE / EDITORIAL QUERIES (To use in your Next.js/Frontend API)
    ==========================================================================
    
-   // ১. Lead Section Query (Top Breaking/Important News where is_lead = true)
+   // ১. Homepage Sorting by Editorial Score (Smart Sort)
+   async function getHomepageNews() {
+     const { data, error } = await supabase
+       .from('news')
+       .select('*')
+       .eq('is_published', true)
+       .order('editorial_score', { ascending: false }) // Primary Sort by Editorial Engine
+       .order('created_at', { ascending: false })      // Secondary Sort by Time
+       .limit(20);
+     return data;
+   }
+
+   // ২. Lead Section Query (Top Breaking/Important News where is_lead = true)
    async function getLeadNews() {
      const { data, error } = await supabase
        .from('news')
        .select('*')
        .eq('is_published', true)
        .eq('is_lead', true)
-       .order('created_at', { ascending: false })
+       .order('editorial_score', { ascending: false })
        .limit(6);
      return data;
    }
 
-   // ২. Breaking News Ticker / Hero Query
+   // ৩. Breaking News Ticker / Hero Query
    async function getBreakingNews() {
      const { data, error } = await supabase
        .from('news')
-       .select('title, category, created_at') // Fetching only needed fields for ticker
+       .select('title, category, created_at, slug')
        .eq('is_published', true)
        .eq('breaking_news', true)
        .order('created_at', { ascending: false })
