@@ -203,28 +203,22 @@ async function runBot() {
     return array;
   }
 
-  // --- REFORM 1: Tier-1 & Tier-2 Priority Source Selection ---
-  const priorityCategories = ['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক'];
-  const secondaryCategories = ['আইন-আদালত', 'বাণিজ্য', 'খেলাধুলা'];
-  const optionalCategories = ['বিনোদন', 'প্রযুক্তি', 'শিক্ষা', 'ধর্ম', 'জীবনযাপন', 'চাকরি', 'ফিচার', 'হাস্যরস'];
-
-  const prioritySources = allSources.filter(s => priorityCategories.includes(s.defaultCategory));
-  const secondarySources = allSources.filter(s => secondaryCategories.includes(s.defaultCategory));
-  const optionalSources = allSources.filter(s => optionalCategories.includes(s.defaultCategory));
-
-  // Tier-1: সবসময় থাকবে (Fixed)
-  const tier1Names = ['Prothom Alo', 'Jugantor', 'BBC Bangla', 'Inqilab', 'Ittefaq', 'Nayadiganta', 'BD Pratidin'];
+  // --- REFORM 1: Tier-1 & Random Source Selection ---
   
-  const tier1Priority = prioritySources.filter(s => tier1Names.includes(s.name));
-  // Tier-2: বাকিগুলো থেকে র‍্যান্ডম
-  const tier2Priority = shuffleArray(prioritySources.filter(s => !tier1Names.includes(s.name))).slice(0, 5);
+  // ১. আপনার পছন্দের Tier-1 সোর্সগুলোর নাম (এগুলো সবসময় থাকবে)
+  const tier1Names = ['Prothom Alo', 'BBC Bangla', 'Inqilab', 'BD Pratidin', 'Ittefaq', 'Nayadiganta', 'Jugantor'];
   
-  const selectedPriority = [...tier1Priority, ...tier2Priority];
-  const selectedSecondary = shuffleArray([...secondarySources]).slice(0, 5);
-  const selectedOptional = shuffleArray([...optionalSources]).slice(0, 3);
-
-  const sourcesToScrape = [...selectedPriority, ...selectedSecondary, ...selectedOptional];
+  // Tier-1 সোর্সগুলো মূল লিস্ট থেকে আলাদা করা
+  const tier1Sources = allSources.filter(s => tier1Names.includes(s.name));
   
+  // ২. Tier-1 বাদে বাকি সব সোর্স আলাদা করা
+  const remainingSources = allSources.filter(s => !tier1Names.includes(s.name));
+  
+  // ৩. বাকিগুলো থেকে র‍্যান্ডমলি সিলেক্ট করা (এখানে ১০টি নেওয়া হয়েছে, আপনার প্রয়োজন অনুযায়ী slice(0, 10) পরিবর্তন করতে পারেন)
+  const randomSelectedSources = shuffleArray([...remainingSources]).slice(0, 10);
+  
+  // ৪. চূড়ান্ত স্ক্র্যাপিং লিস্ট তৈরি (Tier-1 + Random)
+  const sourcesToScrape = [...tier1Sources, ...randomSelectedSources];
   const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
 
   function isStrictlyValid(url) {
