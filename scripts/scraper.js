@@ -97,7 +97,7 @@ async function fetchImageForGemini(imageUrl) {
 }
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V5: Editorial Image Engine v2 & Event Hash Edition)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V6: Editorial Image Engine v3 & Advanced Extraction)...");
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
@@ -342,8 +342,8 @@ const headers = {
         }
       });
 
-      // --- REFORM 6: 10 Links Selection ---
-      const topLinks = links.slice(0, 10); 
+      // --- REFORM 6: Slicing Updated to 25 ---
+      const topLinks = links.slice(0, 25); 
       
       for (let link of topLinks) {
         if (processedArticlesCount >= MAX_ARTICLES_PER_RUN) break;
@@ -361,9 +361,9 @@ const headers = {
             geminiImagePart = await fetchImageForGemini(ogImageUrl);
         }
 
-        // --- REFORM 2: Smart & Strict Article Extraction ---
+        // --- REFORM 2: Smart & Strict Article Extraction (Updated Selectors) ---
         let fullTextArray = [];
-        const contentSelectors = ['article', 'main', '.story', '.news-content', '.entry-content', '.post-content', '.article-body'];
+        const contentSelectors = ['article', 'main', '.story', '.news-content', '.entry-content', '.post-content', '.article-body', '.content', '.details', '.details-content', '.newsDetails', '.post-details'];
         let contentFound = false;
 
         for (const selector of contentSelectors) {
@@ -406,13 +406,13 @@ const headers = {
             ========================
             ১. Privacy Policy, Advertisement, Opinion, Blog, Category, Archive ইত্যাদি হলে বাতিল করবে।
             ২. Mixed Content / Multiple unrelated news: If the webpage contains multiple unrelated news, extract ONLY ONE most important news. Ignore sidebar, related news, footer, advertisement, header.
-            ৩. Duplicate Event Check: নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি এই সংবাদটি হুবহু একই ঘটনার হয় (Title, Snippet ও Hash মিলিয়ে, এমনকি যদি ভিন্ন পত্রিকার ভিন্ন ভাষার শব্দও হয় যেমন "ঢাকায় ভারী বৃষ্টি" = "রাজধানীতে প্রবল বর্ষণ"), তাহলে অবশ্যই রিটার্ন করবে: {"skip": true}
+            ৩. Duplicate Event Check: নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি এই সংবাদটি হুবহু একই ঘটনার হয় (Title, Snippet, Hash এবং Entities মিলিয়ে), তাহলে অবশ্যই রিটার্ন করবে: {"skip": true}
             
             সাম্প্রতিক সংবাদ কনটেক্সট:
             ${recentContext}
 
             ========================
-            দ্বিতীয় ধাপ: সংবাদ তৈরি ও ক্যাটা জরিমানা
+            দ্বিতীয় ধাপ: সংবাদ তৈরি ও ক্যাটাগরি
             ========================
             - শিরোনাম হবে জাতীয় পত্রিকার মানের, কোনো ক্লিকবেট নয়।
             - প্রথম বাক্যে ন্যাচারালভাবে সোর্সের ক্রেডিট যুক্ত করবে: (যেমন: <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>)
@@ -420,21 +420,28 @@ const headers = {
             - Never classify a news strictly by source URL. Read the content. Ignore sidebars. Select strictly from: [বাংলাদেশ, রাজনীতি, আন্তর্জাতিক, আইন-আদালত, বাণিজ্য, খেলাধুলা, বিনোদন, শিক্ষা, প্রযুক্তি, ধর্ম, জীবনযাপন, চাকরি, ফিচার, হাস্যরস]।
 
             ========================
-            তৃতীয় ধাপ: Editorial Score Engine
+            তৃতীয় ধাপ: Editorial Score Engine & Entities
             ========================
             - importance_score (1-10): 10=National breaking, 9=Major event, 8=Govt decision/Accident, 7=Economy, 6=Sports/Tech, 5=Entertainment, 1-4=Minor/Feature.
             - editorial_score (1-100): A granular score for homepage ranking. 95+ for PM resignation, 80 for major policy, 50 for regular sports, 20 for minor feature.
             - breaking_news (boolean): যদি প্রধানমন্ত্রী, রাষ্ট্রপতি, সুপ্রিম কোর্টের ঐতিহাসিক রায়, নির্বাচন, বড় দুর্ঘটনা, যুদ্ধ, প্রাকৃতিক দুর্যোগ, অর্থনৈতিক নীতি, জাতীয় নিরাপত্তা বা আন্তর্জাতিক সংকট সম্পর্কিত হয়, তাহলে true।
-            - event_hash: A snake_case unique identifier for this event (e.g., "dhaka_heavy_rain_2026", "world_cup_final_argentina"). If it's a completely new event, create a new hash.
+            - event_hash: A snake_case unique identifier for this event.
             - event_type: A short string (e.g., "Politics", "Accident", "Economy").
+            - country_context: "Bangladesh", "International", or specific country name.
+            - entity: Extract main entities (e.g. "Muhammad Yunus", "Army", "President", "Election Commission"). Array of strings.
+            - location: Extract main locations. Array of strings.
+            - person: Extract main persons. Array of strings.
+            - organization: Extract main organizations. Array of strings.
 
             ========================
             Step 4: Image Strategy Engine (CRITICAL)
             ========================
             Evaluate the news and strictly return ONE of these "image_strategy" values:
-            - "original": If it's a very specific news (accident, personal event) where AI/Stock might mislead, prioritize original OG image.
-            - "bangladesh_context": For Bangladesh politics, Govt, President, PM, Army, Police, Court, Election. (You MUST provide an 'image_prompt' like "Bangladesh Parliament Building", "Bangladesh Supreme Court", "Bangladesh Secretariat", "Bangladesh Police Headquarters", etc. Do NOT output a search_keyword).
-            - "stock": ONLY for Nature, Weather, Economy, Tech, Lifestyle, Education, Health, Food, Travel, Animals, Science. Provide a 'search_keyword'.
+            - "original": If it's a very specific news (accident, personal event) where AI/Stock might mislead.
+            - "bangladesh_context": For Bangladesh politics, Govt, President, PM, Army, Police, Court, Election. 
+              **CRITICAL:** Always create prompts specifically describing real Bangladeshi places/objects. Never describe generic parliament, generic court, generic government office. Always include: "Bangladesh, Dhaka, South Asian architecture, Bangladesh flag (if appropriate), No foreign buildings, No western architecture, No European style, No foreign military uniforms, No foreign police uniforms, Editorial documentary photography, Realistic, 8k, No text, No watermark".
+            - "landmark": For specific iconic places in Bangladesh like "High Court", "National Parliament". (Use similar strict Bangladesh-specific prompt as bangladesh_context).
+            - "stock": ONLY for Nature, Weather, Economy, Tech, Lifestyle, Education, Health, Food, Travel, Animals, Science. **Must include country in search_keyword if related to a specific country (e.g., "Bangladesh economy", "Dhaka traffic").**
             - "symbolic" or "ai_generate": For general topics where a generated image works. (Note: ONLY for 'symbolic' strategy, you must add "Do NOT include any human faces, eyes, hands, limbs, or body parts" to the image_prompt).
 
             WARNING: Strictly DO NOT use "stock" strategy for Politics, Government, President, PM, Army, Police, Court, Accident, Crime, Fire, War, Conflict.
@@ -448,13 +455,18 @@ const headers = {
               "content": "সম্পূর্ণ সংবাদ",
               "true_category": "সঠিক ক্যাটাগরি",
               "image_strategy": "original",
+              "country_context": "Bangladesh",
               "search_keyword": "keyword or null",
               "image_prompt": "prompt or null",
               "importance_score": 9,
               "editorial_score": 92,
               "breaking_news": true,
               "event_hash": "bd_election_schedule_2026",
-              "event_type": "Politics"
+              "event_type": "Politics",
+              "entity": ["Entity 1", "Entity 2"],
+              "location": ["Dhaka"],
+              "person": ["Person 1"],
+              "organization": ["Org 1"]
             }
 
             ========================
@@ -503,7 +515,7 @@ const headers = {
                 continue;
             }
 
-            // Image Selection Strategy V2
+            // Image Selection Strategy V3
             let finalImageUrl = defaultPlaceholder;
             let imageSourceCredit = "বঙ্গীয় টাইমস";
             const strategy = rewrittenData.image_strategy || "original";
@@ -533,7 +545,7 @@ const headers = {
                     }
                 }
             }
-            else if ((strategy === "bangladesh_context" || strategy === "symbolic" || strategy === "ai_generate") && rewrittenData.image_prompt) {
+            else if ((strategy === "bangladesh_context" || strategy === "landmark" || strategy === "symbolic" || strategy === "ai_generate") && rewrittenData.image_prompt) {
                 const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
                 if (fluxUrl) {
                      finalImageUrl = fluxUrl;
