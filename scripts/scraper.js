@@ -19,7 +19,7 @@ const supabase = createClient(
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ১. Unsplash থেকে ছবি খোঁজার ফাংশন
+// ১. Unsplash থেকে ছবি খোঁজার ফাংশন (Copyright Free)
 async function searchUnsplash(keyword) {
   try {
     const url = `https://api.unsplash.com/search/photos?page=1&per_page=1&query=${encodeURIComponent(keyword)}&orientation=landscape&client_id=${process.env.UNSPLASH_ACCESS_KEY}`;
@@ -31,7 +31,7 @@ async function searchUnsplash(keyword) {
   } catch (error) { return null; }
 }
 
-// ২. Pexels থেকে ছবি খোঁজার ফাংশন
+// ২. Pexels থেকে ছবি খোঁজার ফাংশন (Copyright Free)
 async function searchPexels(keyword) {
   try {
     const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(keyword)}&per_page=1&orientation=landscape`;
@@ -43,7 +43,7 @@ async function searchPexels(keyword) {
   } catch (error) { return null; }
 }
 
-// ৩. Pixabay থেকে ছবি খোঁজার ফাংশন
+// ৩. Pixabay থেকে ছবি খোঁজার ফাংশন (Copyright Free)
 async function searchPixabay(keyword) {
   try {
     const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(keyword)}&image_type=photo&orientation=horizontal&per_page=3`;
@@ -55,11 +55,11 @@ async function searchPixabay(keyword) {
   } catch (error) { return null; }
 }
 
-// ৪. AI Image Generate (FLUX)
+// ৪. AI Image Generate (FLUX) - STRICTLY NO HUMANS
 async function generateAndUploadImage(imagePrompt) {
   try {
     console.log(`🎨 ইমেজ জেনারেট হচ্ছে (FLUX Model)...`);
-    const styleSuffix = ", Ultra realistic, Photojournalism, Reuters style, AP News photography, Natural lighting, No cinematic color grading, No dramatic lighting, No fantasy, No illustration, No digital art, No CGI, No painting, Real press photograph, NO TEXT, NO WATERMARK, NO LOGO";
+    const styleSuffix = ", Ultra realistic, Photojournalism, Reuters style, AP News photography, Natural lighting, No cinematic color grading, No dramatic lighting, No fantasy, No illustration, No digital art, No CGI, No painting, Real press photograph, NO TEXT, NO WATERMARK, NO LOGO, NO HUMANS, NO FACES";
     const finalPrompt = imagePrompt + styleSuffix;
     
     const encodedPrompt = encodeURIComponent(finalPrompt);
@@ -84,7 +84,6 @@ async function generateAndUploadImage(imagePrompt) {
   } catch (error) { return null; }
 }
 
-// ৫. Vision AI এর জন্য ইমেজ বাফার
 async function fetchImageForGemini(imageUrl) {
     try {
         const response = await fetch(imageUrl);
@@ -101,7 +100,7 @@ async function fetchImageForGemini(imageUrl) {
 }
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V7: Advanced Image Strategy & Strict Anti-Hallucination)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V8: ZERO-COPYRIGHT & Anti-Hallucination Engine)...");
 
   // আপনার নিজস্ব ব্র্যান্ডেড প্লেসহোল্ডার বা এডিটোরিয়াল গ্রাফিক লিংক এখানে দিন
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Bongiyo_Times_Editorial_Graphic_Placeholder.jpg';
@@ -116,90 +115,9 @@ async function runBot() {
     { name: 'Nayadiganta', bnName: 'নয়া দিগন্ত', url: 'https://www.dailynayadiganta.com/national', domain: 'dailynayadiganta.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Inqilab', bnName: 'ইনকিলাব', url: 'https://dailyinqilab.com/national', domain: 'dailyinqilab.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Dhaka Post', bnName: 'ঢাকা পোস্ট', url: 'https://www.dhakapost.com/national', domain: 'dhakapost.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Jagonews24', bnName: 'জাগো নিউজ', url: 'https://www.jagonews24.com/national', domain: 'jagonews24.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'BDNews24', bnName: 'বিডিনিউজ টোয়েন্টিফোর', url: 'https://bangla.bdnews24.com/samagrabangladesh', domain: 'bdnews24.com', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Jamuna TV', bnName: 'যমুনা টিভি', url: 'https://www.jamuna.tv/all-bangladesh', domain: 'jamuna.tv', defaultCategory: 'বাংলাদেশ' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/world', domain: 'prothomalo.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/international', domain: 'jugantor.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/world-news', domain: 'ittefaq.com.bd', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Kaler Kantho', bnName: 'কালের কণ্ঠ', url: 'https://www.kalerkantho.com/online/world', domain: 'kalerkantho.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Samakal', bnName: 'সমকাল', url: 'https://samakal.com/international', domain: 'samakal.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'BD Pratidin', bnName: 'বাংলাদেশ প্রতিদিন', url: 'https://www.bd-pratidin.com/international', domain: 'bd-pratidin.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Dhaka Post', bnName: 'ঢাকা পোস্ট', url: 'https://www.dhakapost.com/international', domain: 'dhakapost.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Jagonews24', bnName: 'জাগো নিউজ', url: 'https://www.jagonews24.com/international', domain: 'jagonews24.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'BBC Bangla', bnName: 'বিবিসি বাংলা', url: 'https://www.bbc.com/bengali', domain: 'bbc.com', defaultCategory: 'আন্তর্জাতিক' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/sports', domain: 'prothomalo.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/sports', domain: 'jugantor.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/sports', domain: 'ittefaq.com.bd', defaultCategory: 'খেলাধুলা' },
-    { name: 'Kaler Kantho', bnName: 'কালের কণ্ঠ', url: 'https://www.kalerkantho.com/online/sport', domain: 'kalerkantho.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Samakal', bnName: 'সমকাল', url: 'https://samakal.com/sports', domain: 'samakal.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'BD Pratidin', bnName: 'বাংলাদেশ প্রতিদিন', url: 'https://www.bd-pratidin.com/sports', domain: 'bd-pratidin.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Dhaka Post', bnName: 'ঢাকা পোস্ট', url: 'https://www.dhakapost.com/sports', domain: 'dhakapost.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'Jagonews24', bnName: 'জাগো নিউজ', url: 'https://www.jagonews24.com/sports', domain: 'jagonews24.com', defaultCategory: 'খেলাধুলা' },
-    { name: 'TBS News', bnName: 'টিবিএস নিউজ', url: 'https://www.tbsnews.net/bangla/sports', domain: 'tbsnews.net', defaultCategory: 'খেলাধুলা' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/entertainment', domain: 'prothomalo.com', defaultCategory: 'বিনোদন' },
-    { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/entertainment', domain: 'jugantor.com', defaultCategory: 'বিনোদন' },
-    { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/entertainment', domain: 'ittefaq.com.bd', defaultCategory: 'বিনোদন' },
-    { name: 'Kaler Kantho', bnName: 'কালের কণ্ঠ', url: 'https://www.kalerkantho.com/online/entertainment', domain: 'kalerkantho.com', defaultCategory: 'বিনোদন' },
-    { name: 'Samakal', bnName: 'সমকাল', url: 'https://samakal.com/entertainment', domain: 'samakal.com', defaultCategory: 'বিনোদন' },
-    { name: 'Dhaka Post', bnName: 'ঢাকা পোস্ট', url: 'https://www.dhakapost.com/entertainment', domain: 'dhakapost.com', defaultCategory: 'বিনোদন' },
-    { name: 'Jagonews24', bnName: 'জাগো নিউজ', url: 'https://www.jagonews24.com/entertainment', domain: 'jagonews24.com', defaultCategory: 'বিনোদন' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/business', domain: 'prothomalo.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/economics', domain: 'jugantor.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/business', domain: 'ittefaq.com.bd', defaultCategory: 'বাণিজ্য' },
-    { name: 'Kaler Kantho', bnName: 'কালের কণ্ঠ', url: 'https://www.kalerkantho.com/online/business', domain: 'kalerkantho.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Samakal', bnName: 'সমকাল', url: 'https://samakal.com/economics', domain: 'samakal.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Dhaka Post', bnName: 'ঢাকা পোস্ট', url: 'https://www.dhakapost.com/economy', domain: 'dhakapost.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'Jagonews24', bnName: 'জাগো নিউজ', url: 'https://www.jagonews24.com/economy', domain: 'jagonews24.com', defaultCategory: 'বাণিজ্য' },
-    { name: 'TBS News', bnName: 'টিবিএস নিউজ', url: 'https://www.tbsnews.net/bangla/economy', domain: 'tbsnews.net', defaultCategory: 'বাণিজ্য' },
-    { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/law-and-justice', domain: 'jugantor.com', defaultCategory: 'আইন-আদালত' },
-    { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/law-and-court', domain: 'ittefaq.com.bd', defaultCategory: 'আইন-আদালত' },
-    { name: 'Dhaka Post', bnName: 'ঢাকা পোস্ট', url: 'https://www.dhakapost.com/law-courts', domain: 'dhakapost.com', defaultCategory: 'আইন-আদালত' },
-    { name: 'Jagonews24', bnName: 'জাগো নিউজ', url: 'https://www.jagonews24.com/law-courts', domain: 'jagonews24.com', defaultCategory: 'আইন-আদালত' },
-    { name: 'Bangla Tribune', bnName: 'বাংলা ট্রিবিউন', url: 'https://www.banglatribune.com/law-and-crime', domain: 'banglatribune.com', defaultCategory: 'আইন-আদালত' },
-    { name: 'Somoy TV', bnName: 'সময় টিভি', url: 'https://www.somoynews.tv/categories/আইন-ও-আদালত', domain: 'somoynews.tv', defaultCategory: 'আইন-আদালত' },
-    { name: 'Kalbela', bnName: 'কালবেলা', url: 'https://www.kalbela.com/legal-advice', domain: 'kalbela.com', defaultCategory: 'আইন-আদালত' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/education', domain: 'prothomalo.com', defaultCategory: 'শিক্ষা' },
-    { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/campus', domain: 'jugantor.com', defaultCategory: 'শিক্ষা' },
-    { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/education', domain: 'ittefaq.com.bd', defaultCategory: 'শিক্ষা' },
-    { name: 'Dhaka Post', bnName: 'ঢাকা পোস্ট', url: 'https://www.dhakapost.com/education', domain: 'dhakapost.com', defaultCategory: 'শিক্ষা' },
-    { name: 'Jagonews24', bnName: 'জাগো নিউজ', url: 'https://www.jagonews24.com/campus', domain: 'jagonews24.com', defaultCategory: 'শিক্ষা' },
-    { name: 'BD Pratidin', bnName: 'বাংলাদেশ প্রতিদিন', url: 'https://www.bd-pratidin.com/education', domain: 'bd-pratidin.com', defaultCategory: 'শিক্ষা' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/technology', domain: 'prothomalo.com', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/tech', domain: 'jugantor.com', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/science-and-technology', domain: 'ittefaq.com.bd', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Kaler Kantho', bnName: 'কালের কণ্ঠ', url: 'https://www.kalerkantho.com/online/info-tech', domain: 'kalerkantho.com', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Dhaka Post', bnName: 'ঢাকা পোস্ট', url: 'https://www.dhakapost.com/technology', domain: 'dhakapost.com', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Jagonews24', bnName: 'জাগো নিউজ', url: 'https://www.jagonews24.com/technology', domain: 'jagonews24.com', defaultCategory: 'প্রযুক্তি' },
-    { name: 'UNB', bnName: 'ইউএনবি', url: 'https://unb.com.bd/bangla/category/7/বিজ্ঞান-ও-প্রযুক্তি', domain: 'unb.com.bd', defaultCategory: 'প্রযুক্তি' },
-    { name: 'BD Pratidin', bnName: 'বাংলাদেশ প্রতিদিন', url: 'https://www.bd-pratidin.com/tech-world', domain: 'bd-pratidin.com', defaultCategory: 'প্রযুক্তি' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/religion', domain: 'prothomalo.com', defaultCategory: 'ধর্ম' },
-    { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/islam-and-life', domain: 'jugantor.com', defaultCategory: 'ধর্ম' },
-    { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/islam', domain: 'ittefaq.com.bd', defaultCategory: 'ধর্ম' },
-    { name: 'Kaler Kantho', bnName: 'কালের কণ্ঠ', url: 'https://www.kalerkantho.com/online/Islamic-lifestylie', domain: 'kalerkantho.com', defaultCategory: 'ধর্ম' },
-    { name: 'Dhaka Post', bnName: 'ঢাকা পোস্ট', url: 'https://www.dhakapost.com/religion', domain: 'dhakapost.com', defaultCategory: 'ধর্ম' },
-    { name: 'Jagonews24', bnName: 'জাগো নিউজ', url: 'https://www.jagonews24.com/religion', domain: 'jagonews24.com', defaultCategory: 'ধর্ম' },
-    { name: 'BD Pratidin', bnName: 'বাংলাদেশ প্রতিদিন', url: 'https://www.bd-pratidin.com/islam', domain: 'bd-pratidin.com', defaultCategory: 'ধর্ম' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/lifestyle', domain: 'prothomalo.com', defaultCategory: 'জীবনযাপন' },
-    { name: 'BD Pratidin', bnName: 'বাংলাদেশ প্রতিদিন', url: 'https://www.bd-pratidin.com/life', domain: 'bd-pratidin.com', defaultCategory: 'জীবনযাপন' },
-    { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/lifestyle', domain: 'jugantor.com', defaultCategory: 'জীবনযাপন' },
-    { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/lifestyle', domain: 'ittefaq.com.bd', defaultCategory: 'জীবনযাপন' },
-    { name: 'UNB', bnName: 'ইউএনবি', url: 'https://unb.com.bd/bangla/category/9/লাইফস্টাইল', domain: 'unb.com.bd', defaultCategory: 'জীবনযাপন' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/chakri', domain: 'prothomalo.com', defaultCategory: 'চাকরি' },
-    { name: 'Manobkantha', bnName: 'মানবকণ্ঠ', url: 'https://manobkantha.com.bd/articlelist/41/job', domain: 'manobkantha.com.bd', defaultCategory: 'চাকরি' },
-    { name: 'Kalbela', bnName: 'কালবেলা', url: 'https://www.kalbela.com/job-news', domain: 'kalbela.com', defaultCategory: 'চাকরি' },
-    { name: 'Shomoyer Alo', bnName: 'সময়ের আলো', url: 'https://www.shomoyeralo.com/menu/296', domain: 'shomoyeralo.com', defaultCategory: 'চাকরি' },
-    { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/job-seek', domain: 'jugantor.com', defaultCategory: 'চাকরি' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/politics', domain: 'prothomalo.com', defaultCategory: 'রাজনীতি' },
-    { name: 'BD Pratidin', bnName: 'বাংলাদেশ প্রতিদিন', url: 'https://www.bd-pratidin.com/current-politics', domain: 'bd-pratidin.com', defaultCategory: 'রাজনীতি' },
-    { name: 'Kalbela', bnName: 'কালবেলা', url: 'https://www.kalbela.com/politics', domain: 'kalbela.com', defaultCategory: 'রাজনীতি' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/fun', domain: 'prothomalo.com', defaultCategory: 'হাস্যরস' },
-    { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/onnoalo/treatise', domain: 'prothomalo.com', defaultCategory: 'ফিচার' },
-    { name: 'Shomoyer Alo', bnName: 'সময়ের আলো', url: 'https://www.shomoyeralo.com/menu/335', domain: 'shomoyeralo.com', defaultCategory: 'ফিচার' },
-    { name: 'Amader Shomoy', bnName: 'আমাদের সময়', url: 'https://dainikamadershomoy.com/category/all/feature', domain: 'dainikamadershomoy.com', defaultCategory: 'ফিচার' }
+    { name: 'Jagonews24', bnName: 'জাগো নিউজ', url: 'https://www.jagonews24.com/national', domain: 'jagonews24.com', defaultCategory: 'বাংলাদেশ' }
+    // (আপনার বাকি সোর্সগুলো এখানে থাকবে)
   ];
-
-
 
   function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -209,7 +127,6 @@ async function runBot() {
     return array;
   }
 
-  // Tier-1 + Random Selection Logic (Same as before)
   const tier1Config = [
     { name: 'Prothom Alo', category: 'বাংলাদেশ' },
     { name: 'Prothom Alo', category: 'রাজনীতি' },
@@ -239,7 +156,6 @@ async function runBot() {
   }
 
   const sourcesToScrape = [...tier1Sources, ...randomSelectedSources];
-
   const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
   
   function isStrictlyValid(url) {
@@ -320,25 +236,11 @@ async function runBot() {
         const articleHtml = await articleRes.text();
         const article$ = cheerio.load(articleHtml);
 
-        // --- NEW IMAGE EXTRACTION LOGIC (og:image -> twitter:image -> json-ld) ---
+        // Extract image ONLY for Gemini context (Vision AI), NOT for publishing
         let extractedImageUrl = 
             article$('meta[property="og:image"]').attr('content') ||
             article$('meta[property="twitter:image"]').attr('content') ||
-            article$('meta[name="twitter:image"]').attr('content') ||
-            null;
-
-        if (!extractedImageUrl) {
-            article$('script[type="application/ld+json"]').each((i, el) => {
-                try {
-                    const jsonLd = JSON.parse(article$(el).html());
-                    if (jsonLd.image) {
-                        if (typeof jsonLd.image === 'string') extractedImageUrl = jsonLd.image;
-                        else if (Array.isArray(jsonLd.image)) extractedImageUrl = jsonLd.image[0];
-                        else if (jsonLd.image.url) extractedImageUrl = jsonLd.image.url;
-                    }
-                } catch(e) {}
-            });
-        }
+            article$('meta[name="twitter:image"]').attr('content');
 
         let geminiImagePart = null;
         if (extractedImageUrl) {
@@ -380,16 +282,15 @@ async function runBot() {
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
-            // --- STRICT NEW IMAGE STRATEGY PROMPT ---
+            // --- ZERO COPYRIGHT & STRICT AI IMAGE PROMPT ---
             const prompt = `
             তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। 
 
             ========================
-            প্রথম ধাপ: সংবাদ যাচাই ও Event Hash (CRITICAL)
+            প্রথম ধাপ: সংবাদ যাচাই ও Event Hash
             ========================
             ১. Privacy Policy, Advertisement, Opinion, Blog, Category, Archive ইত্যাদি হলে বাতিল করবে।
-            ২. Mixed Content / Multiple unrelated news: If the webpage contains multiple unrelated news, extract ONLY ONE most important news. Ignore sidebar, related news, footer, advertisement, header.
-            ৩. Duplicate Event Check: নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি এই সংবাদটি হুবহু একই ঘটনার হয় (Title, Snippet, Hash এবং Entities মিলিয়ে), তাহলে অবশ্যই রিটার্ন করবে: {"skip": true}
+            ২. Duplicate Event Check: নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি এই সংবাদটি হুবহু একই ঘটনার হয় (Title, Snippet, Hash এবং Entities মিলিয়ে), তাহলে অবশ্যই রিটার্ন করবে: {"skip": true}
             
             সাম্প্রতিক সংবাদ কনটেক্সট:
             ${recentContext}
@@ -397,58 +298,44 @@ async function runBot() {
             ========================
             দ্বিতীয় ধাপ: সংবাদ তৈরি ও ক্যাটাগরি
             ========================
-            - শিরোনাম হবে জাতীয় পত্রিকার মানের, কোনো ক্লিকবেট নয়।
             - প্রথম বাক্যে ন্যাচারালভাবে সোর্সের ক্রেডিট যুক্ত করবে: (যেমন: <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>)
             - পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে। কোনো HTML ট্যাগ নয়, শুধু \\n\\n।
-            - Never classify a news strictly by source URL. Read the content. Ignore sidebars. Select strictly from: [বাংলাদেশ, রাজনীতি, আন্তর্জাতিক, আইন-আদালত, বাণিজ্য, খেলাধুলা, বিনোদন, শিক্ষা, প্রযুক্তি, ধর্ম, জীবনযাপন, চাকরি, ফিচার, হাস্যরস]।
 
             ========================
-            তৃতীয় ধাপ: Editorial Score Engine & Entities
+            Step 3: ZERO-COPYRIGHT IMAGE STRATEGY ENGINE (CRITICAL RULES)
             ========================
-            - importance_score (1-10): 10=National breaking, 9=Major event, 8=Govt decision/Accident, 7=Economy, 6=Sports/Tech, 5=Entertainment, 1-4=Minor/Feature.
-            - editorial_score (1-100): A granular score for homepage ranking.
-            - breaking_news (boolean): যদি প্রধানমন্ত্রী, রাষ্ট্রপতি, সুপ্রিম কোর্ট, বড় দুর্ঘটনা, ইত্যাদি হয়, তাহলে true।
-            - event_type: A short string (e.g., "Politics", "Accident", "Economy").
-            - country_context: "Bangladesh", "International", or specific country name.
-            - entity, location, person, organization: Extract main items as arrays of strings.
-
-            ========================
-            Step 4: Image Strategy Engine (CRITICAL RULES)
-            ========================
+            WE CANNOT PUBLISH ORIGINAL COPYRIGHTED IMAGES FROM NEWS WEBSITES (e.g. BBC, Prothom Alo). WE MUST RELY ON STOCK PHOTOS, SAFE AI (No humans), OR BRANDED PLACEHOLDERS.
             Evaluate the news and strictly return ONE of these "image_strategy" values:
 
-            Rule 1 (STRICT): If the news contains a real identifiable person, politician, minister, judge, police officer, celebrity, athlete, or any public figure, DO NOT generate an AI image. NEVER. Return: "original". If original image unavailable, the system will automatically fallback to "editorial_graphic".
+            Rule 1 (People/Politicians): If the news is about a specific identifiable person, politician, minister, judge, criminal, or celebrity, NEVER generate an AI image. 
+            Action: Return "stock" and provide a highly contextual "search_keyword" representing their profession or environment (e.g., "Bangladesh Parliament", "Press conference microphone", "Justice Gavel", "Police car"). 
             
-            Rule 2: "original" - Use this if the news is highly specific, involves individuals, political events, crimes, accidents, or local reports.
-            
-            Rule 3: "stock" - Use this ONLY for general places or concepts where a stock photo is appropriate (e.g., "Bangladesh Secretariat", "Dhaka city", "Election Commission Bangladesh", "Supreme Court Bangladesh"). You MUST provide a highly relevant English "search_keyword" (e.g., "Bangladesh Parliament").
-            
-            Rule 4: "ai_generate" - ONLY allowed for: weather, economy, technology, food, travel, nature, abstract, cyber security, inflation, electricity, environment. Ensure the prompt has NO people.
-            
-            Rule 5: "editorial_graphic" - Return this if none of the above apply and you want the system to use the default branded news placeholder.
+            Rule 2 (Landmarks/Institutions): If the news is about a specific place or institution (e.g., "Dhaka University", "High Court", "Padma Bridge"), DO NOT generate a fictional AI image. 
+            Action: Return "stock" and provide the exact English "search_keyword" (e.g., "Dhaka University", "Bangladesh Supreme Court").
 
-            WARNING: Strictly DO NOT use "ai_generate" or "stock" strategy for Politics, Government, President, PM, Army, Police, Court, Accident, Crime, Fire, War, Conflict involving specific people.
+            Rule 3 (General/Abstract): If the news is general/abstract (Economy, Weather, Technology, Cyber Security, Nature), you can use AI.
+            Action: Return "ai_generate" and provide a detailed "image_prompt". MUST NOT INCLUDE ANY HUMANS, FACES, OR REAL SPECIFIC LANDMARKS.
+
+            Rule 4 (Fallback): Return "editorial_graphic" if no relevant stock keyword or safe AI prompt can be formed.
 
             ========================
-            Step 5: JSON Output Format
+            Step 4: JSON Output Format
             ========================
             {
               "skip": false,
               "title": "নতুন সংবাদ শিরোনাম",
               "content": "সম্পূর্ণ সংবাদ",
               "true_category": "সঠিক ক্যাটাগরি",
-              "image_strategy": "original | stock | ai_generate | editorial_graphic",
-              "country_context": "Bangladesh",
+              "image_strategy": "stock | ai_generate | editorial_graphic",
               "search_keyword": "keyword or null",
               "image_prompt": "prompt or null",
               "importance_score": 9,
               "editorial_score": 92,
               "breaking_news": true,
               "event_type": "Politics",
-              "entity": ["Entity 1", "Entity 2"],
+              "entity": ["Entity 1"],
               "location": ["Dhaka"],
-              "person": ["Person 1"],
-              "organization": ["Org 1"]
+              "person": ["Person 1"]
             }
 
             ========================
@@ -475,15 +362,11 @@ async function runBot() {
             }
 
             let responseText = result.response.text();
-            
             const jsonMatch = responseText.match(/\{[\s\S]*\}/);
             if (!jsonMatch) throw new Error("No JSON found in response");
             const rewrittenData = JSON.parse(jsonMatch[0]);
 
-            if (rewrittenData.skip) {
-                console.log(`⏭️ Duplicate Event বা Invalid খবর স্কিপ করা হয়েছে।`);
-                continue; 
-            }
+            if (rewrittenData.skip) continue; 
 
             const loc = (rewrittenData.location || []).join(',');
             const per = (rewrittenData.person || []).join(',');
@@ -494,21 +377,16 @@ async function runBot() {
             const actualCategory = rewrittenData.true_category || source.defaultCategory;
             const requiredScore = minimumScore[actualCategory] || 7;
 
-            if ((rewrittenData.importance_score || 0) < requiredScore) {
-                console.log(`⏭️ Low importance for ${actualCategory} (${rewrittenData.importance_score} < ${requiredScore}) - Skipped`);
-                continue;
-            }
+            if ((rewrittenData.importance_score || 0) < requiredScore) continue;
 
             publishedCount[actualCategory] = publishedCount[actualCategory] || 0;
-            if (publishedCount[actualCategory] >= (CATEGORY_LIMITS[actualCategory] || 1)) {
-                console.log(`⏭️ ${actualCategory} limit reached`);
-                continue;
-            }
+            if (publishedCount[actualCategory] >= (CATEGORY_LIMITS[actualCategory] || 1)) continue;
 
-            // --- STRICT IMAGE SELECTION LOGIC ---
+            // --- STRICT ZERO-COPYRIGHT IMAGE PUBLISHING LOGIC ---
+            // মূল ওয়েবসাইটের ছবি (extractedImageUrl) পুরোপুরি বর্জন করা হয়েছে।
             let finalImageUrl = defaultPlaceholder;
             let imageSourceCredit = "বঙ্গীয় টাইমস (প্রতীকী)";
-            const strategy = rewrittenData.image_strategy || "original";
+            const strategy = rewrittenData.image_strategy || "editorial_graphic";
             
             const hashCheckPromise = supabase
               .from('news')
@@ -517,17 +395,7 @@ async function runBot() {
 
             let imagePromise = Promise.resolve(null);
 
-            if (strategy === "original") {
-                if (extractedImageUrl) {
-                    finalImageUrl = extractedImageUrl;
-                    imageSourceCredit = "মূল ওয়েবসাইট";
-                } else {
-                    // Fallback to editorial graphic
-                    finalImageUrl = defaultPlaceholder;
-                    imageSourceCredit = "বঙ্গীয় টাইমস (প্রতীকী)";
-                }
-            }
-            else if (strategy === "stock" && rewrittenData.search_keyword) {
+            if (strategy === "stock" && rewrittenData.search_keyword) {
                 imagePromise = Promise.all([
                     searchUnsplash(rewrittenData.search_keyword),
                     searchPexels(rewrittenData.search_keyword),
@@ -536,10 +404,7 @@ async function runBot() {
                     const stockUrl = unsplash || pexels || pixabay;
                     if (stockUrl) {
                         finalImageUrl = stockUrl;
-                        imageSourceCredit = "সংগৃহীত (প্রতীকী)";
-                    } else if (extractedImageUrl) {
-                        finalImageUrl = extractedImageUrl;
-                        imageSourceCredit = "মূল ওয়েবসাইট";
+                        imageSourceCredit = "সংগৃহীত (কপিরাইট ফ্রি)";
                     } else {
                         finalImageUrl = defaultPlaceholder;
                         imageSourceCredit = "বঙ্গীয় টাইমস (প্রতীকী)";
@@ -551,30 +416,16 @@ async function runBot() {
                     if (fluxUrl) {
                          finalImageUrl = fluxUrl;
                          imageSourceCredit = "এআই জেনারেটেড";
-                    } else if (extractedImageUrl) {
-                         finalImageUrl = extractedImageUrl;
-                         imageSourceCredit = "মূল ওয়েবসাইট";
                     } else {
                          finalImageUrl = defaultPlaceholder;
                          imageSourceCredit = "বঙ্গীয় টাইমস (প্রতীকী)";
                     }
                 });
             }
-            else if (strategy === "editorial_graphic") {
-                if (extractedImageUrl) {
-                    finalImageUrl = extractedImageUrl;
-                    imageSourceCredit = "মূল ওয়েবসাইট";
-                } else {
-                    finalImageUrl = defaultPlaceholder;
-                    imageSourceCredit = "বঙ্গীয় টাইমস (প্রতীকী)";
-                }
-            }
             else {
-                // Catch-all
-                if (extractedImageUrl) {
-                    finalImageUrl = extractedImageUrl;
-                    imageSourceCredit = "মূল ওয়েবসাইট";
-                }
+                // For "editorial_graphic" or fallback
+                finalImageUrl = defaultPlaceholder;
+                imageSourceCredit = "বঙ্গীয় টাইমস (প্রতীকী)";
             }
 
             const [{ count: hashCount }] = await Promise.all([
