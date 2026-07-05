@@ -97,7 +97,7 @@ async function fetchImageForGemini(imageUrl) {
 }
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V4: Editorial Engine & Event Hash Edition)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V5: Editorial Image Engine v2 & Event Hash Edition)...");
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
@@ -412,7 +412,7 @@ const headers = {
             ${recentContext}
 
             ========================
-            দ্বিতীয় ধাপ: সংবাদ তৈরি ও ক্যাটাগরি
+            দ্বিতীয় ধাপ: সংবাদ তৈরি ও ক্যাটা জরিমানা
             ========================
             - শিরোনাম হবে জাতীয় পত্রিকার মানের, কোনো ক্লিকবেট নয়।
             - প্রথম বাক্যে ন্যাচারালভাবে সোর্সের ক্রেডিট যুক্ত করবে: (যেমন: <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>)
@@ -429,10 +429,15 @@ const headers = {
             - event_type: A short string (e.g., "Politics", "Accident", "Economy").
 
             ========================
-            Step 4: Image Sourcing & Fallback
+            Step 4: Image Strategy Engine (CRITICAL)
             ========================
-            1. search_keyword: 1-2 English keywords for stock sites.
-            2. image_prompt: Object-based FLUX prompt (No humans/faces/text). End with: "editorial news photography, DSLR, 8k, realistic".
+            Evaluate the news and strictly return ONE of these "image_strategy" values:
+            - "original": If it's a very specific news (accident, personal event) where AI/Stock might mislead, prioritize original OG image.
+            - "bangladesh_context": For Bangladesh politics, Govt, President, PM, Army, Police, Court, Election. (You MUST provide an 'image_prompt' like "Bangladesh Parliament Building", "Bangladesh Supreme Court", "Bangladesh Secretariat", "Bangladesh Police Headquarters", etc. Do NOT output a search_keyword).
+            - "stock": ONLY for Nature, Weather, Economy, Tech, Lifestyle, Education, Health, Food, Travel, Animals, Science. Provide a 'search_keyword'.
+            - "symbolic" or "ai_generate": For general topics where a generated image works. (Note: ONLY for 'symbolic' strategy, you must add "Do NOT include any human faces, eyes, hands, limbs, or body parts" to the image_prompt).
+
+            WARNING: Strictly DO NOT use "stock" strategy for Politics, Government, President, PM, Army, Police, Court, Accident, Crime, Fire, War, Conflict.
 
             ========================
             Step 5: JSON Output Format
@@ -442,8 +447,9 @@ const headers = {
               "title": "নতুন সংবাদ শিরোনাম",
               "content": "সম্পূর্ণ সংবাদ",
               "true_category": "সঠিক ক্যাটাগরি",
-              "search_keyword": "keyword",
-              "image_prompt": "prompt",
+              "image_strategy": "original",
+              "search_keyword": "keyword or null",
+              "image_prompt": "prompt or null",
               "importance_score": 9,
               "editorial_score": 92,
               "breaking_news": true,
@@ -497,10 +503,21 @@ const headers = {
                 continue;
             }
 
+            // Image Selection Strategy V2
             let finalImageUrl = defaultPlaceholder;
             let imageSourceCredit = "বঙ্গীয় টাইমস";
+            const strategy = rewrittenData.image_strategy || "original";
 
-            if (rewrittenData.search_keyword) {
+            if (strategy === "original") {
+                if (ogImageUrl) {
+                    finalImageUrl = ogImageUrl;
+                    imageSourceCredit = "মূল ওয়েবসাইট";
+                } else if (rewrittenData.image_prompt) {
+                     const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
+                     if (fluxUrl) { finalImageUrl = fluxUrl; imageSourceCredit = "এআই জেনারেটেড"; }
+                }
+            }
+            else if (strategy === "stock" && rewrittenData.search_keyword) {
                 let stockUrl = await searchUnsplash(rewrittenData.search_keyword);
                 if (!stockUrl) stockUrl = await searchPexels(rewrittenData.search_keyword);
                 if (!stockUrl) stockUrl = await searchPixabay(rewrittenData.search_keyword);
@@ -508,20 +525,27 @@ const headers = {
                 if (stockUrl) {
                     finalImageUrl = stockUrl;
                     imageSourceCredit = "সংগৃহীত (প্রতীকী)";
-                } 
-                else if (rewrittenData.image_prompt) {
+                } else if (rewrittenData.image_prompt) {
                     const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
                     if (fluxUrl) {
                         finalImageUrl = fluxUrl;
-                        imageSourceCredit = "এআই জেনারেটেড"; 
+                        imageSourceCredit = "এআই জেনারেটেড";
                     }
                 }
-            } else if (rewrittenData.image_prompt) {
-                 const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
-                 if (fluxUrl) {
+            }
+            else if ((strategy === "bangladesh_context" || strategy === "symbolic" || strategy === "ai_generate") && rewrittenData.image_prompt) {
+                const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
+                if (fluxUrl) {
                      finalImageUrl = fluxUrl;
-                     imageSourceCredit = "এআই জেনারেটেড"; 
-                 }
+                     imageSourceCredit = "এআই জেনারেটেড";
+                } else if (ogImageUrl) {
+                     finalImageUrl = ogImageUrl;
+                     imageSourceCredit = "মূল ওয়েবসাইট";
+                }
+            }
+            else if (ogImageUrl) {
+                finalImageUrl = ogImageUrl;
+                imageSourceCredit = "মূল ওয়েবসাইট";
             }
 
             const isLeadNews = (rewrittenData.importance_score >= 9);
