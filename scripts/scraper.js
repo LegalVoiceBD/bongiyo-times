@@ -2,6 +2,7 @@ const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const cloudinary = require('cloudinary').v2;
+const crypto = require('crypto'); // ১২. Event Hash তৈরির জন্য
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -58,7 +59,11 @@ async function searchPixabay(keyword) {
 async function generateAndUploadImage(imagePrompt) {
   try {
     console.log(`🎨 ইমেজ জেনারেট হচ্ছে (FLUX Model)...`);
-    const encodedPrompt = encodeURIComponent(imagePrompt);
+    // ৬. AI Image Prompt-এর শেষে প্রয়োজনীয় স্টাইল যুক্ত করা
+    const styleSuffix = ", Ultra realistic, Photojournalism, Reuters style, AP News photography, Natural lighting, No cinematic color grading, No dramatic lighting, No fantasy, No illustration, No digital art, No CGI, No painting, Real press photograph";
+    const finalPrompt = imagePrompt + styleSuffix;
+    
+    const encodedPrompt = encodeURIComponent(finalPrompt);
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=flux&width=1280&height=720&enhance=true&nologo=true&safe=true&seed=-1`;
 
     const imageRes = await fetch(imageUrl);
@@ -68,8 +73,9 @@ async function generateAndUploadImage(imagePrompt) {
     const buffer = Buffer.from(arrayBuffer);
 
     return new Promise((resolve, reject) => {
+      // ১০. Cloudinary upload_stream এ timeout যুক্ত করা
       const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: 'bongiyotimes_auto' }, 
+        { folder: 'bongiyotimes_auto', timeout: 60000 }, 
         (error, result) => {
           if (error) { resolve(null); } 
           else { resolve(result.secure_url); }
@@ -101,7 +107,7 @@ async function runBot() {
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
- const allSources = [
+  const allSources = [
     { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Jugantor', bnName: 'যুগান্তর', url: 'https://www.jugantor.com/national', domain: 'jugantor.com', defaultCategory: 'বাংলাদেশ' },
     { name: 'Ittefaq', bnName: 'ইত্তেফাক', url: 'https://www.ittefaq.com.bd/country', domain: 'ittefaq.com.bd', defaultCategory: 'বাংলাদেশ' },
@@ -348,8 +354,20 @@ const headers = {
       for (let link of topLinks) {
         if (processedArticlesCount >= MAX_ARTICLES_PER_RUN) break;
 
-        const { data: existingUrl } = await supabase.from('news').select('id').eq('source_url', link);
-        if (existingUrl && existingUrl.length > 0) continue;
+        // ৩. Source URL Normalize (Query parameter মুছে ফেলা)
+        try {
+          const cleanUrl = new URL(link);
+          cleanUrl.search = "";
+          link = cleanUrl.toString();
+        } catch (e) {}
+
+        // ১. Duplicate URL Query Optimization
+        const { count: existingUrlCount } = await supabase
+          .from('news')
+          .select('*', { count: 'exact', head: true })
+          .eq('source_url', link);
+          
+        if (existingUrlCount > 0) continue;
 
         const articleRes = await fetch(link, { headers });
         const articleHtml = await articleRes.text();
@@ -368,8 +386,9 @@ const headers = {
 
         for (const selector of contentSelectors) {
             if (article$(selector).length > 0) {
-                // exclude unwanted elements specifically inside the main wrapper
-                article$(selector).find('footer, .author, .related, .advertisement, script, style, .social-share').remove();
+                // ৮. Full Text Extraction - অবাঞ্ছিত ট্যাগগুলো রিমুভ করা
+                article$(selector).find('footer, .author, .related, .advertisement, script, style, .social-share, aside, nav, figure, figcaption, .recommended, .more-news, .share, .ads, iframe, noscript').remove();
+                
                 article$(selector).find('p').each((i, el) => {
                     const text = article$(el).text().trim();
                     if (text.length > 30) fullTextArray.push(text);
@@ -398,6 +417,7 @@ const headers = {
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
+            // ৫. Image Prompt-এ "Bangladesh flag" এর বদলে সঠিক নির্দেশনা দেওয়া হয়েছে
             const prompt = `
             তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। 
 
@@ -425,7 +445,6 @@ const headers = {
             - importance_score (1-10): 10=National breaking, 9=Major event, 8=Govt decision/Accident, 7=Economy, 6=Sports/Tech, 5=Entertainment, 1-4=Minor/Feature.
             - editorial_score (1-100): A granular score for homepage ranking. 95+ for PM resignation, 80 for major policy, 50 for regular sports, 20 for minor feature.
             - breaking_news (boolean): যদি প্রধানমন্ত্রী, রাষ্ট্রপতি, সুপ্রিম কোর্টের ঐতিহাসিক রায়, নির্বাচন, বড় দুর্ঘটনা, যুদ্ধ, প্রাকৃতিক দুর্যোগ, অর্থনৈতিক নীতি, জাতীয় নিরাপত্তা বা আন্তর্জাতিক সংকট সম্পর্কিত হয়, তাহলে true।
-            - event_hash: A snake_case unique identifier for this event.
             - event_type: A short string (e.g., "Politics", "Accident", "Economy").
             - country_context: "Bangladesh", "International", or specific country name.
             - entity: Extract main entities (e.g. "Muhammad Yunus", "Army", "President", "Election Commission"). Array of strings.
@@ -439,7 +458,7 @@ const headers = {
             Evaluate the news and strictly return ONE of these "image_strategy" values:
             - "original": If it's a very specific news (accident, personal event) where AI/Stock might mislead.
             - "bangladesh_context": For Bangladesh politics, Govt, President, PM, Army, Police, Court, Election. 
-              **CRITICAL:** Always create prompts specifically describing real Bangladeshi places/objects. Never describe generic parliament, generic court, generic government office. Always include: "Bangladesh, Dhaka, South Asian architecture, Bangladesh flag (if appropriate), No foreign buildings, No western architecture, No European style, No foreign military uniforms, No foreign police uniforms, Editorial documentary photography, Realistic, 8k, No text, No watermark".
+              **CRITICAL:** Always create prompts specifically describing real Bangladeshi places/objects. Never describe generic parliament, generic court, generic government office. Always include: "Authentic Bangladeshi environment, No fictional flags, No incorrect national symbols, Use only accurate Bangladesh architecture".
             - "landmark": For specific iconic places in Bangladesh like "High Court", "National Parliament". (Use similar strict Bangladesh-specific prompt as bangladesh_context).
             - "stock": ONLY for Nature, Weather, Economy, Tech, Lifestyle, Education, Health, Food, Travel, Animals, Science. **Must include country in search_keyword if related to a specific country (e.g., "Bangladesh economy", "Dhaka traffic").**
             - "symbolic" or "ai_generate": For general topics where a generated image works. (Note: ONLY for 'symbolic' strategy, you must add "Do NOT include any human faces, eyes, hands, limbs, or body parts" to the image_prompt).
@@ -461,7 +480,6 @@ const headers = {
               "importance_score": 9,
               "editorial_score": 92,
               "breaking_news": true,
-              "event_hash": "bd_election_schedule_2026",
               "event_type": "Politics",
               "entity": ["Entity 1", "Entity 2"],
               "location": ["Dhaka"],
@@ -493,13 +511,23 @@ const headers = {
             }
 
             let responseText = result.response.text();
-            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const rewrittenData = JSON.parse(responseText);
+            
+            // ৭. Safe JSON Parsing
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error("No JSON found in response");
+            const rewrittenData = JSON.parse(jsonMatch[0]);
 
             if (rewrittenData.skip) {
                 console.log(`⏭️ Duplicate Event বা Invalid খবর স্কিপ করা হয়েছে।`);
                 continue; 
             }
+
+            // ১২. Event Hash Generation (Node.js-এ)
+            const loc = (rewrittenData.location || []).join(',');
+            const per = (rewrittenData.person || []).join(',');
+            const eventHashStr = `${rewrittenData.event_type || ''}|${loc}|${per}|${rewrittenData.title}`.toLowerCase().trim();
+            const generatedEventHash = crypto.createHash('md5').update(eventHashStr).digest('hex');
+            rewrittenData.event_hash = generatedEventHash;
 
             const actualCategory = rewrittenData.true_category || source.defaultCategory;
             const requiredScore = minimumScore[actualCategory] || 7;
@@ -515,49 +543,74 @@ const headers = {
                 continue;
             }
 
-            // Image Selection Strategy V3
+            // Image Selection Strategy V3 & ২, ৪, ১১. Parallel API calls (DB Duplicate Check + Images)
             let finalImageUrl = defaultPlaceholder;
             let imageSourceCredit = "বঙ্গীয় টাইমস";
             const strategy = rewrittenData.image_strategy || "original";
+            
+            // Database Check Promise
+            const hashCheckPromise = supabase
+              .from('news')
+              .select('*', { head: true, count: 'exact' })
+              .eq('event_hash', generatedEventHash);
+
+            // Image Generate Promise
+            let imagePromise = Promise.resolve(null);
 
             if (strategy === "original") {
                 if (ogImageUrl) {
                     finalImageUrl = ogImageUrl;
                     imageSourceCredit = "মূল ওয়েবসাইট";
                 } else if (rewrittenData.image_prompt) {
-                     const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
-                     if (fluxUrl) { finalImageUrl = fluxUrl; imageSourceCredit = "এআই জেনারেটেড"; }
+                     imagePromise = generateAndUploadImage(rewrittenData.image_prompt).then(fluxUrl => {
+                         if (fluxUrl) { finalImageUrl = fluxUrl; imageSourceCredit = "এআই জেনারেটেড"; }
+                     });
                 }
             }
             else if (strategy === "stock" && rewrittenData.search_keyword) {
-                let stockUrl = await searchUnsplash(rewrittenData.search_keyword);
-                if (!stockUrl) stockUrl = await searchPexels(rewrittenData.search_keyword);
-                if (!stockUrl) stockUrl = await searchPixabay(rewrittenData.search_keyword);
-
-                if (stockUrl) {
-                    finalImageUrl = stockUrl;
-                    imageSourceCredit = "সংগৃহীত (প্রতীকী)";
-                } else if (rewrittenData.image_prompt) {
-                    const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
-                    if (fluxUrl) {
-                        finalImageUrl = fluxUrl;
-                        imageSourceCredit = "এআই জেনারেটেড";
+                // ১১. Stock Image Search Parallel Execution
+                imagePromise = Promise.all([
+                    searchUnsplash(rewrittenData.search_keyword),
+                    searchPexels(rewrittenData.search_keyword),
+                    searchPixabay(rewrittenData.search_keyword)
+                ]).then(([unsplash, pexels, pixabay]) => {
+                    const stockUrl = unsplash || pexels || pixabay;
+                    if (stockUrl) {
+                        finalImageUrl = stockUrl;
+                        imageSourceCredit = "সংগৃহীত (প্রতীকী)";
+                    } else if (rewrittenData.image_prompt) {
+                        return generateAndUploadImage(rewrittenData.image_prompt).then(fluxUrl => {
+                            if (fluxUrl) { finalImageUrl = fluxUrl; imageSourceCredit = "এআই জেনারেটেড"; }
+                        });
                     }
-                }
+                });
             }
             else if ((strategy === "bangladesh_context" || strategy === "landmark" || strategy === "symbolic" || strategy === "ai_generate") && rewrittenData.image_prompt) {
-                const fluxUrl = await generateAndUploadImage(rewrittenData.image_prompt);
-                if (fluxUrl) {
-                     finalImageUrl = fluxUrl;
-                     imageSourceCredit = "এআই জেনারেটেড";
-                } else if (ogImageUrl) {
-                     finalImageUrl = ogImageUrl;
-                     imageSourceCredit = "মূল ওয়েবসাইট";
-                }
+                imagePromise = generateAndUploadImage(rewrittenData.image_prompt).then(fluxUrl => {
+                    if (fluxUrl) {
+                         finalImageUrl = fluxUrl;
+                         imageSourceCredit = "এআই জেনারেটেড";
+                    } else if (ogImageUrl) {
+                         finalImageUrl = ogImageUrl;
+                         imageSourceCredit = "মূল ওয়েবসাইট";
+                    }
+                });
             }
             else if (ogImageUrl) {
                 finalImageUrl = ogImageUrl;
                 imageSourceCredit = "মূল ওয়েবসাইট";
+            }
+
+            // ৪. Promise.all দিয়ে ডাটাবেস চেক এবং ইমেজ জেনারেট একসাথে চালানো
+            const [{ count: hashCount }] = await Promise.all([
+                hashCheckPromise,
+                imagePromise
+            ]);
+
+            // ২. Event Hash চেক করার পর ডুপ্লিকেট পেলে স্কিপ করা
+            if (hashCount > 0) {
+                console.log(`⏭️ একই ঘটনার সংবাদ (Event Hash) ডাটাবেসে পাওয়া গেছে। স্কিপ করা হলো।`);
+                continue;
             }
 
             const isLeadNews = (rewrittenData.importance_score >= 9);
@@ -578,7 +631,7 @@ const headers = {
               importance_score: rewrittenData.importance_score || 0,
               editorial_score: rewrittenData.editorial_score || 0,
               breaking_news: isBreakingNews,
-              event_hash: rewrittenData.event_hash || null,
+              event_hash: rewrittenData.event_hash,
               event_type: rewrittenData.event_type || 'General'
             }]);
 
@@ -612,14 +665,17 @@ runBot();
    HOMEPAGE / EDITORIAL QUERIES (To use in your Next.js/Frontend API)
    ==========================================================================
    
-   // ১. Homepage Sorting by Editorial Score (Smart Sort)
+   // ৯. Homepage Query Newspaper-এর মতো সাজানো
    async function getHomepageNews() {
      const { data, error } = await supabase
        .from('news')
        .select('*')
        .eq('is_published', true)
-       .order('editorial_score', { ascending: false }) // Primary Sort by Editorial Engine
-       .order('created_at', { ascending: false })      // Secondary Sort by Time
+       .order('breaking_news', { ascending: false, nullsFirst: false }) 
+       .order('is_lead', { ascending: false, nullsFirst: false })       
+       .order('editorial_score', { ascending: false })                  
+       .order('importance_score', { ascending: false })                 
+       .order('created_at', { ascending: false })                       
        .limit(20);
      return data;
    }
