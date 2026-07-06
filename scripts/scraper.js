@@ -98,35 +98,22 @@ async function generateAndUploadImage(initialPrompt) {
   while (attempts < maxAttempts) {
       attempts++;
       try {
-        console.log(`🎨 ইমেজ লুপ - Attempt ${attempts}...`);
+        console.log(`🎨 ইমেজ লুপ - Attempt ${attempts} (Pollinations AI: FLUX)...`);
         
         // 1. Refine Prompt (Will generate a completely new prompt if it's a retry)
         currentPrompt = await refineImagePrompt(currentPrompt, attempts > 1);
 
-        // 2. Updated styling without Editorial Illustration
-        const styleSuffix = ", Photorealistic still life, High-end commercial photography, Studio photography, Macro photography, Fine art photography, Natural lighting, No government building, No podium, No rally, No stage, No conference, No parliament, No people, No newspaper layout, No TV news layout, No lower-third banner, No channel logo, No microphone branding, No press badge, No recognizable publication design, NO TEXT, NO LETTERS, NO WATERMARK, NO LOGO, NO HUMANS, NO FACES, NO CROWDS.";
+        // 2. Updated styling for Pollinations AI (FLUX) including Bangladesh context
+        const styleSuffix = ", Bangladesh context, Photorealistic, Ultra realistic, Professional editorial photography, Studio lighting, 8K, Sharp focus, High detail, Natural shadows, No humans, No faces, No text, No logo, No watermark, Still life photography.";
         const finalPrompt = currentPrompt + styleSuffix;
         
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?model=flux&nologo=true`;
         
-        const payload = {
-            contents: [{ parts: [{ text: finalPrompt }] }],
-            generationConfig: { responseModalities: ["IMAGE"] }
-        };
-
-        const imageRes = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-
-        if (!imageRes.ok) throw new Error("Gemini Image fetch failed");
+        const imageRes = await fetch(url);
+        if (!imageRes.ok) throw new Error("Pollinations Image fetch failed");
         
-        const data = await imageRes.json();
-        const base64Data = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        if (!base64Data) throw new Error("No image data found in Gemini response");
-
-        const buffer = Buffer.from(base64Data, 'base64');
+        const arrayBuffer = await imageRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
         // 3. Vision Validation Step
         const validationResult = await validateAIImageWithGemini(buffer, currentPrompt);
@@ -160,8 +147,8 @@ async function generateAndUploadImage(initialPrompt) {
             console.log(`⚠️ ইমেজ ভ্যালিডেশন ফেইল করেছে। রিট্রাই করা হচ্ছে...`);
         }
       } catch (error) { 
-          console.error("Gemini Image Gen error:", error.message);
-          if (error.message.includes('429')) await delay(5000);
+          console.error("Image Gen error:", error.message);
+          await delay(5000);
       }
   }
   return null;
@@ -352,7 +339,7 @@ async function runBot() {
             প্রথম ধাপ: সংবাদ যাচাই ও Event Hash
             ========================
             ১. Privacy Policy, Advertisement, Opinion, Blog, Category, Archive ইত্যাদি হলে বাতিল করবে।
-            ২. Duplicate Event Check: নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি এই সংবাদটি হুবহু একই ঘটনার হয় (Title, Snippet, Hash এবং Entities মিলিয়ে), তাহলে অবশ্যই রিটার্ন করবে: {"skip": true}
+            ২. Duplicate Event Check: নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি এই সংবাদটি হুবহু একই ঘটনার হয় (Title, Snippet, Hash এবং Entities মিলিয়ে), বুলেটিন রিটার্ন করবে: {"skip": true}
             
             সাম্প্রতিক সংবাদ কনটেক্সট:
             ${recentContext}
