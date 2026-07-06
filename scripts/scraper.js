@@ -20,7 +20,29 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // =========================================================================
-// Gemini Vision Validation for AI Generate
+// 1. Prompt QA Step (New: Validates and Rewrites the Image Prompt)
+// =========================================================================
+async function refineImagePrompt(originalPrompt) {
+    try {
+        console.log(`🔍 Prompt QA চলছে...`);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const prompt = `Review this image prompt: "${originalPrompt}".
+        Does it contain any humans, faces, crowds, specific persons, leaders, celebrities, logos, text, newspaper layout, TV studio, microphones, or branding?
+        If YES, rewrite the prompt completely to be a purely symbolic, conceptual illustration using ONLY inanimate objects or scenery (like a gavel, scale, empty road, rain, etc.).
+        If NO, output the original prompt.
+        Return ONLY the final clean prompt text without any explanations.`;
+        
+        const result = await model.generateContent(prompt);
+        const text = result.response.text().trim();
+        return text;
+    } catch (e) {
+        console.error("Prompt QA Failed:", e.message);
+        return originalPrompt; 
+    }
+}
+
+// =========================================================================
+// 2. Gemini Vision Validation for AI Generate (Updated JSON Flags)
 // =========================================================================
 async function validateAIImageWithGemini(buffer, newsContext) {
     try {
@@ -29,9 +51,19 @@ async function validateAIImageWithGemini(buffer, newsContext) {
         You are a strict QA bot for a news publication. Analyze this AI-generated image meant for news context: "${newsContext}".
         Rate it from 0 to 100 based on these criteria:
         1. NO Text, NO Letters, NO Watermarks, NO Fake Logos (deduct 50 points if any found).
-        2. NO Human faces, body parts, or crowds (deduct 50 points if found, as this is strictly for abstract/object/symbolic images).
-        3. NO Distorted/Melted objects.
-        Return ONLY a raw JSON format: {"score": 95}
+        2. NO Human faces, body parts, or crowds. NO cartoons of humans. (deduct 50 points if found).
+        3. NO Fake TV layouts, newspaper layouts, or lower-third banners.
+        4. NO Distorted/Melted objects.
+        
+        Return ONLY a raw JSON format exactly like this:
+        {
+         "score": 95,
+         "hasHuman": false,
+         "hasText": false,
+         "hasLogo": false,
+         "hasWatermark": false,
+         "hasDistortion": false
+        }
         `;
         const imagePart = {
             inlineData: { data: buffer.toString("base64"), mimeType: "image/jpeg" }
@@ -40,40 +72,42 @@ async function validateAIImageWithGemini(buffer, newsContext) {
         const responseText = result.response.text();
         const match = responseText.match(/\{[\s\S]*\}/);
         const data = JSON.parse(match[0]);
-        console.log(`👁️ ভিশন এআই স্কোর: ${data.score}/100`);
-        return data.score || 0;
+        console.log(`👁️ ভিশন এআই রেজাল্ট: Score: ${data.score}, Human: ${data.hasHuman}, Text: ${data.hasText}, Logo: ${data.hasLogo}`);
+        return data;
     } catch (e) { 
-        return 90; // Fallback pass if Gemini API fails
+        // Fail Safe: If API fails, return strict false values so image is rejected
+        return { 
+            score: 0, 
+            hasHuman: true, 
+            hasText: true, 
+            hasLogo: true, 
+            hasWatermark: true, 
+            hasDistortion: true 
+        };
     }
 }
 
 // =========================================================================
-// Image Generation using Gemini 2.5 Flash API
+// 3. Image Generation using Gemini 2.5 Flash API
 // =========================================================================
 async function generateAndUploadImage(imagePrompt) {
   let attempts = 0;
-  const maxAttempts = 2; // ফেইল করলে পুনরায় চেষ্টা করবে
+  const maxAttempts = 2; 
 
   while (attempts < maxAttempts) {
       attempts++;
       try {
         console.log(`🎨 ইমেজ জেনারেট হচ্ছে (Gemini API) - Attempt ${attempts}...`);
         
-        // প্রম্পট স্টাইলিং (খবরের জন্য - strictly no humans, no text, highly symbolic)
-        const styleSuffix = ", Ultra realistic, Photojournalism style but highly symbolic, Abstract representation, High quality macro photography, Natural lighting, Real press photograph style, NO TEXT, NO LETTERS, NO WATERMARK, NO LOGO, NO HUMANS, NO FACES, NO CROWDS, ONLY OBJECTS AND SCENERY.";
+        // Updated styling: Editorial/Conceptual, Strict Layout Negative Prompts
+        const styleSuffix = ", Editorial illustration, Conceptual illustration, Symbolic editorial artwork, Ultra realistic macro, Natural lighting, No newspaper layout, No TV news layout, No lower-third banner, No channel logo, No microphone branding, No press badge, No recognizable publication design, NO TEXT, NO LETTERS, NO WATERMARK, NO LOGO, NO HUMANS, NO FACES, NO CROWDS.";
         const finalPrompt = imagePrompt + styleSuffix;
         
-        // Gemini API URL 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
         
-        // Request Payload
         const payload = {
-            contents: [{
-                parts: [{ text: finalPrompt }]
-            }],
-            generationConfig: {
-                responseModalities: ["IMAGE"]
-            }
+            contents: [{ parts: [{ text: finalPrompt }] }],
+            generationConfig: { responseModalities: ["IMAGE"] }
         };
 
         const imageRes = await fetch(url, {
@@ -85,19 +119,22 @@ async function generateAndUploadImage(imagePrompt) {
         if (!imageRes.ok) throw new Error("Gemini Image fetch failed");
         
         const data = await imageRes.json();
-        
-        // Base64 ডেটা এক্সট্রাক্ট করা
         const base64Data = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        
         if (!base64Data) throw new Error("No image data found in Gemini response");
 
-        // Base64 কে Buffer এ রূপান্তর করা
         const buffer = Buffer.from(base64Data, 'base64');
 
-        // Validation Step (ভিজ্যুয়াল চেক)
-        const validationScore = await validateAIImageWithGemini(buffer, imagePrompt);
+        // Validation Step with strict boolean checks
+        const validationResult = await validateAIImageWithGemini(buffer, imagePrompt);
         
-        if (validationScore >= 90) {
+        if (
+            validationResult.score >= 95 &&
+            !validationResult.hasHuman &&
+            !validationResult.hasText &&
+            !validationResult.hasLogo &&
+            !validationResult.hasWatermark &&
+            !validationResult.hasDistortion
+        ) {
             return new Promise((resolve, reject) => {
               const uploadStream = cloudinary.uploader.upload_stream(
                 { folder: 'bongiyotimes_auto', timeout: 60000 }, 
@@ -109,7 +146,7 @@ async function generateAndUploadImage(imagePrompt) {
               uploadStream.end(buffer);
             });
         } else {
-            console.log(`⚠️ ইমেজ কোয়ালিটি খারাপ (Score: ${validationScore}), আবার চেষ্টা করা হচ্ছে...`);
+            console.log(`⚠️ ইমেজ ভ্যালিডেশন ফেইল করেছে। আবার চেষ্টা করা হচ্ছে...`);
         }
       } catch (error) { 
           console.error("Gemini Image Gen error:", error.message);
@@ -138,8 +175,9 @@ async function fetchImageForGemini(imageUrl) {
 // Main Bot Engine
 // =========================================================================
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V12: Fully AI Generated Image Pipeline)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V13: Ultimate Secure Image Pipeline)...");
 
+  // Fallback Stock Image
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
   const allSources = [
@@ -318,7 +356,7 @@ async function runBot() {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
             // =========================================================================
-            // STRICT PROMPT FOR DIRECT AI IMAGE GENERATION
+            // UPDATED STRICT PROMPT WITH ALLOWED/FORBIDDEN LISTS
             // =========================================================================
             const prompt = `
             তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। 
@@ -335,20 +373,21 @@ async function runBot() {
             ========================
             দ্বিতীয় ধাপ: সংবাদ তৈরি ও ক্যাটাগরি
             ========================
-            - প্রথম প্যারাগ্রাফের উপযুক্ত স্থানে ন্যাচারালভাবে সোর্সের ক্রেডিট যুক্ত করবে: (যেমন: <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>)
+            - প্রথম বাক্যে ন্যাচারালভাবে সোর্সের ক্রেডিট যুক্ত করবে: (যেমন: <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>)
             - পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে। কোনো HTML ট্যাগ নয়, শুধু \\n\\n।
-            - উপযুক্ত মানানসই ছোট শিরোনাম দিবে।
-            - নিরপেক্ষ ভাবে খবর বিশ্লেষণ করবে। কোন রাজনৈতিক দলের পক্ষপাতিত্ব করবে না।
-            - কোনো ভুল তথ্য দিবে না। নিজে থেকে অপ্রাসঙ্গিক কোনো তথ্য দিবে না।
-            - সব সময় মূল খবরের লিংক যুক্ত করবে। শুধু হোমপেজের লিংক দিবে না।
+
             ========================
             Step 3: IMAGE PROMPT GENERATION (STRICT RULES)
             ========================
             We generate all images using an AI Image Generator. You MUST write a strong, detailed image prompt in English based on the core theme of the news.
-            1. STRICTLY NO HUMANS: Do not include any person, crowd, face, or body parts in the prompt. But you can use cartoon to meke sense of the news.
-            2. STRICTLY NO TEXT: The prompt must explicitly avoid words, letters, logos, or signs.
-            3. SYMBOLIC & ABSTRACT: Create a symbolic representation of the news using objects, environments, lighting, and metaphors. (e.g., instead of a politician, use a glowing gavel on a wooden desk with a flag blurred in the background; instead of a criminal, use handcuffs on cold concrete).
-            4. BE DETAILED: Specify lighting, camera angle, textures, and mood.
+            
+            ALLOWED OBJECTS (Use these or similar): Books, Court Gavel, Flag (blurred), Handcuffs, Justice Scale, Money, Factory, Bridge, Road, Sky, Cloud, River, Computer, Chip, Keyboard, Passport, Visa, Currency, Hospital, Medicine, Tree, Rice, Fire, Rain, Flood, Earthquake Crack, Oil Barrel, Container Ship.
+
+            FORBIDDEN (NEVER include these): Humans, Faces, Crowd, Portrait, Speech, Press conference, Meeting, Stage, Camera crew, Microphone, TV studio, Newspaper, Magazine, Logo, Text, Letter, Watermark, Cartoons of humans.
+
+            Strictly avoid ANY layout: No newspaper layout, No TV news layout, No lower-third banner, No channel logo, No microphone branding, No press badge, No recognizable publication design.
+
+            Use styles like: Editorial illustration, Conceptual illustration, Symbolic editorial artwork. Focus on objects, mood, textures, and lighting.
 
             ========================
             Step 4: JSON Output Format
@@ -413,7 +452,7 @@ async function runBot() {
             if (publishedCount[actualCategory] >= (CATEGORY_LIMITS[actualCategory] || 1)) continue;
 
             let finalImageUrl = defaultPlaceholder;
-            let imageSourceCredit = "বঙ্গীয় টাইমস"; // Default credit for fallback stock image
+            let imageSourceCredit = "বঙ্গীয় টাইমস"; 
             
             const hashCheckPromise = supabase
               .from('news')
@@ -423,10 +462,11 @@ async function runBot() {
             let imagePromise = Promise.resolve(null);
 
             // =========================================================================
-            // Integrated AI Image Execution 
+            // Integrated AI Image Execution with Prompt QA
             // =========================================================================
             if (rewrittenData.image_prompt) {
-                imagePromise = generateAndUploadImage(rewrittenData.image_prompt).then(aiUrl => {
+                const cleanPrompt = await refineImagePrompt(rewrittenData.image_prompt);
+                imagePromise = generateAndUploadImage(cleanPrompt).then(aiUrl => {
                     if (aiUrl) {
                         return { url: aiUrl, credit: "এআই জেনারেটেড" };
                     }
