@@ -20,86 +20,97 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // =========================================================================
-// ১, ৩, ৪, ৫: Advanced Wikipedia API with Exact Lookup, Filter & Metadata
+// ১, ২, ৩, ৪, ৫: Advanced Wikipedia API with Search Pipeline & Metadata
 // =========================================================================
 
-async function fetchWikiImageMetadata(filename) {
+function isValidWikiImage(filename) {
+    if (!filename) return false;
+    const lower = filename.toLowerCase();
+    // ফিল্টার: শুধুমাত্র নির্দিষ্ট কিছু গ্রাফিকাল/আইকন ফরম্যাট বাতিল, PNG বা map অ্যালাউড
+    const rejectWords = ['svg', 'logo', 'icon', 'seal', 'coat_of_arms', 'flag', 'symbol'];
+    if (rejectWords.some(w => lower.includes(w))) return false;
+    return true;
+}
+
+// Fetch all images for a specific page and select the best real-world photo
+async function fetchWikiPageImages(title) {
     try {
-        const url = `https://en.wikipedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(filename)}&prop=imageinfo&iiprop=url|extmetadata&format=json`;
+        if (!title) return null;
+        // Fetch images linked on the page
+        const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&generator=images&gimlimit=20&prop=imageinfo&iiprop=url|extmetadata&format=json`;
         const response = await fetch(url);
         const data = await response.json();
         
+        if (!data || !data.query || !data.query.pages) return null;
         const pages = data.query.pages;
-        const pageId = Object.keys(pages)[0];
         
-        if (pageId === '-1' || !pages[pageId].imageinfo) return null;
-        
-        const info = pages[pageId].imageinfo[0];
-        const meta = info.extmetadata || {};
-        
-        // Extract License and Attribution
-        const license = meta.LicenseShortName ? meta.LicenseShortName.value : 'Wikipedia';
-        const artist = meta.Artist ? meta.Artist.value.replace(/<[^>]*>?/gm, '').trim() : 'Unknown';
-        
-        return {
-            url: info.url,
-            credit: `উইকিপিডিয়া (${license}) - ${artist.substring(0, 30)}`
-        };
+        const validImages = Object.values(pages)
+            .filter(p => p.title && isValidWikiImage(p.title) && p.imageinfo && p.imageinfo[0])
+            .map(p => {
+                const info = p.imageinfo[0];
+                const meta = info.extmetadata || {};
+                return {
+                    filename: p.title.replace('File:', ''),
+                    url: info.url,
+                    license: meta.LicenseShortName ? meta.LicenseShortName.value : 'Wikipedia',
+                    artist: meta.Artist ? meta.Artist.value.replace(/<[^>]*>?/gm, '').trim() : 'Unknown'
+                };
+            });
+
+        if (validImages.length > 0) {
+            // Prefer jpg/jpeg for natural photos if available, else fallback to the first valid one
+            const bestImage = validImages.find(img => img.filename.toLowerCase().match(/\.(jpg|jpeg)$/)) || validImages[0];
+            
+            return {
+                url: bestImage.url,
+                credit: `Photo: ${bestImage.filename} | Author: ${bestImage.artist.substring(0, 40)} | License: ${bestImage.license} | Source: Wikipedia`
+            };
+        }
+        return null;
     } catch (e) {
         return null;
     }
 }
 
-function isValidWikiImage(filename) {
-    if (!filename) return false;
-    const lower = filename.toLowerCase();
-    // ফিল্টার: আইকন, ম্যাপ, ফ্ল্যাগ এবং এসভিজি লোগো বাতিল
-    if (lower.endsWith('.svg') || lower.endsWith('.png')) return false;
-    if (lower.includes('flag_of') || lower.includes('map') || lower.includes('logo')) return false;
-    return true;
-}
+// Intelligent Pipeline: Exact -> OpenSearch -> Generator Search
+async function searchWikipediaPipeline(mainKeyword, fallbackKeywords) {
+    const allKeywords = [mainKeyword, ...(fallbackKeywords || [])].filter(Boolean);
 
-// Step A: Exact Page Lookup
-async function searchWikipediaExact(keyword) {
-    try {
-        if (!keyword) return null;
-        const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(keyword)}&prop=pageimages&piprop=name&format=json`;
-        const response = await fetch(url);
-        const data = await response.json();
-        const pages = data.query?.pages;
-        if (pages) {
-            const pageId = Object.keys(pages)[0];
-            if (pageId !== '-1' && pages[pageId].pageimage) {
-                const imgName = pages[pageId].pageimage;
-                if (isValidWikiImage(imgName)) {
-                    return await fetchWikiImageMetadata(imgName);
-                }
+    for (const keyword of allKeywords) {
+        // 1. Exact Page Lookup
+        let result = await fetchWikiPageImages(keyword);
+        if (result) return result;
+
+        // 2. OpenSearch Fallback (Corrects minor spelling/formatting)
+        try {
+            const osUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(keyword)}&limit=1&format=json`;
+            const osRes = await fetch(osUrl);
+            const osData = await osRes.json();
+            if (osData[1] && osData[1].length > 0) {
+                const exactTitle = osData[1][0];
+                result = await fetchWikiPageImages(exactTitle);
+                if (result) return result;
             }
-        }
-        return null;
-    } catch (e) { return null; }
-}
+        } catch(e) {}
 
-// Step B: Search Fallback
-async function searchWikipediaQuery(keyword) {
-    try {
-        if (!keyword) return null;
-        const url = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(keyword)}&gsrlimit=3&prop=pageimages&piprop=name&format=json`;
-        const response = await fetch(url);
-        const data = await response.json();
-        const pages = data.query?.pages;
-        if (pages) {
-            for (const pageId in pages) {
-                if (pages[pageId].pageimage) {
-                    const imgName = pages[pageId].pageimage;
-                    if (isValidWikiImage(imgName)) {
-                        return await fetchWikiImageMetadata(imgName);
+        // 3. Search API / Generator Fallback
+        try {
+            const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(keyword)}&gsrlimit=2&prop=pageimages&format=json`;
+            const searchRes = await fetch(searchUrl);
+            const searchData = await searchRes.json();
+            const pages = searchData.query?.pages;
+            if (pages) {
+                for (const pageId in pages) {
+                    if (pages[pageId].title) {
+                        result = await fetchWikiPageImages(pages[pageId].title);
+                        if (result) return result;
                     }
                 }
             }
-        }
-        return null;
-    } catch (e) { return null; }
+        } catch(e) {}
+    }
+    
+    return null;
 }
 
 // =========================================================================
@@ -140,7 +151,7 @@ async function searchUnsplash(keyword) {
 }
 
 // =========================================================================
-// ৯: Gemini Vision Validation for AI Generate
+// Gemini Vision Validation for AI Generate
 // =========================================================================
 async function validateAIImageWithGemini(buffer, newsContext) {
     try {
@@ -230,7 +241,7 @@ async function fetchImageForGemini(imageUrl) {
 // Main Bot Engine
 // =========================================================================
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V10: Architect-Grade Image Engine)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V11: Pro-Grade Image Architecture)...");
 
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Bongiyo_Times_Editorial_Graphic_Placeholder.jpg';
 
@@ -410,7 +421,7 @@ async function runBot() {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
             // =========================================================================
-            // ৭, ৮, ১০, ১১: STRICT PROMPT FOR WIKI & STOCK KEYWORDS SEPARATION
+            // ৬, ৭, ৮: STRICT PROMPT FOR WIKI TITLES, FALLBACKS & PREFERRED IMAGES
             // =========================================================================
             const prompt = `
             তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। 
@@ -436,28 +447,21 @@ async function runBot() {
             WE CANNOT PUBLISH COPYRIGHTED IMAGES. WE RELY ON WIKIPEDIA AND STOCK APIS.
 
             1. "wiki_search_keyword": MUST be the exact English Wikipedia page title representing the primary real-world entity, institution, landmark, public person, or organization mentioned.
-               - NEVER output generic words like "Hospital", "President", "Court", "Police", "Minister".
+               - Never translate literally.
+               - Use the official English title used by Wikipedia.
+               - If multiple pages exist, select the page with the greatest encyclopedic relevance.
+               - Never invent page names. If uncertain, return null.
                - ALWAYS prefer the Bangladeshi entity if applicable.
-               - Examples: 
-                 ঢাকা মেডিকেল → Dhaka Medical College Hospital
-                 বাংলাদেশ সুপ্রিম কোর্ট → Supreme Court of Bangladesh
-                 হাইকোর্ট বিভাগ → High Court Division of the Supreme Court of Bangladesh
-                 জাতীয় সংসদ → Jatiya Sangsad
-                 বঙ্গভবন → Bangabhaban
-                 সচিবালয় → Bangladesh Secretariat
-                 দুদক → Anti-Corruption Commission (Bangladesh)
-                 র‌্যাব → Rapid Action Battalion
-                 ডিএমপি → Dhaka Metropolitan Police
-                 শাহজালাল বিমানবন্দর → Hazrat Shahjalal International Airport
-                 ঢাকা বিশ্ববিদ্যালয় → University of Dhaka
-                 পদ্মা সেতু → Padma Bridge
-                 হোয়াইট হাউস → White House
 
-            2. "stock_search_keyword": A generic English object/concept keyword suitable for Pexels/Unsplash if Wikipedia fails (e.g., "hospital building", "police car", "gavel", "parliament"). NO HUMAN FACES.
+            2. "wiki_fallback_keywords": Provide an array of up to 3 alternative Wikipedia page titles if the primary keyword fails (e.g., ["Old Dhaka Central Jail", "Dhaka prison", "Central jail Bangladesh"]).
 
-            3. "wiki_entity_type": Categorize the primary entity (e.g., "government_building", "person", "hospital", "university", "bridge").
+            3. "preferred_image_type": Specify the type of image needed to filter out logos. Examples: "building", "exterior", "photograph", "map", "satellite", "object".
 
-            Set "image_strategy" to "stock" whenever a keyword is provided. Set to "ai_generate" ONLY for abstract topics (Economy, Cyber Security) where no historical or real-world image exists.
+            4. "stock_search_keyword": A generic English object/concept keyword suitable for Pexels/Unsplash if Wikipedia fails (e.g., "hospital building", "police car", "gavel", "parliament"). NO HUMAN FACES.
+
+            5. "wiki_entity_type": Categorize the primary entity (e.g., "government_building", "person", "hospital", "university", "bridge").
+
+            Set "image_strategy" to "stock" whenever a keyword is provided. Set to "ai_generate" ONLY for abstract topics (Economy, Cyber security, Inflation, Interest rate, Budget, Stock market, Corruption, Bribery, Money laundering, Tax, Policy, Digital payment, Cryptocurrency, GDP, AI, Cloud, Database, Software, Malware, Ransomware) where no historical or real-world image exists.
 
             ========================
             Step 4: JSON Output Format
@@ -469,6 +473,8 @@ async function runBot() {
               "true_category": "সঠিক ক্যাটাগরি",
               "image_strategy": "stock | ai_generate | editorial_graphic",
               "wiki_search_keyword": "Exact Wikipedia Title",
+              "wiki_fallback_keywords": ["Fallback 1", "Fallback 2", "Fallback 3"],
+              "preferred_image_type": "building",
               "stock_search_keyword": "Generic Concept Keyword",
               "wiki_entity_type": "Entity Type",
               "image_prompt": "prompt or null",
@@ -537,32 +543,27 @@ async function runBot() {
             let imagePromise = Promise.resolve(null);
 
             // =========================================================================
-            // ৬: Search Priority Updated: Wiki -> Pexels -> Pixabay -> Unsplash
+            // Integrated Search Execution 
             // =========================================================================
             if (strategy === "stock" && (rewrittenData.wiki_search_keyword || rewrittenData.stock_search_keyword)) {
                 
                 imagePromise = (async () => {
-                    // ১. Wikipedia Exact Search
-                    let wikiResult = await searchWikipediaExact(rewrittenData.wiki_search_keyword);
-                    
-                    // ২. Wikipedia Query Fallback
-                    if (!wikiResult) {
-                        wikiResult = await searchWikipediaQuery(rewrittenData.wiki_search_keyword);
-                    }
+                    // ১. Wikipedia Multi-stage Search (Exact -> OpenSearch -> API Search)
+                    const wikiResult = await searchWikipediaPipeline(rewrittenData.wiki_search_keyword, rewrittenData.wiki_fallback_keywords);
                     
                     if (wikiResult) {
                         return { url: wikiResult.url, credit: wikiResult.credit };
                     }
 
-                    // ৩. Pexels (News/editorial object heavy)
+                    // ২. Pexels (News/editorial object heavy)
                     const pexelsUrl = await searchPexels(rewrittenData.stock_search_keyword);
                     if (pexelsUrl) return { url: pexelsUrl, credit: "সংগৃহীত (Pexels)" };
 
-                    // ৪. Pixabay
+                    // ৩. Pixabay
                     const pixabayUrl = await searchPixabay(rewrittenData.stock_search_keyword);
                     if (pixabayUrl) return { url: pixabayUrl, credit: "সংগৃহীত (Pixabay)" };
 
-                    // ৫. Unsplash
+                    // ৪. Unsplash
                     const unsplashUrl = await searchUnsplash(rewrittenData.stock_search_keyword);
                     if (unsplashUrl) return { url: unsplashUrl, credit: "সংগৃহীত (Unsplash)" };
 
