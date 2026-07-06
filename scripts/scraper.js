@@ -100,7 +100,7 @@ async function fetchImageForGemini(imageUrl) {
 }
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V8: ZERO-COPYRIGHT & Anti-Hallucination Engine)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V8.1: ZERO-COPYRIGHT & Anti-Mismatch Stock Keyword Engine)...");
 
   // আপনার নিজস্ব ব্র্যান্ডেড প্লেসহোল্ডার বা এডিটোরিয়াল গ্রাফিক লিংক এখানে দিন
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Bongiyo_Times_Editorial_Graphic_Placeholder.jpg';
@@ -282,7 +282,7 @@ async function runBot() {
           try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
-            // --- ZERO COPYRIGHT & STRICT AI IMAGE PROMPT ---
+            // --- STRICTLY UPDATED STOCK KEYWORD PROMPT (NO HUMANS ALLOWED IN SEARCH) ---
             const prompt = `
             তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। 
 
@@ -307,8 +307,9 @@ async function runBot() {
             WE CANNOT PUBLISH ORIGINAL COPYRIGHTED IMAGES FROM NEWS WEBSITES (e.g. BBC, Prothom Alo). WE MUST RELY ON STOCK PHOTOS, SAFE AI (No humans), OR BRANDED PLACEHOLDERS.
             Evaluate the news and strictly return ONE of these "image_strategy" values:
 
-            Rule 1 (People/Politicians): If the news is about a specific identifiable person, politician, minister, judge, criminal, or celebrity, NEVER generate an AI image. 
-            Action: Return "stock" and provide a highly contextual "search_keyword" representing their profession or environment (e.g., "Bangladesh Parliament", "Press conference microphone", "Justice Gavel", "Police car"). 
+            Rule 1 (People/Politicians/Health): If the news is about a specific identifiable person, politician, minister, judge, criminal, or celebrity, NEVER generate an AI image. 
+            Action: Return "stock". You must provide a "search_keyword" based ONLY on OBJECTS or PLACES related to the news context (e.g., "Stethoscope", "Hospital building", "Press conference microphones", "Justice Gavel", "Police car"). 
+            CRITICAL WARNING: NEVER use human-centric keywords like "Minister", "Politician", "Doctor", "Patient", or "Person" as stock APIs will return completely mismatched foreign/Western faces. Use strictly object-based or location-based keywords.
             
             Rule 2 (Landmarks/Institutions): If the news is about a specific place or institution (e.g., "Dhaka University", "High Court", "Padma Bridge"), DO NOT generate a fictional AI image. 
             Action: Return "stock" and provide the exact English "search_keyword" (e.g., "Dhaka University", "Bangladesh Supreme Court").
