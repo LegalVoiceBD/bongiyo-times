@@ -20,153 +20,6 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // =========================================================================
-// ১, ২, ৩, ৪, ৫: Advanced Wikipedia API with Search Pipeline & Metadata
-// =========================================================================
-
-function isValidWikiImage(filename) {
-    if (!filename) return false;
-    const lower = filename.toLowerCase();
-    // ফিল্টার: শুধুমাত্র নির্দিষ্ট কিছু গ্রাফিকাল/আইকন ফরম্যাট বাতিল, PNG বা map অ্যালাউড
-    const rejectWords = ['svg', 'logo', 'icon', 'seal', 'coat_of_arms', 'flag', 'symbol'];
-    if (rejectWords.some(w => lower.includes(w))) return false;
-    return true;
-}
-
-// Fetch all images for a specific page and select the best real-world photo
-async function fetchWikiPageImages(title, entityType) {
-    try {
-        if (!title) return null;
-
-        // ১. যদি খবরের মূল বিষয় কোনো 'ব্যক্তি' হয়, তবে সরাসরি লিড ইমেজ (PageImage) আনবে
-        if (entityType === 'person') {
-            const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&pithumbsize=1000&format=json`;
-            const response = await fetch(url);
-            const data = await response.json();
-            const pages = data.query?.pages;
-            
-            if (pages) {
-                const pageId = Object.keys(pages)[0];
-                if (pageId !== '-1' && pages[pageId].thumbnail) {
-                    return {
-                        url: pages[pageId].thumbnail.source,
-                        credit: `ছবি: উইকিপিডিয়া (${title})`
-                    };
-                }
-            }
-        }
-
-        // ২. যদি বিল্ডিং, স্থান বা অর্গানাইজেশন হয়, তবে আগের লজিক (লোগো/সিল এড়ানোর জন্য)
-        const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&generator=images&gimlimit=20&prop=imageinfo&iiprop=url|extmetadata&format=json`;
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (!data || !data.query || !data.query.pages) return null;
-        const pages = data.query.pages;
-        
-        const validImages = Object.values(pages)
-            .filter(p => p.title && isValidWikiImage(p.title) && p.imageinfo && p.imageinfo[0])
-            .map(p => {
-                const info = p.imageinfo[0];
-                const meta = info.extmetadata || {};
-                return {
-                    filename: p.title.replace('File:', ''),
-                    url: info.url,
-                    license: meta.LicenseShortName ? meta.LicenseShortName.value : 'Wikipedia',
-                    artist: meta.Artist ? meta.Artist.value.replace(/<[^>]*>?/gm, '').trim() : 'Unknown'
-                };
-            });
-
-        if (validImages.length > 0) {
-            const bestImage = validImages.find(img => img.filename.toLowerCase().match(/\.(jpg|jpeg)$/)) || validImages[0];
-            return {
-                url: bestImage.url,
-                credit: `ছবি: উইকিপিডিয়া | License: ${bestImage.license}`
-            };
-        }
-        return null;
-    } catch (e) {
-        return null;
-    }
-}
-// Intelligent Pipeline: Exact -> OpenSearch -> Generator Search
-async function searchWikipediaPipeline(mainKeyword, fallbackKeywords) {
-    const allKeywords = [mainKeyword, ...(fallbackKeywords || [])].filter(Boolean);
-
-    for (const keyword of allKeywords) {
-        // 1. Exact Page Lookup
-        let result = await fetchWikiPageImages(keyword);
-        if (result) return result;
-
-        // 2. OpenSearch Fallback (Corrects minor spelling/formatting)
-        try {
-            const osUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(keyword)}&limit=1&format=json`;
-            const osRes = await fetch(osUrl);
-            const osData = await osRes.json();
-            if (osData[1] && osData[1].length > 0) {
-                const exactTitle = osData[1][0];
-                result = await fetchWikiPageImages(exactTitle);
-                if (result) return result;
-            }
-        } catch(e) {}
-
-        // 3. Search API / Generator Fallback
-        try {
-            const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(keyword)}&gsrlimit=2&prop=pageimages&format=json`;
-            const searchRes = await fetch(searchUrl);
-            const searchData = await searchRes.json();
-            const pages = searchData.query?.pages;
-            if (pages) {
-                for (const pageId in pages) {
-                    if (pages[pageId].title) {
-                        result = await fetchWikiPageImages(pages[pageId].title);
-                        if (result) return result;
-                    }
-                }
-            }
-        } catch(e) {}
-    }
-    
-    return null;
-}
-
-// =========================================================================
-// Stock APIs
-// =========================================================================
-
-async function searchPexels(keyword) {
-  try {
-    if (!keyword) return null;
-    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(keyword)}&per_page=1&orientation=landscape`;
-    const response = await fetch(url, { headers: { Authorization: process.env.PEXELS_API_KEY } });
-    const data = await response.json();
-    if (data.photos && data.photos.length > 0) return data.photos[0].src.landscape || data.photos[0].src.large; 
-    return null;
-  } catch (error) { return null; }
-}
-
-async function searchPixabay(keyword) {
-  try {
-    if (!keyword) return null;
-    const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(keyword)}&image_type=photo&orientation=horizontal&per_page=3`;
-    const response = await fetch(url);
-    const data = await response.json();
-    if (data.hits && data.hits.length > 0) return data.hits[0].largeImageURL; 
-    return null;
-  } catch (error) { return null; }
-}
-
-async function searchUnsplash(keyword) {
-  try {
-    if (!keyword) return null;
-    const url = `https://api.unsplash.com/search/photos?page=1&per_page=1&query=${encodeURIComponent(keyword)}&orientation=landscape&client_id=${process.env.UNSPLASH_ACCESS_KEY}`;
-    const response = await fetch(url);
-    const data = await response.json();
-    if (data.results && data.results.length > 0) return data.results[0].urls.regular; 
-    return null;
-  } catch (error) { return null; }
-}
-
-// =========================================================================
 // Gemini Vision Validation for AI Generate
 // =========================================================================
 async function validateAIImageWithGemini(buffer, newsContext) {
@@ -176,7 +29,7 @@ async function validateAIImageWithGemini(buffer, newsContext) {
         You are a strict QA bot for a news publication. Analyze this AI-generated image meant for news context: "${newsContext}".
         Rate it from 0 to 100 based on these criteria:
         1. NO Text, NO Letters, NO Watermarks, NO Fake Logos (deduct 50 points if any found).
-        2. NO Human faces, body parts, or crowds (deduct 50 points if found, as this is strictly for abstract/object images).
+        2. NO Human faces, body parts, or crowds (deduct 50 points if found, as this is strictly for abstract/object/symbolic images).
         3. NO Distorted/Melted objects.
         Return ONLY a raw JSON format: {"score": 95}
         `;
@@ -194,6 +47,9 @@ async function validateAIImageWithGemini(buffer, newsContext) {
     }
 }
 
+// =========================================================================
+// Image Generation using Gemini 2.5 Flash API
+// =========================================================================
 async function generateAndUploadImage(imagePrompt) {
   let attempts = 0;
   const maxAttempts = 2; // ফেইল করলে পুনরায় চেষ্টা করবে
@@ -201,20 +57,44 @@ async function generateAndUploadImage(imagePrompt) {
   while (attempts < maxAttempts) {
       attempts++;
       try {
-        console.log(`🎨 ইমেজ জেনারেট হচ্ছে (FLUX) - Attempt ${attempts}...`);
-        const styleSuffix = ", Ultra realistic, Photojournalism, Reuters style, AP News photography, Natural lighting, No cinematic color grading, No dramatic lighting, No fantasy, No illustration, No digital art, No CGI, No painting, Real press photograph, NO TEXT, NO WATERMARK, NO LOGO, NO HUMANS, NO FACES";
+        console.log(`🎨 ইমেজ জেনারেট হচ্ছে (Gemini API) - Attempt ${attempts}...`);
+        
+        // প্রম্পট স্টাইলিং (খবরের জন্য - strictly no humans, no text, highly symbolic)
+        const styleSuffix = ", Ultra realistic, Photojournalism style but highly symbolic, Abstract representation, High quality macro photography, Natural lighting, Real press photograph style, NO TEXT, NO LETTERS, NO WATERMARK, NO LOGO, NO HUMANS, NO FACES, NO CROWDS, ONLY OBJECTS AND SCENERY.";
         const finalPrompt = imagePrompt + styleSuffix;
         
-        const encodedPrompt = encodeURIComponent(finalPrompt);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=flux&width=1280&height=720&enhance=true&nologo=true&safe=true&seed=-1`;
-
-        const imageRes = await fetch(imageUrl);
-        if (!imageRes.ok) throw new Error("Image fetch failed");
+        // Gemini API URL 
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
         
-        const arrayBuffer = await imageRes.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        // Request Payload
+        const payload = {
+            contents: [{
+                parts: [{ text: finalPrompt }]
+            }],
+            generationConfig: {
+                responseModalities: ["IMAGE"]
+            }
+        };
 
-        // Validation Step
+        const imageRes = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!imageRes.ok) throw new Error("Gemini Image fetch failed");
+        
+        const data = await imageRes.json();
+        
+        // Base64 ডেটা এক্সট্রাক্ট করা
+        const base64Data = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        
+        if (!base64Data) throw new Error("No image data found in Gemini response");
+
+        // Base64 কে Buffer এ রূপান্তর করা
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // Validation Step (ভিজ্যুয়াল চেক)
         const validationScore = await validateAIImageWithGemini(buffer, imagePrompt);
         
         if (validationScore >= 90) {
@@ -232,7 +112,8 @@ async function generateAndUploadImage(imagePrompt) {
             console.log(`⚠️ ইমেজ কোয়ালিটি খারাপ (Score: ${validationScore}), আবার চেষ্টা করা হচ্ছে...`);
         }
       } catch (error) { 
-          console.error("Image gen error:", error.message);
+          console.error("Gemini Image Gen error:", error.message);
+          if (error.message.includes('429')) await delay(5000);
       }
   }
   return null;
@@ -257,9 +138,9 @@ async function fetchImageForGemini(imageUrl) {
 // Main Bot Engine
 // =========================================================================
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V11: Pro-Grade Image Architecture)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V12: Fully AI Generated Image Pipeline)...");
 
-  const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Bongiyo_Times_Editorial_Graphic_Placeholder.jpg';
+  const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
 
   const allSources = [
     { name: 'Prothom Alo', bnName: 'প্রথম আলো', url: 'https://www.prothomalo.com/bangladesh', domain: 'prothomalo.com', defaultCategory: 'বাংলাদেশ' },
@@ -437,7 +318,7 @@ async function runBot() {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
             // =========================================================================
-            // ৬, ৭, ৮: STRICT PROMPT FOR WIKI TITLES, FALLBACKS & PREFERRED IMAGES
+            // STRICT PROMPT FOR DIRECT AI IMAGE GENERATION
             // =========================================================================
             const prompt = `
             তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। 
@@ -458,26 +339,13 @@ async function runBot() {
             - পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে। কোনো HTML ট্যাগ নয়, শুধু \\n\\n।
 
             ========================
-            Step 3: ZERO-COPYRIGHT IMAGE STRATEGY ENGINE (STRICT KEYWORD RULES)
+            Step 3: IMAGE PROMPT GENERATION (STRICT RULES)
             ========================
-            WE CANNOT PUBLISH COPYRIGHTED IMAGES. WE RELY ON WIKIPEDIA AND STOCK APIS.
-
-            1. "wiki_search_keyword": MUST be the exact English Wikipedia page title representing the primary real-world entity, institution, landmark, public person, or organization mentioned.
-               - Never translate literally.
-               - Use the official English title used by Wikipedia.
-               - If multiple pages exist, select the page with the greatest encyclopedic relevance.
-               - Never invent page names. If uncertain, return null.
-               - ALWAYS prefer the Bangladeshi entity if applicable.
-
-            2. "wiki_fallback_keywords": Provide an array of up to 3 alternative Wikipedia page titles if the primary keyword fails (e.g., ["Old Dhaka Central Jail", "Dhaka prison", "Central jail Bangladesh"]).
-
-            3. "preferred_image_type": Specify the type of image needed to filter out logos. Examples: "building", "exterior", "photograph", "map", "satellite", "object".
-
-            4. "stock_search_keyword": A generic English object/concept keyword suitable for Pexels/Unsplash if Wikipedia fails (e.g., "hospital building", "police car", "gavel", "parliament"). NO HUMAN FACES.
-
-            5. "wiki_entity_type": Categorize the primary entity (e.g., "government_building", "person", "hospital", "university", "bridge").
-
-            Set "image_strategy" to "stock" whenever a keyword is provided. Set to "ai_generate" ONLY for abstract topics (Economy, Cyber security, Inflation, Interest rate, Budget, Stock market, Corruption, Bribery, Money laundering, Tax, Policy, Digital payment, Cryptocurrency, GDP, AI, Cloud, Database, Software, Malware, Ransomware) where no historical or real-world image exists.
+            We generate all images using an AI Image Generator. You MUST write a strong, detailed image prompt in English based on the core theme of the news.
+            1. STRICTLY NO HUMANS: Do not include any person, crowd, face, or body parts in the prompt.
+            2. STRICTLY NO TEXT: The prompt must explicitly avoid words, letters, logos, or signs.
+            3. SYMBOLIC & ABSTRACT: Create a symbolic representation of the news using objects, environments, lighting, and metaphors. (e.g., instead of a politician, use a glowing gavel on a wooden desk with a flag blurred in the background; instead of a criminal, use handcuffs on cold concrete).
+            4. BE DETAILED: Specify lighting, camera angle, textures, and mood.
 
             ========================
             Step 4: JSON Output Format
@@ -487,13 +355,7 @@ async function runBot() {
               "title": "নতুন সংবাদ শিরোনাম",
               "content": "সম্পূর্ণ সংবাদ",
               "true_category": "সঠিক ক্যাটাগরি",
-              "image_strategy": "stock | ai_generate | editorial_graphic",
-              "wiki_search_keyword": "Exact Wikipedia Title",
-              "wiki_fallback_keywords": ["Fallback 1", "Fallback 2", "Fallback 3"],
-              "preferred_image_type": "building",
-              "stock_search_keyword": "Generic Concept Keyword",
-              "wiki_entity_type": "Entity Type",
-              "image_prompt": "prompt or null",
+              "image_prompt": "A highly detailed, symbolic English prompt for AI generation. Focus on objects, mood, and lighting. NO HUMANS, NO TEXT.",
               "importance_score": 9,
               "editorial_score": 92,
               "breaking_news": true,
@@ -548,8 +410,7 @@ async function runBot() {
             if (publishedCount[actualCategory] >= (CATEGORY_LIMITS[actualCategory] || 1)) continue;
 
             let finalImageUrl = defaultPlaceholder;
-            let imageSourceCredit = "বঙ্গীয় টাইমস (প্রতীকী)";
-            const strategy = rewrittenData.image_strategy || "editorial_graphic";
+            let imageSourceCredit = "বঙ্গীয় টাইমস"; // Default credit for fallback stock image
             
             const hashCheckPromise = supabase
               .from('news')
@@ -559,37 +420,12 @@ async function runBot() {
             let imagePromise = Promise.resolve(null);
 
             // =========================================================================
-            // Integrated Search Execution 
+            // Integrated AI Image Execution 
             // =========================================================================
-            if (strategy === "stock" && (rewrittenData.wiki_search_keyword || rewrittenData.stock_search_keyword)) {
-                
-                imagePromise = (async () => {
-                    // ১. Wikipedia Multi-stage Search (Exact -> OpenSearch -> API Search)
-                    const wikiResult = await searchWikipediaPipeline(rewrittenData.wiki_search_keyword, rewrittenData.wiki_fallback_keywords);
-                    
-                    if (wikiResult) {
-                        return { url: wikiResult.url, credit: wikiResult.credit };
-                    }
-
-                    // ২. Pexels (News/editorial object heavy)
-                    const pexelsUrl = await searchPexels(rewrittenData.stock_search_keyword);
-                    if (pexelsUrl) return { url: pexelsUrl, credit: "সংগৃহীত (Pexels)" };
-
-                    // ৩. Pixabay
-                    const pixabayUrl = await searchPixabay(rewrittenData.stock_search_keyword);
-                    if (pixabayUrl) return { url: pixabayUrl, credit: "সংগৃহীত (Pixabay)" };
-
-                    // ৪. Unsplash
-                    const unsplashUrl = await searchUnsplash(rewrittenData.stock_search_keyword);
-                    if (unsplashUrl) return { url: unsplashUrl, credit: "সংগৃহীত (Unsplash)" };
-
-                    return null;
-                })();
-            }
-            else if (strategy === "ai_generate" && rewrittenData.image_prompt) {
-                imagePromise = generateAndUploadImage(rewrittenData.image_prompt).then(fluxUrl => {
-                    if (fluxUrl) {
-                        return { url: fluxUrl, credit: "এআই জেনারেটেড" };
+            if (rewrittenData.image_prompt) {
+                imagePromise = generateAndUploadImage(rewrittenData.image_prompt).then(aiUrl => {
+                    if (aiUrl) {
+                        return { url: aiUrl, credit: "এআই জেনারেটেড" };
                     }
                     return null;
                 });
