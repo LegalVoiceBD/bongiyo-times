@@ -20,21 +20,21 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // =========================================================================
-// 1. Prompt QA Step (New: Validates and Rewrites the Image Prompt)
+// 1. Strict Prompt QA Step (Inside Retry Loop)
 // =========================================================================
-async function refineImagePrompt(originalPrompt) {
+async function refineImagePrompt(originalPrompt, isRetry = false) {
     try {
-        console.log(`🔍 Prompt QA চলছে...`);
+        console.log(`🔍 Prompt QA চলছে... (Retry Mode: ${isRetry})`);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const prompt = `Review this image prompt: "${originalPrompt}".
-        Does it contain any humans, faces, crowds, specific persons, leaders, celebrities, logos, text, newspaper layout, TV studio, microphones, or branding?
-        If YES, rewrite the prompt completely to be a purely symbolic, conceptual illustration using ONLY inanimate objects or scenery (like a gavel, scale, empty road, rain, etc.).
-        If NO, output the original prompt.
-        Return ONLY the final clean prompt text without any explanations.`;
+        ${isRetry ? "The previous image generated from this prompt failed QA (it contained humans, text, or layouts). You MUST completely change the concept to be 100% abstract and symbolic." : ""}
+        If the prompt contains ANY of these words: politician, minister, leader, prime minister, president, judge, lawyer, reporter, journalist, microphone, conference, speech, press, podium, interview, portrait, person, crowd, people, celebrity...
+        OR if it implies any human presence...
+        Rewrite COMPLETELY. Never preserve them. Replace them with symbolic objects (e.g., broken chain, empty chair, justice scale, spotlight).
+        Return ONLY the final clean prompt text in English without any explanations.`;
         
         const result = await model.generateContent(prompt);
-        const text = result.response.text().trim();
-        return text;
+        return result.response.text().trim();
     } catch (e) {
         console.error("Prompt QA Failed:", e.message);
         return originalPrompt; 
@@ -42,27 +42,30 @@ async function refineImagePrompt(originalPrompt) {
 }
 
 // =========================================================================
-// 2. Gemini Vision Validation for AI Generate (Updated JSON Flags)
+// 2. Gemini Vision Validation (Expanded Strict JSON Flags)
 // =========================================================================
 async function validateAIImageWithGemini(buffer, newsContext) {
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const prompt = `
         You are a strict QA bot for a news publication. Analyze this AI-generated image meant for news context: "${newsContext}".
-        Rate it from 0 to 100 based on these criteria:
-        1. NO Text, NO Letters, NO Watermarks, NO Fake Logos (deduct 50 points if any found).
-        2. NO Human faces, body parts, or crowds. NO cartoons of humans. (deduct 50 points if found).
-        3. NO Fake TV layouts, newspaper layouts, or lower-third banners.
-        4. NO Distorted/Melted objects.
+        Rate it from 0 to 100.
         
         Return ONLY a raw JSON format exactly like this:
         {
-         "score": 95,
+         "score": 96,
          "hasHuman": false,
          "hasText": false,
          "hasLogo": false,
          "hasWatermark": false,
-         "hasDistortion": false
+         "hasDistortion": false,
+         "hasTVStudio": false,
+         "hasNewspaper": false,
+         "hasBrand": false,
+         "hasPortrait": false,
+         "hasFace": false,
+         "hasCrowd": false,
+         "hasBanner": false
         }
         `;
         const imagePart = {
@@ -72,36 +75,37 @@ async function validateAIImageWithGemini(buffer, newsContext) {
         const responseText = result.response.text();
         const match = responseText.match(/\{[\s\S]*\}/);
         const data = JSON.parse(match[0]);
-        console.log(`👁️ ভিশন এআই রেজাল্ট: Score: ${data.score}, Human: ${data.hasHuman}, Text: ${data.hasText}, Logo: ${data.hasLogo}`);
+        console.log(`👁️ ভিশন এআই রেজাল্ট: Score: ${data.score}, Human: ${data.hasHuman}, TV/Banner: ${data.hasTVStudio || data.hasBanner}, Text/Logo: ${data.hasText || data.hasLogo}`);
         return data;
     } catch (e) { 
-        // Fail Safe: If API fails, return strict false values so image is rejected
+        // Fail Safe: If API fails, block the image completely
         return { 
             score: 0, 
-            hasHuman: true, 
-            hasText: true, 
-            hasLogo: true, 
-            hasWatermark: true, 
-            hasDistortion: true 
+            hasHuman: true, hasText: true, hasLogo: true, hasWatermark: true, hasDistortion: true,
+            hasTVStudio: true, hasNewspaper: true, hasBrand: true, hasPortrait: true, hasFace: true, hasCrowd: true, hasBanner: true
         };
     }
 }
 
 // =========================================================================
-// 3. Image Generation using Gemini 2.5 Flash API
+// 3. Image Generation Loop (Prompt QA -> Gen -> Vision QA)
 // =========================================================================
-async function generateAndUploadImage(imagePrompt) {
+async function generateAndUploadImage(initialPrompt) {
   let attempts = 0;
   const maxAttempts = 2; 
+  let currentPrompt = initialPrompt;
 
   while (attempts < maxAttempts) {
       attempts++;
       try {
-        console.log(`🎨 ইমেজ জেনারেট হচ্ছে (Gemini API) - Attempt ${attempts}...`);
+        console.log(`🎨 ইমেজ লুপ - Attempt ${attempts}...`);
         
-        // Updated styling: Editorial/Conceptual, Strict Layout Negative Prompts
-        const styleSuffix = ", Editorial illustration, Conceptual illustration, Symbolic editorial artwork, Ultra realistic macro, Natural lighting, No newspaper layout, No TV news layout, No lower-third banner, No channel logo, No microphone branding, No press badge, No recognizable publication design, NO TEXT, NO LETTERS, NO WATERMARK, NO LOGO, NO HUMANS, NO FACES, NO CROWDS.";
-        const finalPrompt = imagePrompt + styleSuffix;
+        // 1. Refine Prompt (Will generate a completely new prompt if it's a retry)
+        currentPrompt = await refineImagePrompt(currentPrompt, attempts > 1);
+
+        // 2. Updated styling without Editorial Illustration
+        const styleSuffix = ", Photorealistic still life, High-end commercial photography, Studio photography, Macro photography, Fine art photography, Natural lighting, No government building, No podium, No rally, No stage, No conference, No parliament, No people, No newspaper layout, No TV news layout, No lower-third banner, No channel logo, No microphone branding, No press badge, No recognizable publication design, NO TEXT, NO LETTERS, NO WATERMARK, NO LOGO, NO HUMANS, NO FACES, NO CROWDS.";
+        const finalPrompt = currentPrompt + styleSuffix;
         
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
         
@@ -124,8 +128,8 @@ async function generateAndUploadImage(imagePrompt) {
 
         const buffer = Buffer.from(base64Data, 'base64');
 
-        // Validation Step with strict boolean checks
-        const validationResult = await validateAIImageWithGemini(buffer, imagePrompt);
+        // 3. Vision Validation Step
+        const validationResult = await validateAIImageWithGemini(buffer, currentPrompt);
         
         if (
             validationResult.score >= 95 &&
@@ -133,7 +137,14 @@ async function generateAndUploadImage(imagePrompt) {
             !validationResult.hasText &&
             !validationResult.hasLogo &&
             !validationResult.hasWatermark &&
-            !validationResult.hasDistortion
+            !validationResult.hasDistortion &&
+            !validationResult.hasBanner &&
+            !validationResult.hasTVStudio &&
+            !validationResult.hasNewspaper &&
+            !validationResult.hasBrand &&
+            !validationResult.hasPortrait &&
+            !validationResult.hasFace &&
+            !validationResult.hasCrowd
         ) {
             return new Promise((resolve, reject) => {
               const uploadStream = cloudinary.uploader.upload_stream(
@@ -146,7 +157,7 @@ async function generateAndUploadImage(imagePrompt) {
               uploadStream.end(buffer);
             });
         } else {
-            console.log(`⚠️ ইমেজ ভ্যালিডেশন ফেইল করেছে। আবার চেষ্টা করা হচ্ছে...`);
+            console.log(`⚠️ ইমেজ ভ্যালিডেশন ফেইল করেছে। রিট্রাই করা হচ্ছে...`);
         }
       } catch (error) { 
           console.error("Gemini Image Gen error:", error.message);
@@ -156,26 +167,11 @@ async function generateAndUploadImage(imagePrompt) {
   return null;
 }
 
-async function fetchImageForGemini(imageUrl) {
-    try {
-        const response = await fetch(imageUrl);
-        if (!response.ok) return null;
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        return {
-            inlineData: {
-                data: buffer.toString("base64"),
-                mimeType: response.headers.get("content-type") || "image/jpeg"
-            }
-        };
-    } catch (e) { return null; }
-}
-
 // =========================================================================
 // Main Bot Engine
 // =========================================================================
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V13: Ultimate Secure Image Pipeline)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V14: Strict Text-Only No-Reference Image Pipeline)...");
 
   // Fallback Stock Image
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
@@ -310,16 +306,6 @@ async function runBot() {
         const articleHtml = await articleRes.text();
         const article$ = cheerio.load(articleHtml);
 
-        let extractedImageUrl = 
-            article$('meta[property="og:image"]').attr('content') ||
-            article$('meta[property="twitter:image"]').attr('content') ||
-            article$('meta[name="twitter:image"]').attr('content');
-
-        let geminiImagePart = null;
-        if (extractedImageUrl) {
-            geminiImagePart = await fetchImageForGemini(extractedImageUrl);
-        }
-
         let fullTextArray = [];
         const contentSelectors = ['article', 'main', '.story', '.news-content', '.entry-content', '.post-content', '.article-body', '.content', '.details', '.details-content', '.newsDetails', '.post-details'];
         let contentFound = false;
@@ -356,7 +342,7 @@ async function runBot() {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
             
             // =========================================================================
-            // UPDATED STRICT PROMPT WITH ALLOWED/FORBIDDEN LISTS
+            // TEXT-ONLY PROMPT (No Reference Image)
             // =========================================================================
             const prompt = `
             তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। 
@@ -381,13 +367,13 @@ async function runBot() {
             ========================
             We generate all images using an AI Image Generator. You MUST write a strong, detailed image prompt in English based on the core theme of the news.
             
-            ALLOWED OBJECTS (Use these or similar): Books, Court Gavel, Flag (blurred), Handcuffs, Justice Scale, Money, Factory, Bridge, Road, Sky, Cloud, River, Computer, Chip, Keyboard, Passport, Visa, Currency, Hospital, Medicine, Tree, Rice, Fire, Rain, Flood, Earthquake Crack, Oil Barrel, Container Ship.
+            ALLOWED OBJECTS (Use these or similar): Books, Court Gavel, Flag (blurred), Handcuffs, Justice Scale, Money, Factory, Bridge, Road, Sky, Cloud, River, Computer, Chip, Keyboard, Passport, Visa, Currency, Hospital, Medicine, Tree, Rice, Fire, Rain, Flood, Earthquake Crack, Oil Barrel, Container Ship, Broken chain, Locked gate, Empty chair, Documents, Empty podium, Spotlight, Wooden desk, Burning candle, Clock, Storm cloud, Paper file, Fingerprint, Magnifying glass, Fence, Road sign without text, Concrete wall, Silhouette of skyline.
 
-            FORBIDDEN (NEVER include these): Humans, Faces, Crowd, Portrait, Speech, Press conference, Meeting, Stage, Camera crew, Microphone, TV studio, Newspaper, Magazine, Logo, Text, Letter, Watermark, Cartoons of humans.
+            FORBIDDEN (NEVER include these): Humans, Faces, Crowd, Portrait, Speech, Press conference, Meeting, Stage, Camera crew, Microphone, TV studio, Newspaper, Magazine, Logo, Text, Letter, Watermark, government building, podium, rally, parliament, people.
 
             Strictly avoid ANY layout: No newspaper layout, No TV news layout, No lower-third banner, No channel logo, No microphone branding, No press badge, No recognizable publication design.
 
-            Use styles like: Editorial illustration, Conceptual illustration, Symbolic editorial artwork. Focus on objects, mood, textures, and lighting.
+            Use styles like: Photorealistic still life, High-end commercial photography, Studio photography, Macro photography, Fine art photography, Natural lighting. Focus on objects, mood, textures, and lighting.
 
             ========================
             Step 4: JSON Output Format
@@ -413,7 +399,8 @@ async function runBot() {
             ${fullText}
             `;
 
-            const geminiPayload = geminiImagePart ? [prompt, geminiImagePart] : [prompt];
+            // Reference image payload removed, using text ONLY
+            const geminiPayload = [prompt];
             
             let result;
             try {
@@ -462,11 +449,10 @@ async function runBot() {
             let imagePromise = Promise.resolve(null);
 
             // =========================================================================
-            // Integrated AI Image Execution with Prompt QA
+            // Trigger Integrated AI Image Execution (Retry Loop resides inside)
             // =========================================================================
             if (rewrittenData.image_prompt) {
-                const cleanPrompt = await refineImagePrompt(rewrittenData.image_prompt);
-                imagePromise = generateAndUploadImage(cleanPrompt).then(aiUrl => {
+                imagePromise = generateAndUploadImage(rewrittenData.image_prompt).then(aiUrl => {
                     if (aiUrl) {
                         return { url: aiUrl, credit: "এআই জেনারেটেড" };
                     }
