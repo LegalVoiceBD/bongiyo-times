@@ -335,14 +335,17 @@ async function runBot() {
             ========================
             দ্বিতীয় ধাপ: সংবাদ তৈরি ও ক্যাটাগরি
             ========================
-            - প্রথম বাক্যে ন্যাচারালভাবে সোর্সের ক্রেডিট যুক্ত করবে: (যেমন: <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>)
+            - প্রথম প্যারাগ্রাফের উপযুক্ত স্থানে ন্যাচারালভাবে সোর্সের ক্রেডিট যুক্ত করবে: (যেমন: <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a>)
             - পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে। কোনো HTML ট্যাগ নয়, শুধু \\n\\n।
-
+            - উপযুক্ত মানানসই ছোট শিরোনাম দিবে।
+            - নিরপেক্ষ ভাবে খবর বিশ্লেষণ করবে। কোন রাজনৈতিক দলের পক্ষপাতিত্ব করবে না।
+            - কোনো ভুল তথ্য দিবে না। নিজে থেকে অপ্রাসঙ্গিক কোনো তথ্য দিবে না।
+            - সব সময় মূল খবরের লিংক যুক্ত করবে। শুধু হোমপেজের লিংক দিবে না।
             ========================
             Step 3: IMAGE PROMPT GENERATION (STRICT RULES)
             ========================
             We generate all images using an AI Image Generator. You MUST write a strong, detailed image prompt in English based on the core theme of the news.
-            1. STRICTLY NO HUMANS: Do not include any person, crowd, face, or body parts in the prompt.
+            1. STRICTLY NO HUMANS: Do not include any person, crowd, face, or body parts in the prompt. But you can use cartoon to meke sense of the news.
             2. STRICTLY NO TEXT: The prompt must explicitly avoid words, letters, logos, or signs.
             3. SYMBOLIC & ABSTRACT: Create a symbolic representation of the news using objects, environments, lighting, and metaphors. (e.g., instead of a politician, use a glowing gavel on a wooden desk with a flag blurred in the background; instead of a criminal, use handcuffs on cold concrete).
             4. BE DETAILED: Specify lighting, camera angle, textures, and mood.
