@@ -19,7 +19,25 @@ const supabase = createClient(
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ১. Unsplash থেকে ছবি খোঁজার ফাংশন (Copyright Free)
+// ১. Wikipedia থেকে ছবি খোঁজার ফাংশন (Top Priority & Copyright Free)
+async function searchWikipedia(keyword) {
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(keyword)}&gsrlimit=1&prop=pageimages&piprop=original&format=json`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data.query && data.query.pages) {
+      const pages = data.query.pages;
+      const pageId = Object.keys(pages)[0];
+      if (pages[pageId].original && pages[pageId].original.source) {
+        return pages[pageId].original.source;
+      }
+    }
+    return null;
+  } catch (error) { return null; }
+}
+
+// ২. Unsplash থেকে ছবি খোঁজার ফাংশন (Copyright Free)
 async function searchUnsplash(keyword) {
   try {
     const url = `https://api.unsplash.com/search/photos?page=1&per_page=1&query=${encodeURIComponent(keyword)}&orientation=landscape&client_id=${process.env.UNSPLASH_ACCESS_KEY}`;
@@ -31,7 +49,7 @@ async function searchUnsplash(keyword) {
   } catch (error) { return null; }
 }
 
-// ২. Pexels থেকে ছবি খোঁজার ফাংশন (Copyright Free)
+// ৩. Pexels থেকে ছবি খোঁজার ফাংশন (Copyright Free)
 async function searchPexels(keyword) {
   try {
     const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(keyword)}&per_page=1&orientation=landscape`;
@@ -43,7 +61,7 @@ async function searchPexels(keyword) {
   } catch (error) { return null; }
 }
 
-// ৩. Pixabay থেকে ছবি খোঁজার ফাংশন (Copyright Free)
+// ৪. Pixabay থেকে ছবি খোঁজার ফাংশন (Copyright Free)
 async function searchPixabay(keyword) {
   try {
     const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(keyword)}&image_type=photo&orientation=horizontal&per_page=3`;
@@ -55,7 +73,7 @@ async function searchPixabay(keyword) {
   } catch (error) { return null; }
 }
 
-// ৪. AI Image Generate (FLUX) - STRICTLY NO HUMANS
+// ৫. AI Image Generate (FLUX) - STRICTLY NO HUMANS
 async function generateAndUploadImage(imagePrompt) {
   try {
     console.log(`🎨 ইমেজ জেনারেট হচ্ছে (FLUX Model)...`);
@@ -100,7 +118,7 @@ async function fetchImageForGemini(imageUrl) {
 }
 
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V8.1: ZERO-COPYRIGHT & Anti-Mismatch Stock Keyword Engine)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V9: Wikipedia-First Image Engine)...");
 
   // আপনার নিজস্ব ব্র্যান্ডেড প্লেসহোল্ডার বা এডিটোরিয়াল গ্রাফিক লিংক এখানে দিন
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Bongiyo_Times_Editorial_Graphic_Placeholder.jpg';
@@ -384,7 +402,6 @@ async function runBot() {
             if (publishedCount[actualCategory] >= (CATEGORY_LIMITS[actualCategory] || 1)) continue;
 
             // --- STRICT ZERO-COPYRIGHT IMAGE PUBLISHING LOGIC ---
-            // মূল ওয়েবসাইটের ছবি (extractedImageUrl) পুরোপুরি বর্জন করা হয়েছে।
             let finalImageUrl = defaultPlaceholder;
             let imageSourceCredit = "বঙ্গীয় টাইমস (প্রতীকী)";
             const strategy = rewrittenData.image_strategy || "editorial_graphic";
@@ -397,15 +414,17 @@ async function runBot() {
             let imagePromise = Promise.resolve(null);
 
             if (strategy === "stock" && rewrittenData.search_keyword) {
+                // উইকিপিডিয়াকে প্রথমে রেখে প্যারালাল কল
                 imagePromise = Promise.all([
+                    searchWikipedia(rewrittenData.search_keyword),
                     searchUnsplash(rewrittenData.search_keyword),
                     searchPexels(rewrittenData.search_keyword),
                     searchPixabay(rewrittenData.search_keyword)
-                ]).then(([unsplash, pexels, pixabay]) => {
-                    const stockUrl = unsplash || pexels || pixabay;
+                ]).then(([wiki, unsplash, pexels, pixabay]) => {
+                    const stockUrl = wiki || unsplash || pexels || pixabay;
                     if (stockUrl) {
                         finalImageUrl = stockUrl;
-                        imageSourceCredit = "সংগৃহীত (কপিরাইট ফ্রি)";
+                        imageSourceCredit = wiki ? "উইকিপিডিয়া / সংগৃহীত" : "সংগৃহীত (কপিরাইট ফ্রি)";
                     } else {
                         finalImageUrl = defaultPlaceholder;
                         imageSourceCredit = "বঙ্গীয় টাইমস (প্রতীকী)";
