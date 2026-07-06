@@ -33,10 +33,29 @@ function isValidWikiImage(filename) {
 }
 
 // Fetch all images for a specific page and select the best real-world photo
-async function fetchWikiPageImages(title) {
+async function fetchWikiPageImages(title, entityType) {
     try {
         if (!title) return null;
-        // Fetch images linked on the page
+
+        // ১. যদি খবরের মূল বিষয় কোনো 'ব্যক্তি' হয়, তবে সরাসরি লিড ইমেজ (PageImage) আনবে
+        if (entityType === 'person') {
+            const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&pithumbsize=1000&format=json`;
+            const response = await fetch(url);
+            const data = await response.json();
+            const pages = data.query?.pages;
+            
+            if (pages) {
+                const pageId = Object.keys(pages)[0];
+                if (pageId !== '-1' && pages[pageId].thumbnail) {
+                    return {
+                        url: pages[pageId].thumbnail.source,
+                        credit: `ছবি: উইকিপিডিয়া (${title})`
+                    };
+                }
+            }
+        }
+
+        // ২. যদি বিল্ডিং, স্থান বা অর্গানাইজেশন হয়, তবে আগের লজিক (লোগো/সিল এড়ানোর জন্য)
         const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&generator=images&gimlimit=20&prop=imageinfo&iiprop=url|extmetadata&format=json`;
         const response = await fetch(url);
         const data = await response.json();
@@ -58,12 +77,10 @@ async function fetchWikiPageImages(title) {
             });
 
         if (validImages.length > 0) {
-            // Prefer jpg/jpeg for natural photos if available, else fallback to the first valid one
             const bestImage = validImages.find(img => img.filename.toLowerCase().match(/\.(jpg|jpeg)$/)) || validImages[0];
-            
             return {
                 url: bestImage.url,
-                credit: `Photo: ${bestImage.filename} | Author: ${bestImage.artist.substring(0, 40)} | License: ${bestImage.license} | Source: Wikipedia`
+                credit: `ছবি: উইকিপিডিয়া | License: ${bestImage.license}`
             };
         }
         return null;
@@ -71,7 +88,6 @@ async function fetchWikiPageImages(title) {
         return null;
     }
 }
-
 // Intelligent Pipeline: Exact -> OpenSearch -> Generator Search
 async function searchWikipediaPipeline(mainKeyword, fallbackKeywords) {
     const allKeywords = [mainKeyword, ...(fallbackKeywords || [])].filter(Boolean);
