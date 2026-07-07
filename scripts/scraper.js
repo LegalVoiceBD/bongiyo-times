@@ -440,9 +440,11 @@ async function runBot() {
             - মূল নিউজের লিংক ব্যবহার করবে। শুধু হোমপেজের লিংক ব্যবহার করবে না। 
 
             ========================
-            Step 3: IMAGE PROMPT GENERATION (STRICT RULES)
-            ========================
-            We generate all images using an AI Image Generator. You MUST write a strong, detailed image prompt in English based on the core theme of the news.
+           // =========================================================================
+            // Step 3: IMAGE PROMPT GENERATION (STRICT RULES)
+            // =========================================================================
+            We generate all images using an AI Image Generator. You MUST write a strong, detailed image prompt in English based on the core theme of the news. 
+            Analyze the headline and news context with deep concentration to determine which country the news belongs to. The generated image prompt MUST precisely reflect the background context, cultural/regional aesthetic, and main thematic elements of that specific country mentioned in the news.
             
             ALLOWED OBJECTS (Use these or similar): Books, Court Gavel, Flag (blurred), Handcuffs, Justice Scale, Money, Factory, Bridge, Road, Sky, Cloud, River, Computer, Chip, Keyboard, Passport, Visa, Currency, Hospital, Medicine, Tree, Rice, Fire, Rain, Flood, Earthquake Crack, Oil Barrel, Container Ship, Broken chain, Locked gate, Empty chair, Documents, Empty podium, Spotlight, Wooden desk, Burning candle, Clock, Storm cloud, Paper file, Fingerprint, Magnifying glass, Fence, Road sign without text, Concrete wall, Silhouette of skyline.
 
@@ -451,7 +453,6 @@ async function runBot() {
             Strictly avoid ANY layout: No newspaper layout, No TV news layout, No lower-third banner, No channel logo, No microphone branding, No press badge, No recognizable publication design.
 
             Use styles like: Photorealistic still life, High-end commercial photography, Studio photography, Macro photography, Fine art photography, Natural lighting. Focus on objects, mood, textures, and lighting.
-
             ========================
             Step 4: JSON Output Format
             ========================
