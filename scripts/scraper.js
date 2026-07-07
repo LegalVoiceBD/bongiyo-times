@@ -30,7 +30,7 @@ async function refineImagePrompt(originalPrompt, isRetry = false) {
         ${isRetry ? "The previous image generated from this prompt failed QA (it contained humans, text, or layouts). You MUST completely change the concept to be 100% abstract and symbolic." : ""}
         If the prompt contains ANY of these words: politician, minister, leader, prime minister, president, judge, lawyer, reporter, journalist, microphone, conference, speech, press, podium, interview, portrait, person, crowd, people, celebrity...
         OR if it implies any human presence...
-        Rewrite COMPLETELY. Never preserve them. Replace them with symbolic objects (e.g., broken chain, empty chair, justice scale, spotlight).
+        Rewrite COMPLETELY. Never preserve them. Replace them with highly relevant symbolic objects matching the headline's theme (e.g., ballot box, voting stamp, gavel, caution tape, spotlight).
         Return ONLY the final clean prompt text in English without any explanations. Keep it under 400 characters.`;
         
         const result = await model.generateContent(prompt);
@@ -162,7 +162,7 @@ async function generateAndUploadImage(initialPrompt) {
 // Main Bot Engine
 // =========================================================================
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V17: Fixed Source Attribution & Linking)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V18: Ultra-Strict Thematic Keyword Images)...");
 
   // Fallback Stock Image
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
@@ -364,12 +364,15 @@ async function runBot() {
             We generate all images using an AI Image Generator. You MUST write a strong, detailed image prompt in English.
             
             CRITICAL RULES:
-            1. COUNTRY CONTEXT: Read the FULL news content to accurately determine which country the news is about.
-            2. VISUAL ELEMENTS: The visual elements of the image prompt MUST be generated based ONLY on the KEYWORDS used in the HEADLINE. Do not base the visual objects on the full news body.
-            3. COMBINATION: The final generated image prompt MUST precisely reflect the background context and cultural/regional aesthetic of the identified country, while visually representing the HEADLINE's keywords.
+            1. KEYWORD MATCHING: Extract the main theme from the HEADLINE ONLY. Do not make generic images (like a random empty desk or notebook) if the headline has a strong theme.
+            2. RELEVANT SYMBOLIC OBJECTS: The prompt MUST use specific, highly relevant symbolic objects that DIRECTLY represent the headline. 
+               - If Election/Voting -> use Ballot box, Ballot paper, Voting stamp.
+               - If Court/Law/Crime -> use Gavel, Handcuffs, Justice scale, Law books.
+               - If Economy/Business -> use Coins, Banknotes (blurred), Calculator, Upward trend line.
+               - If Accident/Disaster -> use Broken glass, Police caution tape, Tyre marks, Debris.
+               - If Education -> use Chalkboard, Stack of books, Graduation cap.
+            3. COUNTRY CONTEXT: Reflect the correct cultural and regional aesthetic of the identified country based on the full news. For Bangladesh, implicitly use local textures or colors (like a blurred green and red flag in the background).
             
-            ALLOWED OBJECTS (Use these or similar): Books, Court Gavel, Flag (blurred), Handcuffs, Justice Scale, Money, Factory, Bridge, Road, Sky, Cloud, River, Computer, Chip, Keyboard, Passport, Visa, Currency, Hospital, Medicine, Tree, Rice, Fire, Rain, Flood, Earthquake Crack, Oil Barrel, Container Ship, Broken chain, Locked gate, Empty chair, Documents, Empty podium, Spotlight, Wooden desk, Burning candle, Clock, Storm cloud, Paper file, Fingerprint, Magnifying glass, Fence, Road sign without text, Concrete wall, Silhouette of skyline.
-
             FORBIDDEN (NEVER include these): Humans, Faces, Crowd, Portrait, Speech, Press conference, Meeting, Stage, Camera crew, Microphone, TV studio, Newspaper, Magazine, Logo, Text, Letter, Watermark, government building, podium, rally, parliament, people.
 
             Strictly avoid ANY layout: No newspaper layout, No TV news layout, No lower-third banner, No channel logo, No microphone branding, No press badge, No recognizable publication design.
@@ -384,7 +387,7 @@ async function runBot() {
               "title": "নতুন সংবাদ শিরোনাম",
               "content": "সম্পূর্ণ সংবাদ",
               "true_category": "এখানে অবশ্যই 'বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'আইন-আদালত', 'বাণিজ্য', 'খেলাধুলা', 'বিনোদন', 'প্রযুক্তি', 'শিক্ষা', 'ধর্ম', 'জীবনযাপন', 'চাকরি', 'ফিচার'-এর মধ্যে যেকোনো একটি ক্যাটাগরি স্ট্রিং হিসেবে বসবে। কোনো অ্যারে বা অন্য কোনো নাম দেওয়া যাবে না",
-              "image_prompt": "A highly detailed, symbolic English prompt for AI generation. Focus on objects, mood, and lighting. NO HUMANS, NO TEXT.",
+              "image_prompt": "A highly detailed, symbolic English prompt for AI generation. Focus on specific thematic objects, mood, and lighting. NO HUMANS, NO TEXT.",
               "importance_score": 9,
               "editorial_score": 92,
               "breaking_news": true,
