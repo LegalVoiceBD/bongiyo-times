@@ -162,7 +162,7 @@ async function generateAndUploadImage(initialPrompt) {
 // Main Bot Engine
 // =========================================================================
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V15: Optimized Pollinations Image Pipeline)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V16: Keyword-Based Image Pipeline)...");
 
   // Fallback Stock Image
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
@@ -340,7 +340,7 @@ async function runBot() {
             তুমি একজন আন্তর্জাতিক মানের সিনিয়র সাংবাদিক, অনুসন্ধানী রিপোর্টার এবং নিউজ এডিটর। 
 
             ========================
-            প্রথম этап: সংবাদ যাচাই ও Event Hash
+            প্রথম ধাপ: সংবাদ যাচাই ও Event Hash
             ========================
             ১. Privacy Policy, Advertisement, Opinion, Blog, Category, Archive ইত্যাদি হলে বাতিল করবে।
             ২. Duplicate Event Check: নিচের সাম্প্রতিক সংবাদগুলোর সাথে যদি এই সংবাদটি হুবহু একই ঘটনার হয় (Title, Snippet, Hash এবং Entities মিলিয়ে), বুলেটিন রিটার্ন করবে: {"skip": true}
@@ -362,8 +362,12 @@ async function runBot() {
             ========================
             Step 3: IMAGE PROMPT GENERATION (STRICT RULES)
             ========================
-            We generate all images using an AI Image Generator. You MUST write a strong, detailed image prompt in English based on the core theme of the news. 
-            Analyze the headline and news context with deep concentration to determine which country the news belongs to. The generated image prompt MUST precisely reflect the background context, cultural/regional aesthetic, and main thematic elements of that specific country mentioned in the news.
+            We generate all images using an AI Image Generator. You MUST write a strong, detailed image prompt in English.
+            
+            CRITICAL RULES:
+            1. COUNTRY CONTEXT: Read the FULL news content to accurately determine which country the news is about.
+            2. VISUAL ELEMENTS: The visual elements of the image prompt MUST be generated based ONLY on the KEYWORDS used in the HEADLINE. Do not base the visual objects on the full news body.
+            3. COMBINATION: The final generated image prompt MUST precisely reflect the background context and cultural/regional aesthetic of the identified country, while visually representing the HEADLINE's keywords.
             
             ALLOWED OBJECTS (Use these or similar): Books, Court Gavel, Flag (blurred), Handcuffs, Justice Scale, Money, Factory, Bridge, Road, Sky, Cloud, River, Computer, Chip, Keyboard, Passport, Visa, Currency, Hospital, Medicine, Tree, Rice, Fire, Rain, Flood, Earthquake Crack, Oil Barrel, Container Ship, Broken chain, Locked gate, Empty chair, Documents, Empty podium, Spotlight, Wooden desk, Burning candle, Clock, Storm cloud, Paper file, Fingerprint, Magnifying glass, Fence, Road sign without text, Concrete wall, Silhouette of skyline.
 
