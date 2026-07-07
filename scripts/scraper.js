@@ -20,29 +20,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // =========================================================================
-// 1. Strict Prompt QA Step (Inside Retry Loop)
-// =========================================================================
-async function refineImagePrompt(originalPrompt, isRetry = false) {
-    try {
-        console.log(`🔍 Prompt QA চলছে... (Retry Mode: ${isRetry})`);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        const prompt = `Review this image prompt: "${originalPrompt}".
-        ${isRetry ? "The previous image generated from this prompt failed QA (it contained humans, text, or layouts). You MUST completely change the concept to be 100% abstract and symbolic." : ""}
-        If the prompt contains ANY of these words: politician, minister, leader, prime minister, president, judge, lawyer, reporter, journalist, microphone, conference, speech, press, podium, interview, portrait, person, crowd, people, celebrity...
-        OR if it implies any human presence...
-        Rewrite COMPLETELY. Never preserve them. Replace them with highly relevant symbolic objects matching the headline's theme (e.g., ballot box, voting stamp, gavel, caution tape, spotlight).
-        Return ONLY the final clean prompt text in English without any explanations. Keep it under 400 characters.`;
-        
-        const result = await model.generateContent(prompt);
-        return result.response.text().trim();
-    } catch (e) {
-        console.error("Prompt QA Failed:", e.message);
-        return originalPrompt.substring(0, 400); 
-    }
-}
-
-// =========================================================================
-// 2. Gemini Vision Validation (Expanded Strict JSON Flags)
+// 1. Gemini Vision Validation (Expanded Strict JSON Flags)
 // =========================================================================
 async function validateAIImageWithGemini(buffer, newsContext) {
     try {
@@ -88,25 +66,52 @@ async function validateAIImageWithGemini(buffer, newsContext) {
 }
 
 // =========================================================================
-// 3. Image Generation Loop (Prompt QA -> Gen -> Vision QA)
+// 2. Custom Prompt Builder for Consistent Image Generation
 // =========================================================================
-async function generateAndUploadImage(initialPrompt) {
+function buildImagePrompt(news) {
+    return `
+Photorealistic editorial still life.
+
+Country:
+${news.country_style || news.country}
+
+Theme:
+${news.image_subject}
+
+Keywords:
+${(news.headline_keywords || []).join(", ")}
+
+Professional news illustration.
+Ultra realistic.
+Natural lighting.
+Studio photography.
+Symbolic objects only.
+No humans.
+No faces.
+No crowd.
+No logo.
+No watermark.
+No text.
+    `.trim().replace(/\n+/g, ' '); // Removed extra line breaks for URL safety
+}
+
+// =========================================================================
+// 3. Image Generation Loop (Builder -> Gen -> Vision QA)
+// =========================================================================
+async function generateAndUploadImage(newsData) {
   let attempts = 0;
   const maxAttempts = 2; 
-  let currentPrompt = initialPrompt;
 
   while (attempts < maxAttempts) {
       attempts++;
       try {
         console.log(`🎨 ইমেজ লুপ - Attempt ${attempts} (Pollinations AI: FLUX)...`);
         
-        currentPrompt = await refineImagePrompt(currentPrompt, attempts > 1);
-
-        const styleSuffix = ", Bangladesh context, Photorealistic, Professional editorial photography, Studio lighting, Sharp focus, No humans, No text, No logo, Still life photography.";
+        let finalPrompt = buildImagePrompt(newsData).substring(0, 800);
         
-        let finalPrompt = (currentPrompt + styleSuffix).substring(0, 800);
-        
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?model=flux&nologo=true`;
+        // Random Seed to prevent identical generic images
+        const seed = Math.floor(Math.random() * 99999999);
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?model=flux&nologo=true&seed=${seed}`;
         
         const imageRes = await fetch(url, {
             headers: { 'User-Agent': 'Mozilla/5.0' }
@@ -122,7 +127,7 @@ async function generateAndUploadImage(initialPrompt) {
         const arrayBuffer = await imageRes.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        const validationResult = await validateAIImageWithGemini(buffer, currentPrompt);
+        const validationResult = await validateAIImageWithGemini(buffer, newsData.image_subject);
         
         if (
             validationResult.score >= 70 &&
@@ -162,7 +167,7 @@ async function generateAndUploadImage(initialPrompt) {
 // Main Bot Engine
 // =========================================================================
 async function runBot() {
-  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V18: Ultra-Strict Thematic Keyword Images)...");
+  console.log("🚀 মেগা লটারি বট কাজ শুরু করেছে (V19: Advanced Metadata & Dynamic Prompt Builder)...");
 
   // Fallback Stock Image
   const defaultPlaceholder = 'https://res.cloudinary.com/dfgfvfvmk/image/upload/v1782535304/Gemini_Generated_Image_tjtfn3tjtfn3tjtf_syqfrx.jpg';
@@ -359,25 +364,25 @@ async function runBot() {
               অনুমোদিত তালিকা: 'বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'আইন-আদালত', 'বাণিজ্য', 'খেলাধুলা', 'বিনোদন', 'প্রযুক্তি', 'শিক্ষা', 'ধর্ম', 'জীবনযাপন', 'চাকরি', 'ফিচার'
 
             ========================
-            Step 3: IMAGE PROMPT GENERATION (STRICT RULES)
+            Step 3: IMAGE METADATA GENERATION (STRICT RULES)
             ========================
-            We generate all images using an AI Image Generator. You MUST write a strong, detailed image prompt in English.
+            We generate all images using an AI Image Generator. You MUST analyze the news and provide metadata for the image prompt.
             
             CRITICAL RULES:
-            1. KEYWORD MATCHING: Extract the main theme from the HEADLINE ONLY. Do not make generic images (like a random empty desk or notebook) if the headline has a strong theme.
-            2. RELEVANT SYMBOLIC OBJECTS: The prompt MUST use specific, highly relevant symbolic objects that DIRECTLY represent the headline. 
-               - If Election/Voting -> use Ballot box, Ballot paper, Voting stamp.
-               - If Court/Law/Crime -> use Gavel, Handcuffs, Justice scale, Law books.
-               - If Economy/Business -> use Coins, Banknotes (blurred), Calculator, Upward trend line.
-               - If Accident/Disaster -> use Broken glass, Police caution tape, Tyre marks, Debris.
-               - If Education -> use Chalkboard, Stack of books, Graduation cap.
-            3. COUNTRY CONTEXT: Reflect the correct cultural and regional aesthetic of the identified country based on the full news. For Bangladesh, implicitly use local textures or colors (like a blurred green and red flag in the background).
-            
-            FORBIDDEN (NEVER include these): Humans, Faces, Crowd, Portrait, Speech, Press conference, Meeting, Stage, Camera crew, Microphone, TV studio, Newspaper, Magazine, Logo, Text, Letter, Watermark, government building, podium, rally, parliament, people.
-
-            Strictly avoid ANY layout: No newspaper layout, No TV news layout, No lower-third banner, No channel logo, No microphone branding, No press badge, No recognizable publication design.
-
-            Use styles like: Photorealistic still life, High-end commercial photography, Studio photography, Macro photography, Fine art photography, Natural lighting. Focus on objects, mood, textures, and lighting.
+            1. COUNTRY & STYLE: Determine the country from the FULL news content. 
+               - If Bangladesh -> "subtle Bangladeshi colors, local architecture, local road markings, local textures".
+               - If India -> "Indian context".
+               - If USA -> "American context".
+               - If China -> "Chinese context".
+               - If Japan -> "Japanese context".
+               - Never draw flags prominently. Only subtle visual context.
+            2. HEADLINE KEYWORDS: Extract exactly 3 to 6 main visual keywords from the HEADLINE ONLY.
+               Examples:
+               - Headline: "EC announces election schedule" -> Keywords: ["Election", "Ballot", "Voting", "Election Commission"]
+               - Headline: "Court grants bail" -> Keywords: ["Court", "Gavel", "Law", "Justice"]
+               - Headline: "Flood in Sylhet" -> Keywords: ["Flood", "River", "Rain", "Broken bridge"]
+               - Headline: "Apple launches iPhone" -> Keywords: ["Smartphone", "Chip", "Apple device", "Technology"]
+            3. IMAGE SUBJECT: A short 1-2 word summary of the main theme (e.g., "Election", "Flood", "Court").
 
             ========================
             Step 4: JSON Output Format
@@ -386,8 +391,11 @@ async function runBot() {
               "skip": false,
               "title": "নতুন সংবাদ শিরোনাম",
               "content": "সম্পূর্ণ সংবাদ",
-              "true_category": "এখানে অবশ্যই 'বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'আইন-আদালত', 'বাণিজ্য', 'খেলাধুলা', 'বিনোদন', 'প্রযুক্তি', 'শিক্ষা', 'ধর্ম', 'জীবনযাপন', 'চাকরি', 'ফিচার'-এর মধ্যে যেকোনো একটি ক্যাটাগরি স্ট্রিং হিসেবে বসবে। কোনো অ্যারে বা অন্য কোনো নাম দেওয়া যাবে না",
-              "image_prompt": "A highly detailed, symbolic English prompt for AI generation. Focus on specific thematic objects, mood, and lighting. NO HUMANS, NO TEXT.",
+              "true_category": "এখানে অবশ্যই 'বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'আইন-আদালত', 'বাণিজ্য', 'খেলাধুলা', 'বিনোদন', 'প্রযুক্তি', 'শিক্ষা', 'ধর্ম', 'জীবনযাপন', 'চাকরি', 'ফিচার'-এর মধ্যে যেকোনো একটি ক্যাটাগরি স্ট্রিং হিসেবে বসবে।",
+              "image_subject": "Main theme in 1-2 words (English)",
+              "country": "Name of the country (English)",
+              "country_style": "Style description as per rules (English)",
+              "headline_keywords": ["Keyword1", "Keyword2", "Keyword3"],
               "importance_score": 9,
               "editorial_score": 92,
               "breaking_news": true,
@@ -452,10 +460,10 @@ async function runBot() {
             let imagePromise = Promise.resolve(null);
 
             // =========================================================================
-            // Trigger Integrated AI Image Execution
+            // Trigger Integrated AI Image Execution using Metadata
             // =========================================================================
-            if (rewrittenData.image_prompt) {
-                imagePromise = generateAndUploadImage(rewrittenData.image_prompt).then(aiUrl => {
+            if (rewrittenData.headline_keywords && rewrittenData.headline_keywords.length > 0) {
+                imagePromise = generateAndUploadImage(rewrittenData).then(aiUrl => {
                     if (aiUrl) {
                         return { url: aiUrl, credit: "এআই জেনারেটেড" };
                     }
