@@ -68,31 +68,8 @@ async function validateAIImageWithGemini(buffer, newsContext) {
 // =========================================================================
 // 2. Custom Prompt Builder for Consistent Image Generation
 // =========================================================================
-function buildImagePrompt(news) {
-    return `
-Photorealistic editorial still life.
-
-Country:
-${news.country_style || news.country}
-
-Theme:
-${news.image_subject}
-
-Keywords:
-${(news.headline_keywords || []).join(", ")}
-
-Professional news illustration.
-Ultra realistic.
-Natural lighting.
-Studio photography.
-Symbolic objects only.
-No humans.
-No faces.
-No crowd.
-No logo.
-No watermark.
-No text.
-    `.trim().replace(/\n+/g, ' '); // Removed extra line breaks for URL safety
+function buildImagePrompt(news){
+    return news.image_prompt;
 }
 
 // =========================================================================
@@ -359,30 +336,25 @@ async function runBot() {
             - প্রথম প্যারার উপযুক্ত স্থানে ন্যাচারালভাবে সোর্সের ক্রেডিট যুক্ত করবে (যেমন: "${source.bnName} সূত্রে জানা গেছে..." বা "${source.bnName} জানিয়েছে যে...")। সোর্সের নামের স্থানে হুবহু এই HTML ট্যাগটি বসিয়ে দিবে: <a href='${link}' target='_blank' style='color:#0056b3;text-decoration:underline;'>${source.bnName}</a> । সোর্সের নাম কোনো ব্র্যাকেটে ( ) বা [ ] রাখবে না।
             - পুরো সংবাদ নিজের ভাষায় পুনর্লিখন করবে। কোনো HTML ট্যাগ নয় (উপরে দেওয়া লিংকের ট্যাগটি ছাড়া), শুধু \\n\\n।
             - সংক্ষিপ্ত কিন্ত প্রফেশনাল শিরোনাম দিবে।
-            - কোন ভুল তথ্য দিবে না। মনগড়া কথা লিখবে না।
+            - কোন ভুল তথ্য দিবে পণ্ডিত করবে না। মনগড়া কথা লিখবে না।
             - ক্যাটাগরি নির্বাচনের সময় শুধুমাত্র নিচের তালিকাভুক্ত ক্যাটাগরি থেকেই একটি সিলেক্ট করতে হবে। এর বাইরে কোনো নতুন নাম (যেমন: জাতীয়, অর্থনীতি) তৈরি করা সম্পূর্ণ নিষিদ্ধ।
               অনুমোদিত তালিকা: 'বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'আইন-আদালত', 'বাণিজ্য', 'খেলাধুলা', 'বিনোদন', 'প্রযুক্তি', 'শিক্ষা', 'ধর্ম', 'জীবনযাপন', 'চাকরি', 'ফিচার'
 
             ========================
-            Step 3: IMAGE METADATA GENERATION (STRICT RULES)
+            Step 3: IMAGE PROMPT GENERATION (STRICT RULES)
             ========================
-            We generate all images using an AI Image Generator. You MUST analyze the news and provide metadata for the image prompt.
+            We generate all images using an AI Image Generator. You MUST analyze the news and provide a COMPLETE English image prompt.
             
             CRITICAL RULES:
-            1. COUNTRY & STYLE: Determine the country from the FULL news content. 
-               - If Bangladesh -> "subtle Bangladeshi colors, local architecture, local road markings, local textures".
-               - If India -> "Indian context".
-               - If USA -> "American context".
-               - If China -> "Chinese context".
-               - If Japan -> "Japanese context".
-               - Never draw flags prominently. Only subtle visual context.
-            2. HEADLINE KEYWORDS: Extract exactly 3 to 6 main visual keywords from the HEADLINE ONLY.
-               Examples:
-               - Headline: "EC announces election schedule" -> Keywords: ["Election", "Ballot", "Voting", "Election Commission"]
-               - Headline: "Court grants bail" -> Keywords: ["Court", "Gavel", "Law", "Justice"]
-               - Headline: "Flood in Sylhet" -> Keywords: ["Flood", "River", "Rain", "Broken bridge"]
-               - Headline: "Apple launches iPhone" -> Keywords: ["Smartphone", "Chip", "Apple device", "Technology"]
-            3. IMAGE SUBJECT: A short 1-2 word summary of the main theme (e.g., "Election", "Flood", "Court").
+            1. BASE STYLE: Always start with "Photorealistic editorial news photograph". DO NOT use "still life" or "Symbolic objects only".
+            2. IDENTIFY EXACT PLACES/BUILDINGS: Do not use generic terms like "Court", "Meeting", or "Flood". Identify the exact place/building/object.
+               - If UN -> "United Nations Headquarters in New York with the iconic UN General Assembly building"
+               - If Bangladesh Parliament -> "Jatiya Sangsad Bhaban in Dhaka designed by Louis Kahn, iconic geometric concrete architecture"
+               - If Bangladesh Supreme Court -> "Supreme Court of Bangladesh in Dhaka, white colonial courthouse with the iconic dome"
+               - If High Court -> "High Court Division building of the Supreme Court of Bangladesh, white dome architecture, Dhaka"
+               - If White House -> "White House in Washington DC, front lawn"
+            3. SPECIFIC DETAILS: Mention exact architectural elements, environments, and realistic daylight or atmosphere. Avoid useless keywords like "Court, Justice, Law" and replace them with "Judges Bench, Courtroom, Justice Building".
+            4. RESTRICTIONS: Never include humans. Always end the prompt with: "ultra realistic, no people, no text, no watermark".
 
             ========================
             Step 4: JSON Output Format
@@ -392,10 +364,8 @@ async function runBot() {
               "title": "নতুন সংবাদ শিরোনাম",
               "content": "সম্পূর্ণ সংবাদ",
               "true_category": "এখানে অবশ্যই 'বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'আইন-আদালত', 'বাণিজ্য', 'খেলাধুলা', 'বিনোদন', 'প্রযুক্তি', 'শিক্ষা', 'ধর্ম', 'জীবনযাপন', 'চাকরি', 'ফিচার'-এর মধ্যে যেকোনো একটি ক্যাটাগরি স্ট্রিং হিসেবে বসবে।",
-              "image_subject": "Main theme in 1-2 words (English)",
-              "country": "Name of the country (English)",
-              "country_style": "Style description as per rules (English)",
-              "headline_keywords": ["Keyword1", "Keyword2", "Keyword3"],
+              "image_subject": "Main theme in 1-2 words (English, used for validation only)",
+              "image_prompt": "Photorealistic editorial news photograph of... (Full detailed English prompt according to Step 3)",
               "importance_score": 9,
               "editorial_score": 92,
               "breaking_news": true,
@@ -460,9 +430,9 @@ async function runBot() {
             let imagePromise = Promise.resolve(null);
 
             // =========================================================================
-            // Trigger Integrated AI Image Execution using Metadata
+            // Trigger Integrated AI Image Execution using Full Prompt
             // =========================================================================
-            if (rewrittenData.headline_keywords && rewrittenData.headline_keywords.length > 0) {
+            if (rewrittenData.image_prompt && rewrittenData.image_prompt.length > 0) {
                 imagePromise = generateAndUploadImage(rewrittenData).then(aiUrl => {
                     if (aiUrl) {
                         return { url: aiUrl, credit: "এআই জেনারেটেড" };
