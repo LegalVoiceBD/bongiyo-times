@@ -354,7 +354,7 @@ async function runBot() {
                - If High Court -> "High Court Division building of the Supreme Court of Bangladesh, white dome architecture, Dhaka"
                - If White House -> "White House in Washington DC, front lawn"
             3. SPECIFIC DETAILS: Mention exact architectural elements, environments, and realistic daylight or atmosphere. Avoid useless keywords like "Court, Justice, Law" and replace them with "Judges Bench, Courtroom, Justice Building".
-            4. RESTRICTIONS: Never include humans. Always end the prompt with: "ultra realistic, no people, no text, no watermark".
+            4. RESTRICTIONS: Never include humans. Always end the prompt with: "ultra realistic, no people, no text, no watermark, never generate humban face, human body.".
 
             ========================
             Step 4: JSON Output Format
