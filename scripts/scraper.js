@@ -2,20 +2,48 @@ const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+// ================================================================
+// BONGIYO TIMES
+// GOOGLE NEWS DISCOVERY + ORIGINAL SOURCE METADATA
+// ================================================================
+
+
+// ================================================================
+// 1. SUPABASE CONFIGURATION
+// ================================================================
+
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
+
 const SUPABASE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('❌ Supabase environment variables are missing.');
+
+if (
+  !SUPABASE_URL ||
+  !SUPABASE_KEY
+) {
+
+  console.error(
+    '❌ Supabase environment variables are missing.'
+  );
+
   process.exit(1);
+
 }
 
-const supabase = createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+
+const supabase =
+  createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+
+// ================================================================
+// 2. SCRAPER CONFIGURATION
+// ================================================================
 
 const USER_AGENT =
   process.env.SCRAPER_USER_AGENT ||
@@ -23,248 +51,443 @@ const USER_AGENT =
   'AppleWebKit/537.36 (KHTML, like Gecko) ' +
   'Chrome/153.0.0.0 Safari/537.36';
 
+
 const HEADERS = {
-  'User-Agent': USER_AGENT,
+
+  'User-Agent':
+    USER_AGENT,
+
   Accept:
     'text/html,application/xhtml+xml,application/xml;q=0.9,' +
     'image/avif,image/webp,*/*;q=0.8',
+
   'Accept-Language':
     'bn-BD,bn;q=0.9,en-US;q=0.8,en;q=0.7',
-  'Cache-Control': 'no-cache',
-  Pragma: 'no-cache'
+
+  'Cache-Control':
+    'no-cache',
+
+  Pragma:
+    'no-cache'
+
 };
 
+
 const REQUEST_TIMEOUT_MS =
-  Number(process.env.REQUEST_TIMEOUT_MS || 18000);
-
-const MAX_ARTICLES_PER_RUN =
-  Number(process.env.MAX_ARTICLES_PER_RUN || 24);
-
-const MAX_ITEMS_TO_INSPECT =
-  Number(process.env.MAX_ITEMS_TO_INSPECT || 100);
-
-const MAX_ARTICLE_AGE_HOURS =
-  Number(process.env.MAX_ARTICLE_AGE_HOURS || 48);
-
-const REPAIR_RECENT_LIMIT =
-  Number(process.env.REPAIR_RECENT_LIMIT || 30);
-
-const REQUIRE_IMAGE =
-  String(
-    process.env.REQUIRE_NEWS_IMAGE || 'true'
-  ).toLowerCase() !== 'false';
-
-const delay = (ms) =>
-  new Promise((resolve) =>
-    setTimeout(resolve, ms)
+  Number(
+    process.env.REQUEST_TIMEOUT_MS ||
+    18000
   );
 
 
+const MAX_ARTICLES_PER_RUN =
+  Number(
+    process.env.MAX_ARTICLES_PER_RUN ||
+    24
+  );
+
+
+const MAX_ITEMS_TO_INSPECT =
+  Number(
+    process.env.MAX_ITEMS_TO_INSPECT ||
+    100
+  );
+
+
+const MAX_ARTICLE_AGE_HOURS =
+  Number(
+    process.env.MAX_ARTICLE_AGE_HOURS ||
+    48
+  );
+
+
+const REQUIRE_IMAGE =
+  String(
+    process.env.REQUIRE_NEWS_IMAGE ||
+    'true'
+  ).toLowerCase() !==
+  'false';
+
+
+const delay =
+  (ms) =>
+    new Promise(
+      resolve =>
+        setTimeout(
+          resolve,
+          ms
+        )
+    );
+
+
 // ================================================================
-// APPROVED NATIONAL PUBLISHERS
+// 3. APPROVED NATIONAL PUBLISHERS
 // ================================================================
 
 const PUBLISHERS = [
 
-  [
-    'প্রথম আলো',
-    ['prothomalo.com'],
-    [
+  {
+    bnName:
+      'প্রথম আলো',
+
+    domains: [
+      'prothomalo.com'
+    ],
+
+    aliases: [
       'prothom alo',
       'প্রথম আলো'
-    ]
-  ],
+    ],
 
-  [
-    'কালের কণ্ঠ',
-    ['kalerkantho.com'],
-    [
+    home:
+      'https://www.prothomalo.com/'
+  },
+
+
+  {
+    bnName:
+      'কালের কণ্ঠ',
+
+    domains: [
+      'kalerkantho.com'
+    ],
+
+    aliases: [
       'kaler kantho',
       'kalerkantho',
       'কালের কণ্ঠ'
-    ]
-  ],
+    ],
 
-  [
-    'যুগান্তর',
-    ['jugantor.com'],
-    [
+    home:
+      'https://www.kalerkantho.com/'
+  },
+
+
+  {
+    bnName:
+      'যুগান্তর',
+
+    domains: [
+      'jugantor.com'
+    ],
+
+    aliases: [
       'jugantor',
       'যুগান্তর'
-    ]
-  ],
+    ],
 
-  [
-    'দৈনিক ইত্তেফাক',
-    ['ittefaq.com.bd'],
-    [
+    home:
+      'https://www.jugantor.com/'
+  },
+
+
+  {
+    bnName:
+      'দৈনিক ইত্তেফাক',
+
+    domains: [
+      'ittefaq.com.bd'
+    ],
+
+    aliases: [
       'ittefaq',
       'the daily ittefaq',
-      'দৈনিক ইত্তেফাক',
-      'ইত্তেফাক'
-    ]
-  ],
+      'ইত্তেফাক',
+      'দৈনিক ইত্তেফাক'
+    ],
 
-  [
-    'সমকাল',
-    ['samakal.com'],
-    [
+    home:
+      'https://www.ittefaq.com.bd/'
+  },
+
+
+  {
+    bnName:
+      'সমকাল',
+
+    domains: [
+      'samakal.com'
+    ],
+
+    aliases: [
       'samakal',
       'সমকাল'
-    ]
-  ],
+    ],
 
-  [
-    'বাংলাদেশ প্রতিদিন',
-    ['bd-pratidin.com'],
-    [
+    home:
+      'https://samakal.com/'
+  },
+
+
+  {
+    bnName:
+      'বাংলাদেশ প্রতিদিন',
+
+    domains: [
+      'bd-pratidin.com'
+    ],
+
+    aliases: [
       'bangladesh pratidin',
       'bd-pratidin',
       'বাংলাদেশ প্রতিদিন'
-    ]
-  ],
+    ],
 
-  [
-    'ঢাকা পোস্ট',
-    ['dhakapost.com'],
-    [
+    home:
+      'https://www.bd-pratidin.com/'
+  },
+
+
+  {
+    bnName:
+      'ঢাকা পোস্ট',
+
+    domains: [
+      'dhakapost.com'
+    ],
+
+    aliases: [
       'dhaka post',
       'dhakapost',
       'ঢাকা পোস্ট'
-    ]
-  ],
+    ],
 
-  [
-    'জাগো নিউজ২৪',
-    ['jagonews24.com'],
-    [
+    home:
+      'https://www.dhakapost.com/'
+  },
+
+
+  {
+    bnName:
+      'জাগো নিউজ২৪',
+
+    domains: [
+      'jagonews24.com'
+    ],
+
+    aliases: [
       'jago news 24',
       'jagonews24',
       'jago news',
       'জাগো নিউজ',
       'জাগো নিউজ২৪'
-    ]
-  ],
+    ],
 
-  [
-    'বাংলা ট্রিবিউন',
-    ['banglatribune.com'],
-    [
+    home:
+      'https://www.jagonews24.com/'
+  },
+
+
+  {
+    bnName:
+      'বাংলা ট্রিবিউন',
+
+    domains: [
+      'banglatribune.com'
+    ],
+
+    aliases: [
       'bangla tribune',
       'বাংলা ট্রিবিউন'
-    ]
-  ],
+    ],
 
-  [
-    'বাংলানিউজ২৪ ডটকম',
-    ['banglanews24.com'],
-    [
+    home:
+      'https://www.banglatribune.com/'
+  },
+
+
+  {
+    bnName:
+      'বাংলানিউজ২৪ ডটকম',
+
+    domains: [
+      'banglanews24.com'
+    ],
+
+    aliases: [
       'banglanews24',
       'banglanews24.com',
       'বাংলানিউজ২৪',
       'বাংলানিউজ'
-    ]
-  ],
+    ],
 
-  [
-    'বিডিনিউজ টোয়েন্টিফোর ডটকম',
-    ['bdnews24.com'],
-    [
+    home:
+      'https://www.banglanews24.com/'
+  },
+
+
+  {
+    bnName:
+      'বিডিনিউজ টোয়েন্টিফোর ডটকম',
+
+    domains: [
+      'bdnews24.com'
+    ],
+
+    aliases: [
       'bdnews24',
       'bdnews24.com',
       'বিডিনিউজ',
       'বিডিনিউজ টোয়েন্টিফোর'
-    ]
-  ],
+    ],
 
-  [
-    'দৈনিক ইনকিলাব',
-    ['dailyinqilab.com'],
-    [
+    home:
+      'https://bangla.bdnews24.com/'
+  },
+
+
+  {
+    bnName:
+      'দৈনিক ইনকিলাব',
+
+    domains: [
+      'dailyinqilab.com'
+    ],
+
+    aliases: [
       'daily inqilab',
       'inqilab',
-      'দৈনিক ইনকিলাব',
-      'ইনকিলাব'
-    ]
-  ],
+      'ইনকিলাব',
+      'দৈনিক ইনকিলাব'
+    ],
 
-  [
-    'নয়া দিগন্ত',
-    ['dailynayadiganta.com'],
-    [
+    home:
+      'https://dailyinqilab.com/'
+  },
+
+
+  {
+    bnName:
+      'নয়া দিগন্ত',
+
+    domains: [
+      'dailynayadiganta.com'
+    ],
+
+    aliases: [
       'naya diganta',
       'nayadiganta',
       'daily naya diganta',
       'নয়া দিগন্ত',
       'নয়াদিগন্ত'
-    ]
-  ],
+    ],
 
-  [
-    'দ্য ডেইলি স্টার',
-    ['thedailystar.net'],
-    [
+    home:
+      'https://www.dailynayadiganta.com/'
+  },
+
+
+  {
+    bnName:
+      'দ্য ডেইলি স্টার',
+
+    domains: [
+      'thedailystar.net'
+    ],
+
+    aliases: [
       'the daily star',
       'daily star',
       'দ্য ডেইলি স্টার'
-    ]
-  ],
+    ],
 
-  [
-    'দ্য বিজনেস স্ট্যান্ডার্ড',
-    ['tbsnews.net'],
-    [
+    home:
+      'https://bangla.thedailystar.net/'
+  },
+
+
+  {
+    bnName:
+      'দ্য বিজনেস স্ট্যান্ডার্ড',
+
+    domains: [
+      'tbsnews.net'
+    ],
+
+    aliases: [
       'the business standard',
       'tbs news',
       'tbsnews',
       'দ্য বিজনেস স্ট্যান্ডার্ড'
-    ]
-  ],
+    ],
 
-  [
-    'ঢাকা ট্রিবিউন',
-    ['dhakatribune.com'],
-    [
+    home:
+      'https://www.tbsnews.net/bangla'
+  },
+
+
+  {
+    bnName:
+      'ঢাকা ট্রিবিউন',
+
+    domains: [
+      'dhakatribune.com'
+    ],
+
+    aliases: [
       'dhaka tribune',
       'ঢাকা ট্রিবিউন'
-    ]
-  ],
+    ],
 
-  [
-    'ইউএনবি',
-    ['unb.com.bd'],
-    [
+    home:
+      'https://www.dhakatribune.com/'
+  },
+
+
+  {
+    bnName:
+      'ইউএনবি',
+
+    domains: [
+      'unb.com.bd'
+    ],
+
+    aliases: [
       'unb',
       'united news of bangladesh',
       'ইউএনবি'
-    ]
-  ]
+    ],
 
-].map(
-  ([bnName, domains, aliases]) => ({
-    bnName,
-    domains,
-    aliases
-  })
-);
+    home:
+      'https://unb.com.bd/'
+  }
+
+];
 
 
 // ================================================================
-// TEXT HELPERS
+// 4. BASIC TEXT HELPERS
 // ================================================================
 
-function clean(value = '') {
+function clean(
+  value = ''
+) {
 
   return String(value)
-    .replace(/\u00a0/g, ' ')
-    .replace(/[\t\r\n]+/g, ' ')
-    .replace(/\s{2,}/g, ' ')
+
+    .replace(
+      /\u00a0/g,
+      ' '
+    )
+
+    .replace(
+      /[\t\r\n]+/g,
+      ' '
+    )
+
+    .replace(
+      /\s{2,}/g,
+      ' '
+    )
+
     .trim();
 
 }
 
 
-function lower(value = '') {
+function lower(
+  value = ''
+) {
 
   return clean(value)
     .toLowerCase();
@@ -272,14 +495,19 @@ function lower(value = '') {
 }
 
 
-function stripHtml(value = '') {
+function stripHtml(
+  value = ''
+) {
 
-  if (!value) return '';
+  if (!value)
+    return '';
+
 
   const $ =
     cheerio.load(
       `<div>${value}</div>`
     );
+
 
   return clean(
     $('div').text()
@@ -288,7 +516,9 @@ function stripHtml(value = '') {
 }
 
 
-function escapeRegExp(value = '') {
+function escapeRegExp(
+  value = ''
+) {
 
   return String(value)
     .replace(
@@ -299,37 +529,86 @@ function escapeRegExp(value = '') {
 }
 
 
-function cleanRssTitle(
-  title,
-  sourceName
+// ================================================================
+// 5. URL HELPERS
+// ================================================================
+
+function absoluteUrl(
+  raw,
+  base
 ) {
 
-  let finalTitle =
-    clean(title);
+  if (!raw)
+    return '';
 
-  if (sourceName) {
 
-    finalTitle =
-      finalTitle.replace(
+  const value =
+    clean(raw);
 
-        new RegExp(
-          `\\s[-–—|:]\\s*${escapeRegExp(sourceName)}\\s*$`,
-          'iu'
-        ),
 
-        ''
+  if (
 
-      );
+    !value ||
+
+    value.startsWith(
+      'data:'
+    ) ||
+
+    value.startsWith(
+      'javascript:'
+    )
+
+  ) {
+
+    return '';
 
   }
 
-  return clean(finalTitle);
+
+  try {
+
+    const url =
+      new URL(
+        value,
+        base
+      );
+
+
+    [
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_term',
+      'utm_content',
+      'fbclid',
+      'gclid'
+
+    ].forEach(
+      key =>
+        url.searchParams.delete(
+          key
+        )
+    );
+
+
+    url.hash = '';
+
+
+    return url.toString();
+
+  }
+
+  catch {
+
+    return '';
+
+  }
 
 }
 
 
 // ================================================================
-// PUBLISHER DETECTION
+// 6. PUBLISHER DETECTION
 // ================================================================
 
 function findPublisherByName(
@@ -339,6 +618,7 @@ function findPublisherByName(
   const normalized =
     lower(name);
 
+
   if (!normalized)
     return null;
 
@@ -346,24 +626,35 @@ function findPublisherByName(
   return (
 
     PUBLISHERS.find(
-      (publisher) =>
+      publisher =>
 
         publisher.aliases.some(
-          (alias) => {
+          alias => {
 
             const a =
               lower(alias);
 
+
             return (
+
               normalized === a ||
-              normalized.includes(a) ||
-              a.includes(normalized)
+
+              normalized.includes(
+                a
+              ) ||
+
+              a.includes(
+                normalized
+              )
+
             );
 
           }
         )
 
-    ) || null
+    ) ||
+
+    null
 
   );
 
@@ -377,7 +668,9 @@ function findPublisherByUrl(
   try {
 
     const hostname =
-      new URL(rawUrl)
+      new URL(
+        rawUrl
+      )
         .hostname
         .replace(
           /^www\./,
@@ -389,17 +682,22 @@ function findPublisherByUrl(
     return (
 
       PUBLISHERS.find(
-        (publisher) =>
+        publisher =>
 
           publisher.domains.some(
-            (domain) =>
-              hostname === domain ||
+            domain =>
+
+              hostname ===
+                domain ||
+
               hostname.endsWith(
                 `.${domain}`
               )
           )
 
-      ) || null
+      ) ||
+
+      null
 
     );
 
@@ -415,7 +713,183 @@ function findPublisherByUrl(
 
 
 // ================================================================
-// FETCH HELPERS
+// 7. RSS TITLE CLEANING
+// ================================================================
+
+function cleanRssTitle(
+  title,
+  sourceName
+) {
+
+  let finalTitle =
+    clean(title);
+
+
+  if (
+    sourceName
+  ) {
+
+    finalTitle =
+      finalTitle.replace(
+
+        new RegExp(
+          `\\s[-–—|:]\\s*${escapeRegExp(sourceName)}\\s*$`,
+          'iu'
+        ),
+
+        ''
+
+      );
+
+  }
+
+
+  return clean(
+    finalTitle
+  );
+
+}
+
+
+// ================================================================
+// 8. EVENT HASH
+// ================================================================
+
+function normalizeTitleForHash(
+  title
+) {
+
+  return lower(title)
+
+    .replace(
+      /[“”‘’'"`]/g,
+      ''
+    )
+
+    .replace(
+      /[^\p{L}\p{N}\s]/gu,
+      ' '
+    )
+
+    .replace(
+      /\s+/g,
+      ' '
+    )
+
+    .trim();
+
+}
+
+
+function createEventHash(
+  title,
+  sourceName
+) {
+
+  return crypto
+
+    .createHash(
+      'sha256'
+    )
+
+    .update(
+      `${lower(sourceName)}|${normalizeTitleForHash(title)}`
+    )
+
+    .digest(
+      'hex'
+    );
+
+}
+
+
+// ================================================================
+// 9. TITLE SIMILARITY
+// ================================================================
+
+function tokenize(
+  value
+) {
+
+  return lower(value)
+
+    .replace(
+      /[^\p{L}\p{N}\s]/gu,
+      ' '
+    )
+
+    .split(
+      /\s+/
+    )
+
+    .filter(
+      token =>
+        token.length >= 2
+    );
+
+}
+
+
+function titleSimilarity(
+  first,
+  second
+) {
+
+  const a =
+    new Set(
+      tokenize(first)
+    );
+
+
+  const b =
+    new Set(
+      tokenize(second)
+    );
+
+
+  if (
+    !a.size ||
+    !b.size
+  ) {
+
+    return 0;
+
+  }
+
+
+  let common =
+    0;
+
+
+  for (
+    const token
+    of a
+  ) {
+
+    if (
+      b.has(token)
+    ) {
+
+      common++;
+
+    }
+
+  }
+
+
+  return (
+    common /
+    Math.min(
+      a.size,
+      b.size
+    )
+  );
+
+}
+
+
+// ================================================================
+// 10. FETCH WITH TIMEOUT
 // ================================================================
 
 async function fetchWithTimeout(
@@ -467,12 +941,18 @@ async function fetchWithTimeout(
 
   finally {
 
-    clearTimeout(timer);
+    clearTimeout(
+      timer
+    );
 
   }
 
 }
 
+
+// ================================================================
+// 11. FETCH TEXT
+// ================================================================
 
 async function fetchText(
   url,
@@ -504,7 +984,10 @@ async function fetchText(
 
       finalUrl:
         response.url ||
-        url
+        url,
+
+      status:
+        response.status
 
     };
 
@@ -518,6 +1001,7 @@ async function fetchText(
       `⚠️ Fetch failed: ${error.message}`
     );
 
+
     return null;
 
   }
@@ -525,78 +1009,8 @@ async function fetchText(
 }
 
 
-function absoluteUrl(
-  raw,
-  base
-) {
-
-  if (!raw)
-    return '';
-
-
-  const value =
-    clean(raw);
-
-
-  if (
-    !value ||
-    value.startsWith(
-      'data:'
-    ) ||
-    value.startsWith(
-      'javascript:'
-    )
-  ) {
-
-    return '';
-
-  }
-
-
-  try {
-
-    const url =
-      new URL(
-        value,
-        base
-      );
-
-
-    [
-      'utm_source',
-      'utm_medium',
-      'utm_campaign',
-      'utm_term',
-      'utm_content',
-      'fbclid',
-      'gclid'
-
-    ].forEach(
-      (key) =>
-        url.searchParams.delete(
-          key
-        )
-    );
-
-
-    url.hash = '';
-
-
-    return url.toString();
-
-  }
-
-  catch {
-
-    return '';
-
-  }
-
-}
-
-
 // ================================================================
-// GOOGLE NEWS DISCOVERY FEEDS
+// 12. GOOGLE NEWS RSS FEEDS
 // ================================================================
 
 const GOOGLE_FEEDS = [
@@ -609,6 +1023,7 @@ const GOOGLE_FEEDS = [
       'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn'
   },
 
+
   {
     category:
       'বাংলাদেশ',
@@ -616,6 +1031,7 @@ const GOOGLE_FEEDS = [
     query:
       'বাংলাদেশ when:1d'
   },
+
 
   {
     category:
@@ -625,6 +1041,7 @@ const GOOGLE_FEEDS = [
       'বাংলাদেশ রাজনীতি নির্বাচন সংসদ when:1d'
   },
 
+
   {
     category:
       'আন্তর্জাতিক',
@@ -632,6 +1049,7 @@ const GOOGLE_FEEDS = [
     query:
       'বিশ্ব আন্তর্জাতিক when:1d'
   },
+
 
   {
     category:
@@ -641,6 +1059,7 @@ const GOOGLE_FEEDS = [
       'ক্রিকেট ফুটবল খেলাধুলা when:1d'
   },
 
+
   {
     category:
       'বাণিজ্য',
@@ -648,6 +1067,7 @@ const GOOGLE_FEEDS = [
     query:
       'অর্থনীতি বাণিজ্য ব্যাংক শেয়ারবাজার when:1d'
   },
+
 
   {
     category:
@@ -657,6 +1077,7 @@ const GOOGLE_FEEDS = [
       'আদালত হাইকোর্ট সুপ্রিম কোর্ট মামলা when:1d'
   },
 
+
   {
     category:
       'প্রযুক্তি',
@@ -665,6 +1086,7 @@ const GOOGLE_FEEDS = [
       'প্রযুক্তি ইন্টারনেট কৃত্রিম বুদ্ধিমত্তা when:1d'
   },
 
+
   {
     category:
       'বিনোদন',
@@ -672,6 +1094,7 @@ const GOOGLE_FEEDS = [
     query:
       'বিনোদন চলচ্চিত্র নাটক when:1d'
   },
+
 
   {
     category:
@@ -699,6 +1122,10 @@ function feedUrl(
 }
 
 
+// ================================================================
+// 13. COLLECT GOOGLE NEWS ITEMS
+// ================================================================
+
 async function collectGoogleNewsItems() {
 
   const items = [];
@@ -715,7 +1142,9 @@ async function collectGoogleNewsItems() {
     const fetched =
       await fetchText(
 
-        feedUrl(feed),
+        feedUrl(
+          feed
+        ),
 
         {
 
@@ -741,13 +1170,17 @@ async function collectGoogleNewsItems() {
       cheerio.load(
         fetched.text,
         {
-          xmlMode: true
+          xmlMode:
+            true
         }
       );
 
 
     $('item').each(
-      (_, element) => {
+      (
+        _,
+        element
+      ) => {
 
         if (
           items.length >=
@@ -765,10 +1198,14 @@ async function collectGoogleNewsItems() {
 
         const sourceName =
           clean(
+
             node
-              .find('source')
+              .find(
+                'source'
+              )
               .first()
               .text()
+
           );
 
 
@@ -784,10 +1221,14 @@ async function collectGoogleNewsItems() {
 
         const googleUrl =
           clean(
+
             node
-              .find('link')
+              .find(
+                'link'
+              )
               .first()
               .text()
+
           );
 
 
@@ -795,7 +1236,9 @@ async function collectGoogleNewsItems() {
           cleanRssTitle(
 
             node
-              .find('title')
+              .find(
+                'title'
+              )
               .first()
               .text(),
 
@@ -819,7 +1262,9 @@ async function collectGoogleNewsItems() {
 
 
         if (
-          seen.has(key)
+          seen.has(
+            key
+          )
         ) {
 
           return;
@@ -827,56 +1272,69 @@ async function collectGoogleNewsItems() {
         }
 
 
-        seen.add(key);
+        seen.add(
+          key
+        );
 
 
         const date =
           new Date(
 
             clean(
+
               node
-                .find('pubDate')
+                .find(
+                  'pubDate'
+                )
                 .first()
                 .text()
+
             )
 
           );
 
 
-        items.push({
+        items.push(
+          {
 
-          title,
+            title,
 
-          googleUrl,
+            googleUrl,
 
-          publisher,
+            publisher,
 
-          categoryHint:
-            feed.category,
+            categoryHint:
+              feed.category,
 
-          googlePubDate:
+            googlePubDate:
 
-            Number.isNaN(
-              date.getTime()
-            )
+              Number.isNaN(
+                date.getTime()
+              )
 
-              ? null
+                ? null
 
-              : date
+                : date
 
-        });
+          }
+        );
 
       }
     );
 
 
-    await delay(250);
+    await delay(
+      200
+    );
 
   }
 
 
   items.sort(
-    (a, b) =>
+    (
+      a,
+      b
+    ) =>
 
       (
         b.googlePubDate?.getTime() ||
@@ -899,158 +1357,97 @@ async function collectGoogleNewsItems() {
 
 
 // ================================================================
-// GOOGLE NEWS URL DECODER
+// 14. GOOGLE NEWS URL RESOLVER
+// MULTIPLE FALLBACK METHODS
 // ================================================================
 
-function unescapeGoogle(
-  value
+const googleDecodeCache =
+  new Map();
+
+
+// ================================================================
+// 15. GOOGLE ARTICLE ID
+// ================================================================
+
+function googleArticleId(
+  rawUrl
 ) {
 
   try {
 
-    return JSON.parse(
-      `"${value}"`
+    const url =
+      new URL(
+        rawUrl
+      );
+
+
+    if (
+      url.hostname !==
+      'news.google.com'
+    ) {
+
+      return '';
+
+    }
+
+
+    const parts =
+      url.pathname
+        .split(
+          '/'
+        )
+        .filter(
+          Boolean
+        );
+
+
+    const idx =
+      parts.findIndex(
+        part =>
+          part ===
+            'articles' ||
+          part ===
+            'read'
+      );
+
+
+    if (
+      idx >= 0 &&
+      parts[
+        idx + 1
+      ]
+    ) {
+
+      return parts[
+        idx + 1
+      ];
+
+    }
+
+
+    return (
+      parts[
+        parts.length - 1
+      ] ||
+      ''
     );
 
   }
 
   catch {
 
-    return value
-      .replace(
-        /\\u003d/g,
-        '='
-      )
-      .replace(
-        /\\u0026/g,
-        '&'
-      )
-      .replace(
-        /\\u002f/gi,
-        '/'
-      )
-      .replace(
-        /\\\//g,
-        '/'
-      );
+    return '';
 
   }
 
 }
 
 
-async function decodeViaBatch(
-  id
-) {
+// ================================================================
+// 16. OLD OFFLINE GOOGLE DECODER
+// ================================================================
 
-  const request =
-
-    '[[["Fbv4je","[\\"garturlreq\\",[[\\"en-US\\",\\"US\\",[\\"FINANCE_TOP_INDICES\\",\\"WEB_TEST_1_0_0\\"],null,null,1,1,\\"US:en\\",null,180,null,null,null,null,null,0,null,null,[1608992183,723341000]],\\"en-US\\",\\"US\\",1,[2,3,4,8],1,0,\\"655000234\\",0,0,null,0],\\"' +
-
-    id +
-
-    '\\"]",null,"generic"]]]';
-
-
-  const response =
-    await fetchWithTimeout(
-
-      'https://news.google.com/_/DotsSplashUi/data/batchexecute?rpcids=Fbv4je',
-
-      {
-
-        method:
-          'POST',
-
-        headers: {
-
-          'Content-Type':
-            'application/x-www-form-urlencoded;charset=utf-8',
-
-          Referer:
-            'https://news.google.com/'
-
-        },
-
-        body:
-          `f.req=${encodeURIComponent(request)}`
-
-      }
-
-    );
-
-
-  if (
-    !response.ok
-  ) {
-
-    throw new Error(
-      `Google decoder HTTP ${response.status}`
-    );
-
-  }
-
-
-  const text =
-    await response.text();
-
-
-  const marker =
-    '[\\"garturlres\\",\\"';
-
-
-  const index =
-    text.indexOf(
-      marker
-    );
-
-
-  if (
-    index < 0
-  ) {
-
-    throw new Error(
-      'Google decoder marker not found'
-    );
-
-  }
-
-
-  const rest =
-    text.slice(
-      index +
-      marker.length
-    );
-
-
-  const end =
-    rest.indexOf(
-      '\\",'
-    );
-
-
-  if (
-    end < 0
-  ) {
-
-    throw new Error(
-      'Google decoder URL end not found'
-    );
-
-  }
-
-
-  return unescapeGoogle(
-    rest.slice(
-      0,
-      end
-    )
-  );
-
-}
-
-
-function decodeOldId(
+function tryOfflineGoogleDecode(
   id
 ) {
 
@@ -1076,8 +1473,12 @@ function decodeOldId(
         '='.repeat(
           (
             4 -
-            base64.length % 4
-          ) % 4
+            (
+              base64.length %
+              4
+            )
+          ) %
+          4
         ),
 
         'base64'
@@ -1147,25 +1548,29 @@ function decodeOldId(
     }
 
 
-    let position = 0;
+    let pos =
+      0;
 
-    let length = 0;
+    let length =
+      0;
 
-    let shift = 0;
+    let shift =
+      0;
 
 
     while (
 
-      position <
+      pos <
         buffer.length &&
 
-      shift <= 28
+      shift <=
+        28
 
     ) {
 
       const byte =
         buffer[
-          position++
+          pos++
         ];
 
 
@@ -1189,7 +1594,8 @@ function decodeOldId(
       }
 
 
-      shift += 7;
+      shift +=
+        7;
 
     }
 
@@ -1198,7 +1604,7 @@ function decodeOldId(
 
       length <= 0 ||
 
-      position +
+      pos +
         length >
         buffer.length
 
@@ -1209,14 +1615,28 @@ function decodeOldId(
     }
 
 
-    return buffer
-      .subarray(
-        position,
-        position + length
+    const text =
+      buffer
+        .subarray(
+          pos,
+          pos + length
+        )
+        .toString(
+          'utf8'
+        );
+
+
+    return (
+
+      /^https?:\/\//i.test(
+        text
       )
-      .toString(
-        'utf8'
-      );
+
+        ? text
+
+        : ''
+
+    );
 
   }
 
@@ -1229,111 +1649,1154 @@ function decodeOldId(
 }
 
 
-async function resolveGoogleUrl(
-  url
+// ================================================================
+// 17. GOOGLE BATCHEXECUTE RESPONSE PARSER
+// ================================================================
+
+function parseBatchExecuteResponse(
+  text
 ) {
 
-  try {
-
-    const parsed =
-      new URL(url);
-
-
-    if (
-      parsed.hostname !==
-      'news.google.com'
-    ) {
-
-      return url;
-
-    }
-
-
-    const parts =
-      parsed.pathname
-        .split('/')
-        .filter(Boolean);
-
-
-    const articleIndex =
-      parts.lastIndexOf(
-        'articles'
-      );
-
-
-    if (
-
-      articleIndex < 0 ||
-
-      !parts[
-        articleIndex + 1
-      ]
-
-    ) {
-
-      return url;
-
-    }
-
-
-    const id =
-      parts[
-        articleIndex + 1
-      ];
-
-
-    const oldDecoded =
-      decodeOldId(id);
-
-
-    if (
-      /^https?:\/\//i.test(
-        oldDecoded
-      )
-    ) {
-
-      return oldDecoded;
-
-    }
-
-
-    const decoded =
-      await decodeViaBatch(
-        id
-      );
-
-
-    return (
-
-      /^https?:\/\//i.test(
-        decoded
-      )
-
-        ? decoded
-
-        : url
-
+  const raw =
+    String(
+      text
     );
 
-  }
 
-  catch (
-    error
+  const candidates =
+    [];
+
+
+  const cleaned =
+    raw
+      .replace(
+        /^\)\]\}'\s*/,
+        ''
+      )
+      .trim();
+
+
+  if (
+    cleaned
   ) {
 
-    console.log(
-      `⚠️ Google URL decode failed: ${error.message}`
+    candidates.push(
+      cleaned
     );
 
-    return url;
+  }
+
+
+  for (
+    const block
+    of raw.split(
+      '\n\n'
+    )
+  ) {
+
+    const piece =
+      block
+        .replace(
+          /^\)\]\}'\s*/,
+          ''
+        )
+        .trim();
+
+
+    if (
+      piece
+    ) {
+
+      candidates.push(
+        piece
+      );
+
+    }
 
   }
+
+
+  for (
+    const line
+    of raw.split(
+      '\n'
+    )
+  ) {
+
+    const piece =
+      line
+        .replace(
+          /^\)\]\}'\s*/,
+          ''
+        )
+        .trim();
+
+
+    if (
+      piece.startsWith(
+        '['
+      )
+    ) {
+
+      candidates.push(
+        piece
+      );
+
+    }
+
+  }
+
+
+  for (
+    const candidate
+    of candidates
+  ) {
+
+    const jsonStart =
+      candidate.indexOf(
+        '['
+      );
+
+
+    if (
+      jsonStart < 0
+    ) {
+
+      continue;
+
+    }
+
+
+    const piece =
+      candidate.slice(
+        jsonStart
+      );
+
+
+    try {
+
+      const parsed =
+        JSON.parse(
+          piece
+        );
+
+
+      // Common Google response:
+      // [["wrb.fr","Fbv4je","[...]"]]
+
+      if (
+
+        Array.isArray(
+          parsed
+        ) &&
+
+        parsed[0] &&
+
+        typeof parsed[0][2] ===
+          'string'
+
+      ) {
+
+        const inner =
+          JSON.parse(
+            parsed[0][2]
+          );
+
+
+        if (
+
+          Array.isArray(
+            inner
+          ) &&
+
+          typeof inner[1] ===
+            'string'
+
+        ) {
+
+          return inner[1];
+
+        }
+
+      }
+
+
+      // Sometimes an extra array level exists
+
+      if (
+
+        Array.isArray(
+          parsed
+        ) &&
+
+        Array.isArray(
+          parsed[0]
+        ) &&
+
+        parsed[0][0] &&
+
+        typeof parsed[0][0][2] ===
+          'string'
+
+      ) {
+
+        const inner =
+          JSON.parse(
+            parsed[0][0][2]
+          );
+
+
+        if (
+
+          Array.isArray(
+            inner
+          ) &&
+
+          typeof inner[1] ===
+            'string'
+
+        ) {
+
+          return inner[1];
+
+        }
+
+      }
+
+    }
+
+    catch {
+
+      // try next candidate
+
+    }
+
+  }
+
+
+  // Raw garturlres fallback
+
+  const rawMatch =
+    raw.match(
+      /\[\\"garturlres\\",\\"(https?:\\\/\\\/[^"]+)/i
+    );
+
+
+  if (
+    rawMatch
+  ) {
+
+    return rawMatch[1]
+
+      .replace(
+        /\\\//g,
+        '/'
+      )
+
+      .replace(
+        /\\u003d/g,
+        '='
+      )
+
+      .replace(
+        /\\u0026/g,
+        '&'
+      );
+
+  }
+
+
+  return '';
 
 }
 
 
 // ================================================================
-// META + JSON-LD
+// 18. CURRENT GOOGLE DATA-P DECODER
+// ================================================================
+
+async function decodeWithDataP(
+  googleUrl
+) {
+
+  const fetched =
+    await fetchText(
+      googleUrl,
+      {
+
+        headers: {
+
+          Referer:
+            'https://news.google.com/'
+
+        }
+
+      }
+    );
+
+
+  if (!fetched)
+    return '';
+
+
+  const $ =
+    cheerio.load(
+      fetched.text
+    );
+
+
+  const dataP =
+    $(
+      'c-wiz[data-p]'
+    )
+      .first()
+      .attr(
+        'data-p'
+      );
+
+
+  if (!dataP)
+    return '';
+
+
+  let obj;
+
+
+  try {
+
+    obj =
+      JSON.parse(
+
+        dataP.replace(
+          '%.@.',
+          '["garturlreq",'
+        )
+
+      );
+
+  }
+
+  catch {
+
+    return '';
+
+  }
+
+
+  if (
+
+    !Array.isArray(
+      obj
+    ) ||
+
+    obj.length <
+      8
+
+  ) {
+
+    return '';
+
+  }
+
+
+  // Google current transformation
+  // obj[:-6] + obj[-2:]
+
+  const shortened =
+
+    obj
+      .slice(
+        0,
+        -6
+      )
+      .concat(
+        obj.slice(
+          -2
+        )
+      );
+
+
+  const rpc = [
+
+    'Fbv4je',
+
+    JSON.stringify(
+      shortened
+    ),
+
+    null,
+
+    'generic'
+
+  ];
+
+
+  const body =
+    new URLSearchParams(
+      {
+
+        'f.req':
+          JSON.stringify(
+            [
+              [
+                rpc
+              ]
+            ]
+          )
+
+      }
+    )
+      .toString();
+
+
+  const response =
+    await fetchWithTimeout(
+
+      'https://news.google.com/_/DotsSplashUi/data/batchexecute',
+
+      {
+
+        method:
+          'POST',
+
+        headers: {
+
+          'Content-Type':
+            'application/x-www-form-urlencoded;charset=UTF-8',
+
+          Referer:
+            'https://news.google.com/'
+
+        },
+
+        body
+
+      }
+
+    );
+
+
+  if (
+    !response.ok
+  ) {
+
+    return '';
+
+  }
+
+
+  return parseBatchExecuteResponse(
+    await response.text()
+  );
+
+}
+
+
+// ================================================================
+// 19. SIGNATURE / TIMESTAMP DECODER
+// ================================================================
+
+async function decodeWithSignedParams(
+  googleUrl,
+  articleId
+) {
+
+  const pages = [
+
+    googleUrl,
+
+    `https://news.google.com/articles/${articleId}?hl=en-US&gl=US&ceid=US:en`,
+
+    `https://news.google.com/rss/articles/${articleId}?hl=en-US&gl=US&ceid=US:en`
+
+  ];
+
+
+  for (
+    const pageUrl
+    of pages
+  ) {
+
+    const fetched =
+      await fetchText(
+        pageUrl,
+        {
+
+          headers: {
+
+            Referer:
+              'https://news.google.com/'
+
+          }
+
+        }
+      );
+
+
+    if (!fetched)
+      continue;
+
+
+    const $ =
+      cheerio.load(
+        fetched.text
+      );
+
+
+    let node =
+      $(
+        `div[data-n-a-id="${articleId}"][data-n-a-sg][data-n-a-ts]`
+      )
+        .first();
+
+
+    if (
+      !node.length
+    ) {
+
+      node =
+        $(
+          'c-wiz > div[data-n-a-sg][data-n-a-ts]'
+        )
+          .first();
+
+    }
+
+
+    if (
+      !node.length
+    ) {
+
+      continue;
+
+    }
+
+
+    const dataId =
+      node.attr(
+        'data-n-a-id'
+      ) ||
+      articleId;
+
+
+    const signature =
+      node.attr(
+        'data-n-a-sg'
+      );
+
+
+    const timestamp =
+      node.attr(
+        'data-n-a-ts'
+      );
+
+
+    if (
+      !signature ||
+      !timestamp
+    ) {
+
+      continue;
+
+    }
+
+
+    const req = [
+
+      'garturlreq',
+
+      [
+
+        [
+          'X',
+          'X',
+          [
+            'X',
+            'X'
+          ],
+          null,
+          null,
+          1,
+          1,
+          'US:en',
+          null,
+          1,
+          null,
+          null,
+          null,
+          null,
+          null,
+          0,
+          1
+        ],
+
+        'X',
+
+        'X',
+
+        1,
+
+        [
+          1,
+          1,
+          1
+        ],
+
+        1,
+
+        1,
+
+        null,
+
+        0,
+
+        0,
+
+        null,
+
+        0
+
+      ],
+
+      dataId,
+
+      Number(
+        timestamp
+      ),
+
+      signature
+
+    ];
+
+
+    const rpc = [
+
+      'Fbv4je',
+
+      JSON.stringify(
+        req
+      ),
+
+      null,
+
+      'generic'
+
+    ];
+
+
+    const body =
+      new URLSearchParams(
+        {
+
+          'f.req':
+            JSON.stringify(
+              [
+                [
+                  rpc
+                ]
+              ]
+            )
+
+        }
+      )
+        .toString();
+
+
+    const response =
+      await fetchWithTimeout(
+
+        'https://news.google.com/_/DotsSplashUi/data/batchexecute',
+
+        {
+
+          method:
+            'POST',
+
+          headers: {
+
+            'Content-Type':
+              'application/x-www-form-urlencoded;charset=UTF-8',
+
+            Referer:
+              'https://news.google.com/'
+
+          },
+
+          body
+
+        }
+
+      );
+
+
+    if (
+      !response.ok
+    ) {
+
+      continue;
+
+    }
+
+
+    const decoded =
+      parseBatchExecuteResponse(
+        await response.text()
+      );
+
+
+    if (
+      decoded
+    ) {
+
+      return decoded;
+
+    }
+
+  }
+
+
+  return '';
+
+}
+
+
+// ================================================================
+// 20. LEGACY ONLINE BATCH DECODER
+// ================================================================
+
+async function decodeWithLegacyBatch(
+  articleId
+) {
+
+  const s =
+
+    '[[["Fbv4je","[\\"garturlreq\\",[[\\"en-US\\",\\"US\\",[\\"FINANCE_TOP_INDICES\\",\\"WEB_TEST_1_0_0\\"],null,null,1,1,\\"US:en\\",null,180,null,null,null,null,null,0,null,null,[1608992183,723341000]],\\"en-US\\",\\"US\\",1,[2,3,4,8],1,0,\\"655000234\\",0,0,null,0],\\"' +
+
+    articleId +
+
+    '\\"]",null,"generic"]]]';
+
+
+  const response =
+    await fetchWithTimeout(
+
+      'https://news.google.com/_/DotsSplashUi/data/batchexecute?rpcids=Fbv4je',
+
+      {
+
+        method:
+          'POST',
+
+        headers: {
+
+          'Content-Type':
+            'application/x-www-form-urlencoded;charset=utf-8',
+
+          Referer:
+            'https://news.google.com/'
+
+        },
+
+        body:
+          `f.req=${encodeURIComponent(s)}`
+
+      }
+
+    );
+
+
+  if (
+    !response.ok
+  ) {
+
+    return '';
+
+  }
+
+
+  return parseBatchExecuteResponse(
+    await response.text()
+  );
+
+}
+
+
+// ================================================================
+// 21. IS LIKELY ARTICLE LINK
+// ================================================================
+
+function isLikelyArticleHref(
+  url,
+  publisher
+) {
+
+  if (
+    !url ||
+    !findPublisherByUrl(
+      url
+    )
+  ) {
+
+    return false;
+
+  }
+
+
+  const lowerUrl =
+    url.toLowerCase();
+
+
+  const bad = [
+
+    '/tag/',
+    '/tags/',
+
+    '/topic/',
+    '/topics/',
+
+    '/category/',
+    '/categories/',
+
+    '/archive/',
+    '/archives/',
+
+    '/author/',
+    '/authors/',
+
+    '/photo/',
+    '/photos/',
+
+    '/video/',
+    '/videos/',
+
+    '/search',
+
+    '/epaper',
+    '/e-paper'
+
+  ];
+
+
+  if (
+    bad.some(
+      part =>
+        lowerUrl.includes(
+          part
+        )
+    )
+  ) {
+
+    return false;
+
+  }
+
+
+  return (
+    findPublisherByUrl(
+      url
+    )?.bnName ===
+    publisher.bnName
+  );
+
+}
+
+
+// ================================================================
+// 22. PUBLISHER HOMEPAGE TITLE MATCH FALLBACK
+// ================================================================
+
+async function findPublisherUrlByTitle(
+  item
+) {
+
+  const fetched =
+    await fetchText(
+      item.publisher.home
+    );
+
+
+  if (!fetched)
+    return '';
+
+
+  const $ =
+    cheerio.load(
+      fetched.text
+    );
+
+
+  let best = {
+
+    url:
+      '',
+
+    score:
+      0
+
+  };
+
+
+  $('a[href]').each(
+    (
+      _,
+      el
+    ) => {
+
+      const anchorText =
+        clean(
+          $(el).text()
+        );
+
+
+      if (
+        anchorText.length <
+        8
+      ) {
+
+        return;
+
+      }
+
+
+      const url =
+        absoluteUrl(
+
+          $(el).attr(
+            'href'
+          ),
+
+          fetched.finalUrl ||
+          item.publisher.home
+
+        );
+
+
+      if (
+        !isLikelyArticleHref(
+          url,
+          item.publisher
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      const score =
+        titleSimilarity(
+          anchorText,
+          item.title
+        );
+
+
+      if (
+        score >
+        best.score
+      ) {
+
+        best = {
+
+          url,
+
+          score
+
+        };
+
+      }
+
+    }
+  );
+
+
+  return (
+
+    best.score >=
+      0.58
+
+      ? best.url
+
+      : ''
+
+  );
+
+}
+
+
+// ================================================================
+// 23. MASTER GOOGLE URL RESOLVER
+// ================================================================
+
+async function resolveGoogleUrl(
+  item
+) {
+
+  const rawUrl =
+    item.googleUrl;
+
+
+  if (
+    !rawUrl.includes(
+      'news.google.com/'
+    )
+  ) {
+
+    return rawUrl;
+
+  }
+
+
+  if (
+    googleDecodeCache.has(
+      rawUrl
+    )
+  ) {
+
+    return googleDecodeCache.get(
+      rawUrl
+    );
+
+  }
+
+
+  const articleId =
+    googleArticleId(
+      rawUrl
+    );
+
+
+  if (
+    !articleId
+  ) {
+
+    return '';
+
+  }
+
+
+  // ------------------------------------------------
+  // Method 1: old offline direct URL
+  // ------------------------------------------------
+
+  const offline =
+    tryOfflineGoogleDecode(
+      articleId
+    );
+
+
+  if (
+    offline &&
+    findPublisherByUrl(
+      offline
+    )
+  ) {
+
+    googleDecodeCache.set(
+      rawUrl,
+      offline
+    );
+
+
+    console.log(
+      `🔓 Google URL resolved → ${new URL(offline).hostname}`
+    );
+
+
+    return offline;
+
+  }
+
+
+  // ------------------------------------------------
+  // Other current/fallback methods
+  // ------------------------------------------------
+
+  const methods = [
+
+    async () =>
+      decodeWithDataP(
+        rawUrl
+      ),
+
+    async () =>
+      decodeWithSignedParams(
+        rawUrl,
+        articleId
+      ),
+
+    async () =>
+      decodeWithLegacyBatch(
+        articleId
+      ),
+
+    async () =>
+      findPublisherUrlByTitle(
+        item
+      )
+
+  ];
+
+
+  for (
+    const method
+    of methods
+  ) {
+
+    try {
+
+      const decoded =
+        await method();
+
+
+      if (
+
+        decoded &&
+
+        findPublisherByUrl(
+          decoded
+        )?.bnName ===
+          item.publisher.bnName
+
+      ) {
+
+        googleDecodeCache.set(
+          rawUrl,
+          decoded
+        );
+
+
+        console.log(
+          `🔓 Google URL resolved → ${new URL(decoded).hostname}`
+        );
+
+
+        return decoded;
+
+      }
+
+    }
+
+    catch {
+
+      // try next method
+
+    }
+
+  }
+
+
+  console.log(
+    `⚠️ Google URL resolve failed: ${item.publisher.bnName}`
+  );
+
+
+  return '';
+
+}
+
+
+// ================================================================
+// 24. META TAG HELPER
 // ================================================================
 
 function getMeta(
@@ -1375,7 +2838,9 @@ function getMeta(
         clean(value)
       ) {
 
-        return clean(value);
+        return clean(
+          value
+        );
 
       }
 
@@ -1389,11 +2854,16 @@ function getMeta(
 }
 
 
+// ================================================================
+// 25. JSON-LD PARSER
+// ================================================================
+
 function jsonLdNodes(
   $
 ) {
 
-  const output = [];
+  const output =
+    [];
 
 
   function walk(
@@ -1401,9 +2871,12 @@ function jsonLdNodes(
   ) {
 
     if (
+
       !value ||
+
       typeof value !==
         'object'
+
     ) {
 
       return;
@@ -1421,6 +2894,7 @@ function jsonLdNodes(
         walk
       );
 
+
       return;
 
     }
@@ -1432,11 +2906,15 @@ function jsonLdNodes(
 
 
     if (
-      value['@graph']
+      value[
+        '@graph'
+      ]
     ) {
 
       walk(
-        value['@graph']
+        value[
+          '@graph'
+        ]
       );
 
     }
@@ -1447,7 +2925,10 @@ function jsonLdNodes(
   $(
     'script[type="application/ld+json"]'
   ).each(
-    (_, element) => {
+    (
+      _,
+      element
+    ) => {
 
       const raw =
         $(element)
@@ -1472,6 +2953,8 @@ function jsonLdNodes(
 
       catch {
 
+        // ignore invalid JSON-LD
+
       }
 
     }
@@ -1482,6 +2965,10 @@ function jsonLdNodes(
 
 }
 
+
+// ================================================================
+// 26. SELECT ARTICLE JSON-LD
+// ================================================================
 
 function articleJsonLd(
   $
@@ -1500,12 +2987,16 @@ function articleJsonLd(
 
   return (
 
-    jsonLdNodes($)
+    jsonLdNodes(
+      $
+    )
       .find(
-        (node) => {
+        node => {
 
           const type =
-            node['@type'];
+            node[
+              '@type'
+            ];
 
 
           return (
@@ -1517,9 +3008,9 @@ function articleJsonLd(
               ?
 
               type.some(
-                (value) =>
+                x =>
                   types.has(
-                    value
+                    x
                   )
               )
 
@@ -1540,6 +3031,10 @@ function articleJsonLd(
 
 }
 
+
+// ================================================================
+// 27. CANONICAL URL
+// ================================================================
 
 function canonicalUrl(
   $,
@@ -1570,7 +3065,7 @@ function canonicalUrl(
 
 
 // ================================================================
-// ARTICLE TITLE + DESCRIPTION
+// 28. ARTICLE TITLE
 // ================================================================
 
 function articleTitle(
@@ -1589,30 +3084,46 @@ function articleTitle(
 
     getMeta(
       $,
-      ['og:title']
+      [
+        'og:title'
+      ]
     ) ||
 
     getMeta(
       $,
-      ['twitter:title']
+      [
+        'twitter:title'
+      ]
     ) ||
 
     clean(
-      $('article h1')
+
+      $(
+        'article h1'
+      )
         .first()
         .text()
+
     ) ||
 
     clean(
-      $('main h1')
+
+      $(
+        'main h1'
+      )
         .first()
         .text()
+
     ) ||
 
     clean(
-      $('h1')
+
+      $(
+        'h1'
+      )
         .first()
         .text()
+
     ) ||
 
     clean(
@@ -1623,14 +3134,21 @@ function articleTitle(
   return clean(
 
     title.replace(
+
       /\s+[|–—-]\s+[^|–—-]{2,45}$/u,
+
       ''
+
     )
 
   );
 
 }
 
+
+// ================================================================
+// 29. ARTICLE DESCRIPTION
+// ================================================================
 
 function articleDescription(
   $,
@@ -1646,22 +3164,29 @@ function articleDescription(
 
     getMeta(
       $,
-      ['og:description']
+      [
+        'og:description'
+      ]
     ) ||
 
     getMeta(
       $,
-      ['twitter:description']
+      [
+        'twitter:description'
+      ]
     ) ||
 
     getMeta(
       $,
-      ['description']
+      [
+        'description'
+      ]
     );
 
 
   if (
-    meta.length >= 35
+    meta.length >=
+    35
   ) {
 
     return stripHtml(
@@ -1671,7 +3196,8 @@ function articleDescription(
   }
 
 
-  const paragraphs = [];
+  const paragraphs =
+    [];
 
 
   const selectors = [
@@ -1695,7 +3221,10 @@ function articleDescription(
   ) {
 
     $(selector).each(
-      (_, element) => {
+      (
+        _,
+        element
+      ) => {
 
         const text =
           clean(
@@ -1706,9 +3235,11 @@ function articleDescription(
 
         if (
 
-          text.length >= 45 &&
+          text.length >=
+            45 &&
 
-          text.length <= 700
+          text.length <=
+            700
 
         ) {
 
@@ -1750,7 +3281,7 @@ function articleDescription(
 
 
 // ================================================================
-// ARTICLE DATE
+// 30. ARTICLE DATE
 // ================================================================
 
 function parseDate(
@@ -1796,12 +3327,16 @@ function publishedAt(
 
     getMeta(
       $,
-      ['article:published_time']
+      [
+        'article:published_time'
+      ]
     ),
 
     getMeta(
       $,
-      ['datePublished']
+      [
+        'datePublished'
+      ]
     ),
 
     $(
@@ -1826,19 +3361,218 @@ function publishedAt(
       );
 
 
-    if (date)
+    if (
+      date
+    ) {
+
       return date;
+
+    }
 
   }
 
 
-  return rssDate || null;
+  return (
+    rssDate ||
+    null
+  );
 
 }
 
 
 // ================================================================
-// SMART IMAGE SELECTION
+// 31. ARTICLE / TOPIC / LANDING PAGE VALIDATION
+// ================================================================
+
+const BLOCKED_PAGE_PATHS = [
+
+  '/tag/',
+  '/tags/',
+
+  '/topic/',
+  '/topics/',
+
+  '/category/',
+  '/categories/',
+
+  '/archive/',
+  '/archives/',
+
+  '/author/',
+  '/authors/',
+
+  '/photo/',
+  '/photos/',
+
+  '/video/',
+  '/videos/',
+
+  '/search',
+
+  '/epaper',
+  '/e-paper'
+
+];
+
+
+const KNOWN_BAD_TOPIC_TITLES =
+  new Set(
+    [
+
+      'করোনাভাইরাস মহামারী',
+
+      'মুজিব শতবর্ষ',
+
+      'সমগ্র বাংলাদেশ',
+
+      'বাজেট ২০২৬-২৭'
+
+    ]
+  );
+
+
+function isLandingOrTopicPage(
+  pageUrl,
+  $,
+  articleJson,
+  pageTitle,
+  googleNewsTitle
+) {
+
+  try {
+
+    const pathname =
+      new URL(
+        pageUrl
+      )
+        .pathname
+        .toLowerCase();
+
+
+    // ------------------------------------
+    // URL itself is category/topic
+    // ------------------------------------
+
+    if (
+      BLOCKED_PAGE_PATHS.some(
+        part =>
+          pathname.includes(
+            part
+          )
+      )
+    ) {
+
+      return true;
+
+    }
+
+
+    // ------------------------------------
+    // Known bad old landing pages
+    // ------------------------------------
+
+    if (
+      KNOWN_BAD_TOPIC_TITLES.has(
+        clean(
+          pageTitle
+        )
+      )
+    ) {
+
+      return true;
+
+    }
+
+
+    // ------------------------------------
+    // Article signal
+    // ------------------------------------
+
+    const hasArticleSignal =
+
+      Boolean(
+        articleJson
+      ) ||
+
+      $(
+        'article'
+      ).length >
+        0;
+
+
+    const hasPublishedSignal =
+      Boolean(
+
+        articleJson?.datePublished ||
+
+        getMeta(
+          $,
+          [
+            'article:published_time',
+            'datePublished'
+          ]
+        ) ||
+
+        $(
+          'time[datetime]'
+        )
+          .first()
+          .attr(
+            'datetime'
+          )
+
+      );
+
+
+    if (
+
+      !hasArticleSignal &&
+
+      !hasPublishedSignal
+
+    ) {
+
+      return true;
+
+    }
+
+
+    // ------------------------------------
+    // Google headline vs article title
+    // ------------------------------------
+
+    const similarity =
+      titleSimilarity(
+        pageTitle,
+        googleNewsTitle
+      );
+
+
+    if (
+      similarity <
+      0.34
+    ) {
+
+      return true;
+
+    }
+
+
+    return false;
+
+  }
+
+  catch {
+
+    return true;
+
+  }
+
+}
+
+
+// ================================================================
+// 32. IMAGE FILTER
 // ================================================================
 
 const BAD_IMAGE_WORDS = [
@@ -1909,7 +3643,7 @@ function badImage(
     ) ||
 
     BAD_IMAGE_WORDS.some(
-      (word) =>
+      word =>
         value.includes(
           word
         )
@@ -1919,6 +3653,10 @@ function badImage(
 
 }
 
+
+// ================================================================
+// 33. DIMENSION HELPER
+// ================================================================
 
 function dimension(
   value
@@ -1930,10 +3668,11 @@ function dimension(
       String(
         value ||
         ''
-      ).replace(
-        /[^0-9]/g,
-        ''
-      ),
+      )
+        .replace(
+          /[^0-9]/g,
+          ''
+        ),
 
       10
 
@@ -1955,47 +3694,9 @@ function dimension(
 }
 
 
-function titleOverlap(
-  title,
-  alt
-) {
-
-  const getTokens =
-    (value) =>
-
-      lower(value)
-        .replace(
-          /[^\p{L}\p{N}\s]/gu,
-          ' '
-        )
-        .split(
-          /\s+/
-        )
-        .filter(
-          (token) =>
-            token.length >= 3
-        );
-
-
-  const titleTokens =
-    new Set(
-      getTokens(
-        title
-      )
-    );
-
-
-  return getTokens(
-    alt
-  ).filter(
-    (token) =>
-      titleTokens.has(
-        token
-      )
-  ).length;
-
-}
-
+// ================================================================
+// 34. IMG ELEMENT EXTRACTION
+// ================================================================
 
 function imageFromElement(
   $,
@@ -2050,10 +3751,14 @@ function imageFromElement(
     values.unshift(
 
       ...srcset
-        .split(',')
+        .split(
+          ','
+        )
         .map(
-          (item) =>
-            clean(item)
+          item =>
+            clean(
+              item
+            )
               .split(
                 /\s+/
               )[0]
@@ -2132,6 +3837,10 @@ function imageFromElement(
 }
 
 
+// ================================================================
+// 35. JSON-LD IMAGE EXTRACTION
+// ================================================================
+
 function addJsonImages(
   output,
   json,
@@ -2165,13 +3874,17 @@ function addJsonImages(
     of images
   ) {
 
-    let raw = '';
+    let raw =
+      '';
 
-    let width = 0;
+    let width =
+      0;
 
-    let height = 0;
+    let height =
+      0;
 
-    let alt = '';
+    let alt =
+      '';
 
 
     if (
@@ -2185,9 +3898,12 @@ function addJsonImages(
     }
 
     else if (
+
       image &&
+
       typeof image ===
-      'object'
+        'object'
+
     ) {
 
       raw =
@@ -2249,7 +3965,8 @@ function addJsonImages(
 
           url,
 
-          score: 112,
+          score:
+            112,
 
           width,
 
@@ -2270,6 +3987,50 @@ function addJsonImages(
 }
 
 
+// ================================================================
+// 36. TITLE / IMAGE ALT OVERLAP
+// ================================================================
+
+function titleOverlap(
+  title,
+  alt
+) {
+
+  const titleTokens =
+    new Set(
+
+      tokenize(
+        title
+      )
+        .filter(
+          x =>
+            x.length >= 3
+        )
+
+    );
+
+
+  return tokenize(
+    alt
+  )
+    .filter(
+      x =>
+
+        x.length >= 3 &&
+
+        titleTokens.has(
+          x
+        )
+    )
+    .length;
+
+}
+
+
+// ================================================================
+// 37. SMART ARTICLE IMAGE SELECTION
+// ================================================================
+
 function bestImage(
   $,
   json,
@@ -2279,12 +4040,13 @@ function bestImage(
   imageUseCounts
 ) {
 
-  const output = [];
+  const output =
+    [];
 
 
   // ------------------------------------------------
-  // Highest priority:
-  // actual article/figure images
+  // Priority 1:
+  // Actual article figure / picture
   // ------------------------------------------------
 
   const strongSelectors = [
@@ -2316,7 +4078,10 @@ function bestImage(
   ) {
 
     $(selector).each(
-      (_, element) => {
+      (
+        _,
+        element
+      ) => {
 
         const image =
           imageFromElement(
@@ -2335,7 +4100,8 @@ function bestImage(
 
               ...image,
 
-              score: 140,
+              score:
+                140,
 
               kind:
                 'article-dom'
@@ -2352,7 +4118,8 @@ function bestImage(
 
 
   // ------------------------------------------------
-  // Normal article/main images
+  // Priority 2:
+  // Other article/main images
   // ------------------------------------------------
 
   const bodySelectors = [
@@ -2374,12 +4141,17 @@ function bestImage(
   ) {
 
     $(selector)
+
       .slice(
         0,
-        12
+        15
       )
+
       .each(
-        (_, element) => {
+        (
+          _,
+          element
+        ) => {
 
           const node =
             $(element);
@@ -2413,7 +4185,8 @@ function bestImage(
 
                 ...image,
 
-                score: 105,
+                score:
+                  105,
 
                 kind:
                   'body-dom'
@@ -2430,7 +4203,8 @@ function bestImage(
 
 
   // ------------------------------------------------
-  // Schema.org / JSON-LD
+  // Priority 3:
+  // JSON-LD image
   // ------------------------------------------------
 
   addJsonImages(
@@ -2441,15 +4215,17 @@ function bestImage(
 
 
   // ------------------------------------------------
-  // og:image is now fallback,
-  // NOT automatically the first choice
+  // Priority 4:
+  // OG / Twitter
   // ------------------------------------------------
 
   const ogWidth =
     dimension(
       getMeta(
         $,
-        ['og:image:width']
+        [
+          'og:image:width'
+        ]
       )
     );
 
@@ -2458,7 +4234,9 @@ function bestImage(
     dimension(
       getMeta(
         $,
-        ['og:image:height']
+        [
+          'og:image:height'
+        ]
       )
     );
 
@@ -2466,7 +4244,9 @@ function bestImage(
   const ogAlt =
     getMeta(
       $,
-      ['og:image:alt']
+      [
+        'og:image:alt'
+      ]
     );
 
 
@@ -2475,7 +4255,9 @@ function bestImage(
     [
       getMeta(
         $,
-        ['og:image:secure_url']
+        [
+          'og:image:secure_url'
+        ]
       ),
       100,
       ogWidth,
@@ -2486,7 +4268,9 @@ function bestImage(
     [
       getMeta(
         $,
-        ['og:image']
+        [
+          'og:image'
+        ]
       ),
       98,
       ogWidth,
@@ -2497,14 +4281,18 @@ function bestImage(
     [
       getMeta(
         $,
-        ['twitter:image']
+        [
+          'twitter:image'
+        ]
       ),
       92,
       0,
       0,
       getMeta(
         $,
-        ['twitter:image:alt']
+        [
+          'twitter:image:alt'
+        ]
       )
     ],
 
@@ -2570,7 +4358,7 @@ function bestImage(
 
 
   // ------------------------------------------------
-  // Deduplicate candidates
+  // Deduplicate same images
   // ------------------------------------------------
 
   const merged =
@@ -2583,10 +4371,13 @@ function bestImage(
   ) {
 
     if (
+
       !candidate.url ||
+
       badImage(
         candidate.url
       )
+
     ) {
 
       continue;
@@ -2626,9 +4417,10 @@ function bestImage(
           publisher?.aliases ||
           []
         )
-      ].join(
-        ' '
-      )
+      ]
+        .join(
+          ' '
+        )
 
     );
 
@@ -2637,8 +4429,9 @@ function bestImage(
     [
       ...merged.values()
     ]
+
       .map(
-        (candidate) => {
+        candidate => {
 
           let score =
             candidate.score;
@@ -2653,32 +4446,32 @@ function bestImage(
 
           const overlap =
             titleOverlap(
-
               title,
-
               candidate.alt ||
               ''
-
             );
 
 
-          // Large images are more likely
-          // to be real news photos.
+          // Large image bonus
+
           if (
 
-            candidate.width >= 600 &&
+            candidate.width >=
+              600 &&
 
-            candidate.height >= 300
+            candidate.height >=
+              300
 
           ) {
 
-            score += 25;
+            score +=
+              25;
 
           }
 
 
-          // Small assets are usually
-          // icons/logos.
+          // Small icon/logo penalty
+
           if (
 
             candidate.width &&
@@ -2686,29 +4479,34 @@ function bestImage(
             candidate.height &&
 
             (
-              candidate.width < 280 ||
+              candidate.width <
+                280 ||
 
-              candidate.height < 150
+              candidate.height <
+                150
             )
 
           ) {
 
-            score -= 120;
+            score -=
+              120;
 
           }
 
 
-          // ALT related to title =
-          // strong positive evidence.
+          // Image alt matches headline
+
           score +=
             Math.min(
-              overlap * 12,
+              overlap *
+                12,
               36
             );
 
 
-          // ALT is basically the
-          // publisher name = likely logo.
+          // Publisher name only in alt
+          // likely logo
+
           if (
 
             alt &&
@@ -2717,11 +4515,13 @@ function bestImage(
               alt
             ) &&
 
-            overlap === 0
+            overlap ===
+              0
 
           ) {
 
-            score -= 110;
+            score -=
+              110;
 
           }
 
@@ -2732,14 +4532,15 @@ function bestImage(
             )
           ) {
 
-            score -= 150;
+            score -=
+              150;
 
           }
 
 
-          // The same exact image appearing
-          // in many different stories is
-          // probably a site placeholder.
+          // Same image used for many stories
+          // likely generic placeholder
+
           const used =
             imageUseCounts.get(
               candidate.url
@@ -2748,18 +4549,22 @@ function bestImage(
 
 
           if (
-            used >= 2
+            used >=
+            2
           ) {
 
-            score -= 160;
+            score -=
+              160;
 
           }
 
           else if (
-            used === 1
+            used ===
+            1
           ) {
 
-            score -= 35;
+            score -=
+              35;
 
           }
 
@@ -2775,30 +4580,34 @@ function bestImage(
 
         }
       )
+
       .sort(
-        (a, b) =>
+        (
+          a,
+          b
+        ) =>
           b.finalScore -
           a.finalScore
       );
 
 
-  const winner =
-    scored.find(
-      (candidate) =>
-        candidate.finalScore >= 70
-    );
-
-
   return (
-    winner?.url ||
+
+    scored.find(
+      candidate =>
+        candidate.finalScore >=
+        70
+    )?.url ||
+
     ''
+
   );
 
 }
 
 
 // ================================================================
-// CATEGORY DETECTION
+// 38. CATEGORY RULES
 // ================================================================
 
 const CATEGORY_RULES = [
@@ -2818,6 +4627,7 @@ const CATEGORY_RULES = [
     ]
   ],
 
+
   [
     'বাণিজ্য',
     [
@@ -2834,6 +4644,7 @@ const CATEGORY_RULES = [
     ]
   ],
 
+
   [
     'রাজনীতি',
     [
@@ -2847,6 +4658,7 @@ const CATEGORY_RULES = [
       'প্রার্থী'
     ]
   ],
+
 
   [
     'আইন-আদালত',
@@ -2863,6 +4675,7 @@ const CATEGORY_RULES = [
     ]
   ],
 
+
   [
     'প্রযুক্তি',
     [
@@ -2876,6 +4689,7 @@ const CATEGORY_RULES = [
       'সাইবার'
     ]
   ],
+
 
   [
     'বিনোদন',
@@ -2892,6 +4706,7 @@ const CATEGORY_RULES = [
     ]
   ],
 
+
   [
     'শিক্ষা',
     [
@@ -2906,6 +4721,7 @@ const CATEGORY_RULES = [
     ]
   ],
 
+
   [
     'চাকরি',
     [
@@ -2916,6 +4732,7 @@ const CATEGORY_RULES = [
       'পদসংখ্যা'
     ]
   ],
+
 
   [
     'ধর্ম',
@@ -2932,6 +4749,7 @@ const CATEGORY_RULES = [
     ]
   ],
 
+
   [
     'জীবনযাপন',
     [
@@ -2944,6 +4762,7 @@ const CATEGORY_RULES = [
       'লাইফস্টাইল'
     ]
   ],
+
 
   [
     'আন্তর্জাতিক',
@@ -2967,6 +4786,10 @@ const CATEGORY_RULES = [
 
 ];
 
+
+// ================================================================
+// 39. CATEGORY DETECTION
+// ================================================================
 
 function detectCategory(
   title,
@@ -2998,17 +4821,18 @@ function detectCategory(
 
     const score =
       words.reduce(
-
         (
-          total,
+          sum,
           word
         ) =>
 
-          total +
+          sum +
 
           (
             text.includes(
-              lower(word)
+              lower(
+                word
+              )
             )
 
               ? 1
@@ -3018,7 +4842,6 @@ function detectCategory(
           ),
 
         0
-
       );
 
 
@@ -3029,6 +4852,7 @@ function detectCategory(
 
       bestScore =
         score;
+
 
       best =
         category;
@@ -3043,74 +4867,54 @@ function detectCategory(
 }
 
 
+// ================================================================
+// 40. CATEGORY LIMITS
+// ================================================================
+
 const CATEGORY_LIMITS = {
 
-  'বাংলাদেশ': 7,
+  'বাংলাদেশ':
+    7,
 
-  'রাজনীতি': 4,
+  'রাজনীতি':
+    4,
 
-  'আন্তর্জাতিক': 3,
+  'আন্তর্জাতিক':
+    3,
 
-  'আইন-আদালত': 3,
+  'আইন-আদালত':
+    3,
 
-  'বাণিজ্য': 3,
+  'বাণিজ্য':
+    3,
 
-  'খেলাধুলা': 3,
+  'খেলাধুলা':
+    3,
 
-  'বিনোদন': 2,
+  'বিনোদন':
+    2,
 
-  'প্রযুক্তি': 2,
+  'প্রযুক্তি':
+    2,
 
-  'শিক্ষা': 2,
+  'শিক্ষা':
+    2,
 
-  'চাকরি': 1,
+  'চাকরি':
+    1,
 
-  'ধর্ম': 1,
+  'ধর্ম':
+    1,
 
-  'জীবনযাপন': 1
+  'জীবনযাপন':
+    1
 
 };
 
 
 // ================================================================
-// HASH / AGE / IMPORTANCE
+// 41. OLD ARTICLE CHECK
 // ================================================================
-
-function hashFor(
-  title,
-  source
-) {
-
-  const key =
-    lower(title)
-      .replace(
-        /[“”‘’'"`]/g,
-        ''
-      )
-      .replace(
-        /[^\p{L}\p{N}\s]/gu,
-        ' '
-      )
-      .replace(
-        /\s+/g,
-        ' '
-      )
-      .trim();
-
-
-  return crypto
-    .createHash(
-      'sha256'
-    )
-    .update(
-      `${source}|${key}`
-    )
-    .digest(
-      'hex'
-    );
-
-}
-
 
 function tooOld(
   date
@@ -3120,16 +4924,17 @@ function tooOld(
     return false;
 
 
-  const difference =
+  const diff =
     Date.now() -
     date.getTime();
 
 
   return (
 
-    difference >= 0 &&
+    diff >=
+      0 &&
 
-    difference >
+    diff >
 
       MAX_ARTICLE_AGE_HOURS *
 
@@ -3139,6 +4944,10 @@ function tooOld(
 
 }
 
+
+// ================================================================
+// 42. IMPORTANCE SCORE
+// ================================================================
 
 function importance(
   title,
@@ -3152,10 +4961,10 @@ function importance(
       'রাজনীতি',
       'আন্তর্জাতিক',
       'আইন-আদালত'
-
-    ].includes(
-      category
-    )
+    ]
+      .includes(
+        category
+      )
 
       ? 7
 
@@ -3197,9 +5006,14 @@ function importance(
   ) {
 
     if (
-      lower(title).includes(
-        lower(word)
+      lower(
+        title
       )
+        .includes(
+          lower(
+            word
+          )
+        )
     ) {
 
       score++;
@@ -3218,7 +5032,7 @@ function importance(
 
 
 // ================================================================
-// ORIGINAL ARTICLE EXTRACTION
+// 43. EXTRACT ORIGINAL PUBLISHER ARTICLE
 // ================================================================
 
 async function extractArticle(
@@ -3228,26 +5042,31 @@ async function extractArticle(
 
   const resolved =
     await resolveGoogleUrl(
-      item.googleUrl
+      item
     );
+
+
+  if (
+    !resolved
+  ) {
+
+    return null;
+
+  }
 
 
   const publisher =
     findPublisherByUrl(
       resolved
-    ) ||
-
-    item.publisher;
+    );
 
 
-  // Never publish random/unapproved sites.
   if (
 
     !publisher ||
 
-    !findPublisherByUrl(
-      resolved
-    )
+    publisher.bnName !==
+      item.publisher.bnName
 
   ) {
 
@@ -3274,12 +5093,9 @@ async function extractArticle(
 
   const pageUrl =
     canonicalUrl(
-
       $,
-
       fetched.finalUrl ||
       resolved
-
     );
 
 
@@ -3292,6 +5108,16 @@ async function extractArticle(
     publisher;
 
 
+  if (
+    finalPublisher.bnName !==
+    item.publisher.bnName
+  ) {
+
+    return null;
+
+  }
+
+
   const json =
     articleJsonLd(
       $
@@ -3300,13 +5126,9 @@ async function extractArticle(
 
   const title =
     articleTitle(
-
       $,
-
       json,
-
       item.title
-
     );
 
 
@@ -3314,11 +5136,37 @@ async function extractArticle(
 
     !title ||
 
-    title.length < 10 ||
+    title.length <
+      10 ||
 
-    title.length > 260
+    title.length >
+      260
 
   ) {
+
+    return null;
+
+  }
+
+
+  // ------------------------------------------------
+  // Reject topic/category/landing pages
+  // ------------------------------------------------
+
+  if (
+    isLandingOrTopicPage(
+      pageUrl,
+      $,
+      json,
+      title,
+      item.title
+    )
+  ) {
+
+    console.log(
+      `⏭️ Topic/landing page reject: ${title.substring(0, 65)}...`
+    );
+
 
     return null;
 
@@ -3334,13 +5182,9 @@ async function extractArticle(
 
   const date =
     publishedAt(
-
       $,
-
       json,
-
       item.googlePubDate
-
     );
 
 
@@ -3356,21 +5200,18 @@ async function extractArticle(
   }
 
 
+  // ------------------------------------------------
+  // Smart image extraction
+  // ------------------------------------------------
+
   const image =
     bestImage(
-
       $,
-
       json,
-
       pageUrl,
-
       title,
-
       finalPublisher,
-
       imageUseCounts
-
     );
 
 
@@ -3383,14 +5224,7 @@ async function extractArticle(
   ) {
 
     console.log(
-
-      `🖼️ Story image পাওয়া যায়নি: ` +
-
-      `${title.substring(
-        0,
-        60
-      )}...`
-
+      `🖼️ Story image পাওয়া যায়নি: ${title.substring(0, 60)}...`
     );
 
 
@@ -3401,23 +5235,16 @@ async function extractArticle(
 
   const category =
     detectCategory(
-
       title,
-
       description,
-
       item.categoryHint
-
     );
 
 
   const importanceScore =
     importance(
-
       title,
-
       category
-
     );
 
 
@@ -3440,14 +5267,12 @@ async function extractArticle(
 
     snippet:
 
-      snippetBase.length > 220
+      snippetBase.length >
+        220
 
         ?
 
-        `${snippetBase.substring(
-          0,
-          220
-        )}…`
+        `${snippetBase.substring(0, 220)}…`
 
         :
 
@@ -3475,7 +5300,8 @@ async function extractArticle(
       false,
 
     is_lead:
-      importanceScore >= 9,
+      importanceScore >=
+      9,
 
     importance_score:
       importanceScore,
@@ -3492,7 +5318,7 @@ async function extractArticle(
       false,
 
     event_hash:
-      hashFor(
+      createEventHash(
         title,
         finalPublisher.bnName
       ),
@@ -3504,7 +5330,8 @@ async function extractArticle(
       (
         date ||
         new Date()
-      ).toISOString()
+      )
+        .toISOString()
 
   };
 
@@ -3512,7 +5339,7 @@ async function extractArticle(
 
 
 // ================================================================
-// DUPLICATE CHECK
+// 44. DATABASE DUPLICATE CHECK
 // ================================================================
 
 async function exists(
@@ -3523,18 +5350,22 @@ async function exists(
     count:
       urlCount
   } =
-
     await supabase
+
       .from(
         'news'
       )
+
       .select(
         '*',
         {
-          count: 'exact',
-          head: true
+          count:
+            'exact',
+          head:
+            true
         }
       )
+
       .eq(
         'source_url',
         article.source_url
@@ -3545,7 +5376,8 @@ async function exists(
     (
       urlCount ||
       0
-    ) > 0
+    ) >
+    0
   ) {
 
     return true;
@@ -3557,18 +5389,22 @@ async function exists(
     count:
       hashCount
   } =
-
     await supabase
+
       .from(
         'news'
       )
+
       .select(
         '*',
         {
-          count: 'exact',
-          head: true
+          count:
+            'exact',
+          head:
+            true
         }
       )
+
       .eq(
         'event_hash',
         article.event_hash
@@ -3579,314 +5415,131 @@ async function exists(
     (
       hashCount ||
       0
-    ) > 0
+    ) >
+    0
   );
 
 }
 
 
 // ================================================================
-// REPAIR ALREADY-SAVED BAD THUMBNAILS
+// 45. HIDE OLD BAD BDNEWS24 TOPIC CARDS
 // ================================================================
 
-async function repairRecentImages(
-  imageUseCounts
-) {
+async function hideKnownBadLegacyCards() {
 
-  console.log(
-    '\n🛠️ সাম্প্রতিক ভুল logo/thumbnail repair শুরু...'
-  );
+  const badTitles = [
 
+    'করোনাভাইরাস মহামারী',
 
-  const {
-    data,
-    error
-  } =
+    'মুজিব শতবর্ষ',
 
-    await supabase
-      .from(
-        'news'
-      )
-      .select(
-        'id,title,source_url,source_name,image_url,is_custom,created_at'
-      )
-      .eq(
-        'is_custom',
-        false
-      )
-      .order(
-        'created_at',
-        {
-          ascending: false
-        }
-      )
-      .limit(
-        REPAIR_RECENT_LIMIT
-      );
+    'সমগ্র বাংলাদেশ',
+
+    'বাজেট ২০২৬-২৭'
+
+  ];
 
 
-  if (
-    error ||
-    !data?.length
-  ) {
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+
+        .from(
+          'news'
+        )
+
+        .select(
+          'id,title'
+        )
+
+        .eq(
+          'is_custom',
+          false
+        )
+
+        .eq(
+          'is_published',
+          true
+        )
+
+        .in(
+          'title',
+          badTitles
+        );
+
 
     if (
-      error
+      error ||
+      !data?.length
     ) {
 
-      console.log(
-        `⚠️ Repair query failed: ${error.message}`
-      );
+      return;
 
     }
 
 
-    return;
+    const ids =
+      data.map(
+        row =>
+          row.id
+      );
+
+
+    const {
+      error:
+        updateError
+    } =
+      await supabase
+
+        .from(
+          'news'
+        )
+
+        .update(
+          {
+            is_published:
+              false
+          }
+        )
+
+        .in(
+          'id',
+          ids
+        );
+
+
+    if (
+      !updateError
+    ) {
+
+      console.log(
+        `🧹 ${ids.length}টি পুরোনো ভুল topic card hide করা হয়েছে।`
+      );
+
+    }
 
   }
 
-
-  let repaired =
-    0;
-
-
-  for (
-    const row
-    of data
+  catch (
+    error
   ) {
 
-    try {
-
-      if (
-        !row.source_url
-      ) {
-
-        continue;
-
-      }
-
-
-      let url =
-        row.source_url;
-
-
-      if (
-        url.includes(
-          'news.google.com/'
-        )
-      ) {
-
-        url =
-          await resolveGoogleUrl(
-            url
-          );
-
-      }
-
-
-      const publisher =
-
-        findPublisherByUrl(
-          url
-        ) ||
-
-        findPublisherByName(
-          row.source_name ||
-          ''
-        );
-
-
-      if (
-
-        !publisher ||
-
-        !findPublisherByUrl(
-          url
-        )
-
-      ) {
-
-        continue;
-
-      }
-
-
-      const fetched =
-        await fetchText(
-          url
-        );
-
-
-      if (!fetched)
-        continue;
-
-
-      const $ =
-        cheerio.load(
-          fetched.text
-        );
-
-
-      const pageUrl =
-        canonicalUrl(
-
-          $,
-
-          fetched.finalUrl ||
-          url
-
-        );
-
-
-      const json =
-        articleJsonLd(
-          $
-        );
-
-
-      const title =
-        articleTitle(
-
-          $,
-
-          json,
-
-          row.title
-
-        );
-
-
-      const image =
-        bestImage(
-
-          $,
-
-          json,
-
-          pageUrl,
-
-          title ||
-          row.title,
-
-          publisher,
-
-          imageUseCounts
-
-        );
-
-
-      if (
-
-        !image ||
-
-        image ===
-          row.image_url
-
-      ) {
-
-        continue;
-
-      }
-
-
-      const {
-        error:
-          updateError
-      } =
-
-        await supabase
-          .from(
-            'news'
-          )
-          .update(
-            {
-
-              image_url:
-                image,
-
-              image_source:
-                publisher.bnName,
-
-              source_name:
-                publisher.bnName,
-
-              source_url:
-                pageUrl
-
-            }
-          )
-          .eq(
-            'id',
-            row.id
-          );
-
-
-      if (
-        !updateError
-      ) {
-
-        repaired++;
-
-
-        imageUseCounts.set(
-
-          image,
-
-          (
-            imageUseCounts.get(
-              image
-            ) ||
-            0
-          ) +
-          1
-
-        );
-
-
-        console.log(
-
-          `✅ Thumbnail repaired: ` +
-
-          `${row.title.substring(
-            0,
-            55
-          )}...`
-
-        );
-
-      }
-
-    }
-
-    catch (
-      error
-    ) {
-
-      console.log(
-        `⚠️ Repair skip: ${error.message}`
-      );
-
-    }
-
-
-    await delay(200);
+    console.log(
+      `⚠️ Cleanup skipped: ${error.message}`
+    );
 
   }
-
-
-  console.log(
-
-    `🛠️ Repair শেষ: ` +
-
-    `${repaired}টি thumbnail আপডেট।`
-
-  );
 
 }
 
 
 // ================================================================
-// MAIN
+// 46. MAIN BOT
 // ================================================================
 
 async function runBot() {
@@ -3897,17 +5550,37 @@ async function runBot() {
 
 
   console.log(
-    '🔎 Discovery = Google News'
+    '🔎 Discovery = Google News RSS'
   );
 
 
   console.log(
-    '🖼️ Image = Original Publisher Article'
+    '🖼️ Image = Original publisher article'
   );
 
 
   console.log(
-    '✍️ Gemini Rewrite = OFF'
+    '✍️ Gemini rewrite = OFF'
+  );
+
+
+  // ------------------------------------------------
+  // Remove known old bad topic cards
+  // ------------------------------------------------
+
+  await hideKnownBadLegacyCards();
+
+
+  // ------------------------------------------------
+  // Fetch Google News candidates
+  // ------------------------------------------------
+
+  const items =
+    await collectGoogleNewsItems();
+
+
+  console.log(
+    `\n📰 অনুমোদিত Google News candidate: ${items.length}`
   );
 
 
@@ -3915,24 +5588,8 @@ async function runBot() {
     new Map();
 
 
-  // First repair existing bad thumbnails
-  await repairRecentImages(
-    imageUseCounts
-  );
-
-
-  // Then discover latest news
-  const items =
-    await collectGoogleNewsItems();
-
-
-  console.log(
-
-    `\n📰 অনুমোদিত Google News candidate: ` +
-
-    `${items.length}`
-
-  );
+  const categoryCounts =
+    {};
 
 
   let published =
@@ -3943,8 +5600,9 @@ async function runBot() {
     0;
 
 
-  const categoryCounts = {};
-
+  // ------------------------------------------------
+  // Process candidates
+  // ------------------------------------------------
 
   for (
     const item
@@ -3975,34 +5633,35 @@ async function runBot() {
 
         `\n➡️ ${item.publisher.bnName}: ` +
 
-        `${item.title.substring(
-          0,
-          72
-        )}...`
+        `${item.title.substring(0, 72)}...`
 
       );
 
 
       const article =
         await extractArticle(
-
           item,
-
           imageUseCounts
-
         );
 
 
-      if (!article)
+      if (
+        !article
+      ) {
+
         continue;
 
+      }
+
+
+      // ------------------------------------
+      // Category limit
+      // ------------------------------------
 
       const limit =
-
         CATEGORY_LIMITS[
           article.category
         ] ||
-
         2;
 
 
@@ -4031,6 +5690,10 @@ async function runBot() {
       }
 
 
+      // ------------------------------------
+      // Duplicate check
+      // ------------------------------------
+
       if (
         await exists(
           article
@@ -4041,19 +5704,25 @@ async function runBot() {
           '⏭️ ডুপ্লিকেট, স্কিপ।'
         );
 
+
         continue;
 
       }
 
 
+      // ------------------------------------
+      // Insert
+      // ------------------------------------
+
       const {
         error
       } =
-
         await supabase
+
           .from(
             'news'
           )
+
           .insert(
             [
               article
@@ -4069,10 +5738,15 @@ async function runBot() {
           `❌ Supabase insert error: ${error.message}`
         );
 
+
         continue;
 
       }
 
+
+      // ------------------------------------
+      // Remember used image
+      // ------------------------------------
 
       if (
         article.image_url
@@ -4109,17 +5783,16 @@ async function runBot() {
 
         `[${article.category}] ` +
 
-        `${article.title.substring(
-          0,
-          60
-        )}... | ` +
+        `${article.title.substring(0, 60)}... | ` +
 
         `${article.source_name}`
 
       );
 
 
-      await delay(450);
+      await delay(
+        450
+      );
 
     }
 
@@ -4136,14 +5809,12 @@ async function runBot() {
   }
 
 
+  // ==============================================================
+  // FINAL RESULT
+  // ==============================================================
+
   console.log(
-
-    `\n🎉 কাজ শেষ। ` +
-
-    `মোট নতুন সংবাদ: ` +
-
-    `${published}`
-
+    `\n🎉 কাজ শেষ। মোট নতুন সংবাদ: ${published}`
   );
 
 
@@ -4157,9 +5828,9 @@ async function runBot() {
 
       'সব খবর duplicate, ' +
 
-      'Google URL decode ব্যর্থ, ' +
+      'publisher page block করেছে, ' +
 
-      'publisher bot-block করেছে, ' +
+      'Google URL resolve হয়নি, ' +
 
       'বা usable lead image পাওয়া যায়নি।'
 
@@ -4170,16 +5841,24 @@ async function runBot() {
 }
 
 
+// ================================================================
+// 47. START
+// ================================================================
+
 runBot()
+
   .catch(
-    (error) => {
+    error => {
 
       console.error(
         '❌ Fatal scraper error:',
         error
       );
 
-      process.exit(1);
+
+      process.exit(
+        1
+      );
 
     }
   );
