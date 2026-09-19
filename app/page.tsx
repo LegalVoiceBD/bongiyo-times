@@ -372,8 +372,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
   // লিড নিউজের জন্য নির্দিষ্ট ক্যাটাগরি ফিল্টার (বাংলাদেশ, রাজনীতি, আন্তর্জাতিক)
   const leadAllowedCategories = ['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক'];
-  const leadIndex = remainingNews.findIndex(n => 
-    n.category && leadAllowedCategories.some(cat => n.category.includes(cat))
+  const leadIndex = remainingNews.findIndex((n) =>
+    leadAllowedCategories.some((cat) => n.category?.includes(cat) ?? false)
   );
 
   let leadNews = null;
