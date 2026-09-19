@@ -2,28 +2,7 @@ const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 
-// ================================================================
-// Bongiyo Times - Direct Source News Aggregator
-// ------------------------------------------------
-// 1. সরাসরি সংশ্লিষ্ট সংবাদমাধ্যম থেকে খবর সংগ্রহ করবে
-// 2. Original headline নেবে
-// 3. Original article image নেবে
-// 4. Short description/snippet নেবে
-// 5. Publisher-এর বাংলা নাম save করবে
-// 6. Original article URL save করবে
-// 7. Gemini দিয়ে rewrite করবে না
-// 8. AI image generate করবে না
-// 9. Google News শুধু hidden backup discovery হিসেবে ব্যবহার হবে
-//    Google News-এর কোনো item সরাসরি database-এ publish হবে না
-// ================================================================
-
-
-// ================================================================
-// 1. SUPABASE CONFIGURATION
-// ================================================================
-
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
 const SUPABASE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -38,228 +17,257 @@ const supabase = createClient(
   SUPABASE_KEY
 );
 
-
-// ================================================================
-// 2. SCRAPER CONFIGURATION
-// ================================================================
-
 const USER_AGENT =
   process.env.SCRAPER_USER_AGENT ||
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
   'AppleWebKit/537.36 (KHTML, like Gecko) ' +
   'Chrome/153.0.0.0 Safari/537.36';
 
-const REQUEST_HEADERS = {
+const HEADERS = {
   'User-Agent': USER_AGENT,
-
   Accept:
     'text/html,application/xhtml+xml,application/xml;q=0.9,' +
     'image/avif,image/webp,*/*;q=0.8',
-
   'Accept-Language':
     'bn-BD,bn;q=0.9,en-US;q=0.8,en;q=0.7',
-
   'Cache-Control': 'no-cache',
-
   Pragma: 'no-cache'
 };
 
+const REQUEST_TIMEOUT_MS =
+  Number(process.env.REQUEST_TIMEOUT_MS || 18000);
 
-// প্রতি GitHub Action run-এ সর্বোচ্চ কতটি news publish হবে
 const MAX_ARTICLES_PER_RUN =
   Number(process.env.MAX_ARTICLES_PER_RUN || 24);
 
+const MAX_ITEMS_TO_INSPECT =
+  Number(process.env.MAX_ITEMS_TO_INSPECT || 100);
 
-// একটি source থেকে সর্বোচ্চ কতটি
-const MAX_ARTICLES_PER_SOURCE =
-  Number(process.env.MAX_ARTICLES_PER_SOURCE || 4);
-
-
-// প্রতিটি newspaper page থেকে সর্বোচ্চ কতটি candidate link দেখা হবে
-const MAX_CANDIDATE_LINKS_PER_SOURCE =
-  Number(
-    process.env.MAX_CANDIDATE_LINKS_PER_SOURCE || 30
-  );
-
-
-// খুব পুরোনো news publish না করার জন্য
 const MAX_ARTICLE_AGE_HOURS =
-  Number(
-    process.env.MAX_ARTICLE_AGE_HOURS || 72
-  );
+  Number(process.env.MAX_ARTICLE_AGE_HOURS || 48);
 
+const REPAIR_RECENT_LIMIT =
+  Number(process.env.REPAIR_RECENT_LIMIT || 30);
 
-// Request timeout
-const REQUEST_TIMEOUT_MS =
-  Number(
-    process.env.REQUEST_TIMEOUT_MS || 18000
-  );
-
-
-// Image না থাকলে defaultভাবে article publish হবে না
-// এর ফলে homepage-এ blank placeholder কমবে
 const REQUIRE_IMAGE =
   String(
     process.env.REQUIRE_NEWS_IMAGE || 'true'
   ).toLowerCase() !== 'false';
 
-
-// Google News public source নয়
-// শুধু direct source link কম পেলে discovery backup
-const ENABLE_GOOGLE_NEWS_BACKUP =
-  String(
-    process.env.ENABLE_GOOGLE_NEWS_BACKUP || 'true'
-  ).toLowerCase() !== 'false';
-
-
 const delay = (ms) =>
-  new Promise(resolve => setTimeout(resolve, ms));
+  new Promise((resolve) =>
+    setTimeout(resolve, ms)
+  );
 
 
 // ================================================================
-// 3. NATIONAL NEWS SOURCES
+// APPROVED NATIONAL PUBLISHERS
 // ================================================================
 
-const SOURCES = [
+const PUBLISHERS = [
 
-  {
-    name: 'Prothom Alo',
-    bnName: 'প্রথম আলো',
-    url: 'https://www.prothomalo.com/',
-    domain: 'prothomalo.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'প্রথম আলো',
+    ['prothomalo.com'],
+    [
+      'prothom alo',
+      'প্রথম আলো'
+    ]
+  ],
 
-  {
-    name: 'Kaler Kantho',
-    bnName: 'কালের কণ্ঠ',
-    url: 'https://www.kalerkantho.com/',
-    domain: 'kalerkantho.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'কালের কণ্ঠ',
+    ['kalerkantho.com'],
+    [
+      'kaler kantho',
+      'kalerkantho',
+      'কালের কণ্ঠ'
+    ]
+  ],
 
-  {
-    name: 'Jugantor',
-    bnName: 'যুগান্তর',
-    url: 'https://www.jugantor.com/',
-    domain: 'jugantor.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'যুগান্তর',
+    ['jugantor.com'],
+    [
+      'jugantor',
+      'যুগান্তর'
+    ]
+  ],
 
-  {
-    name: 'Ittefaq',
-    bnName: 'দৈনিক ইত্তেফাক',
-    url: 'https://www.ittefaq.com.bd/',
-    domain: 'ittefaq.com.bd',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'দৈনিক ইত্তেফাক',
+    ['ittefaq.com.bd'],
+    [
+      'ittefaq',
+      'the daily ittefaq',
+      'দৈনিক ইত্তেফাক',
+      'ইত্তেফাক'
+    ]
+  ],
 
-  {
-    name: 'Samakal',
-    bnName: 'সমকাল',
-    url: 'https://samakal.com/',
-    domain: 'samakal.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'সমকাল',
+    ['samakal.com'],
+    [
+      'samakal',
+      'সমকাল'
+    ]
+  ],
 
-  {
-    name: 'Bangladesh Pratidin',
-    bnName: 'বাংলাদেশ প্রতিদিন',
-    url: 'https://www.bd-pratidin.com/',
-    domain: 'bd-pratidin.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'বাংলাদেশ প্রতিদিন',
+    ['bd-pratidin.com'],
+    [
+      'bangladesh pratidin',
+      'bd-pratidin',
+      'বাংলাদেশ প্রতিদিন'
+    ]
+  ],
 
-  {
-    name: 'Dhaka Post',
-    bnName: 'ঢাকা পোস্ট',
-    url: 'https://www.dhakapost.com/',
-    domain: 'dhakapost.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'ঢাকা পোস্ট',
+    ['dhakapost.com'],
+    [
+      'dhaka post',
+      'dhakapost',
+      'ঢাকা পোস্ট'
+    ]
+  ],
 
-  {
-    name: 'Jago News 24',
-    bnName: 'জাগো নিউজ২৪',
-    url: 'https://www.jagonews24.com/',
-    domain: 'jagonews24.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'জাগো নিউজ২৪',
+    ['jagonews24.com'],
+    [
+      'jago news 24',
+      'jagonews24',
+      'jago news',
+      'জাগো নিউজ',
+      'জাগো নিউজ২৪'
+    ]
+  ],
 
-  {
-    name: 'Bangla Tribune',
-    bnName: 'বাংলা ট্রিবিউন',
-    url: 'https://www.banglatribune.com/',
-    domain: 'banglatribune.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'বাংলা ট্রিবিউন',
+    ['banglatribune.com'],
+    [
+      'bangla tribune',
+      'বাংলা ট্রিবিউন'
+    ]
+  ],
 
-  {
-    name: 'BanglaNews24',
-    bnName: 'বাংলানিউজ২৪ ডটকম',
-    url: 'https://www.banglanews24.com/',
-    domain: 'banglanews24.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'বাংলানিউজ২৪ ডটকম',
+    ['banglanews24.com'],
+    [
+      'banglanews24',
+      'banglanews24.com',
+      'বাংলানিউজ২৪',
+      'বাংলানিউজ'
+    ]
+  ],
 
-  {
-    name: 'BDNews24',
-    bnName: 'বিডিনিউজ টোয়েন্টিফোর ডটকম',
-    url: 'https://bangla.bdnews24.com/',
-    domain: 'bdnews24.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'বিডিনিউজ টোয়েন্টিফোর ডটকম',
+    ['bdnews24.com'],
+    [
+      'bdnews24',
+      'bdnews24.com',
+      'বিডিনিউজ',
+      'বিডিনিউজ টোয়েন্টিফোর'
+    ]
+  ],
 
-  {
-    name: 'Daily Inqilab',
-    bnName: 'দৈনিক ইনকিলাব',
-    url: 'https://dailyinqilab.com/',
-    domain: 'dailyinqilab.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'দৈনিক ইনকিলাব',
+    ['dailyinqilab.com'],
+    [
+      'daily inqilab',
+      'inqilab',
+      'দৈনিক ইনকিলাব',
+      'ইনকিলাব'
+    ]
+  ],
 
-  {
-    name: 'Naya Diganta',
-    bnName: 'নয়া দিগন্ত',
-    url: 'https://www.dailynayadiganta.com/',
-    domain: 'dailynayadiganta.com',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'নয়া দিগন্ত',
+    ['dailynayadiganta.com'],
+    [
+      'naya diganta',
+      'nayadiganta',
+      'daily naya diganta',
+      'নয়া দিগন্ত',
+      'নয়াদিগন্ত'
+    ]
+  ],
 
-  {
-    name: 'The Daily Star Bangla',
-    bnName: 'দ্য ডেইলি স্টার বাংলা',
-    url: 'https://bangla.thedailystar.net/',
-    domain: 'thedailystar.net',
-    defaultCategory: 'বাংলাদেশ'
-  },
+  [
+    'দ্য ডেইলি স্টার',
+    ['thedailystar.net'],
+    [
+      'the daily star',
+      'daily star',
+      'দ্য ডেইলি স্টার'
+    ]
+  ],
 
-  {
-    name: 'TBS Bangla',
-    bnName: 'দ্য বিজনেস স্ট্যান্ডার্ড বাংলা',
-    url: 'https://www.tbsnews.net/bangla',
-    domain: 'tbsnews.net',
-    defaultCategory: 'বাণিজ্য'
-  }
+  [
+    'দ্য বিজনেস স্ট্যান্ডার্ড',
+    ['tbsnews.net'],
+    [
+      'the business standard',
+      'tbs news',
+      'tbsnews',
+      'দ্য বিজনেস স্ট্যান্ডার্ড'
+    ]
+  ],
 
-];
+  [
+    'ঢাকা ট্রিবিউন',
+    ['dhakatribune.com'],
+    [
+      'dhaka tribune',
+      'ঢাকা ট্রিবিউন'
+    ]
+  ],
+
+  [
+    'ইউএনবি',
+    ['unb.com.bd'],
+    [
+      'unb',
+      'united news of bangladesh',
+      'ইউএনবি'
+    ]
+  ]
+
+].map(
+  ([bnName, domains, aliases]) => ({
+    bnName,
+    domains,
+    aliases
+  })
+);
 
 
 // ================================================================
-// 4. TEXT CLEANER
+// TEXT HELPERS
 // ================================================================
 
-function cleanText(value = '') {
+function clean(value = '') {
 
   return String(value)
-
     .replace(/\u00a0/g, ' ')
-
     .replace(/[\t\r\n]+/g, ' ')
-
     .replace(/\s{2,}/g, ' ')
-
     .trim();
+
+}
+
+
+function lower(value = '') {
+
+  return clean(value)
+    .toLowerCase();
 
 }
 
@@ -273,196 +281,141 @@ function stripHtml(value = '') {
       `<div>${value}</div>`
     );
 
-  return cleanText(
+  return clean(
     $('div').text()
   );
 
 }
 
 
-// ================================================================
-// 5. URL CLEANING
-// ================================================================
+function escapeRegExp(value = '') {
 
-function removeTrackingParams(rawUrl) {
-
-  try {
-
-    const u =
-      new URL(rawUrl);
-
-    const badParams = [
-
-      'utm_source',
-
-      'utm_medium',
-
-      'utm_campaign',
-
-      'utm_term',
-
-      'utm_content',
-
-      'fbclid',
-
-      'gclid',
-
-      'mc_cid',
-
-      'mc_eid'
-
-    ];
-
-    badParams.forEach(
-      p => u.searchParams.delete(p)
+  return String(value)
+    .replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\$&'
     );
 
-    u.hash = '';
-
-    return u.toString();
-
-  } catch {
-
-    return rawUrl;
-
-  }
-
 }
 
 
-function absoluteUrl(
-  raw,
-  baseUrl
+function cleanRssTitle(
+  title,
+  sourceName
 ) {
 
-  if (!raw)
-    return '';
+  let finalTitle =
+    clean(title);
 
-  const value =
-    cleanText(raw);
+  if (sourceName) {
 
-  if (!value)
-    return '';
+    finalTitle =
+      finalTitle.replace(
 
-  if (
-    value.startsWith('data:') ||
-    value.startsWith('javascript:')
-  ) {
+        new RegExp(
+          `\\s[-–—|:]\\s*${escapeRegExp(sourceName)}\\s*$`,
+          'iu'
+        ),
 
-    return '';
+        ''
 
-  }
-
-  try {
-
-    return removeTrackingParams(
-
-      new URL(
-        value,
-        baseUrl
-      ).toString()
-
-    );
-
-  } catch {
-
-    return '';
+      );
 
   }
+
+  return clean(finalTitle);
 
 }
 
 
 // ================================================================
-// 6. DOMAIN CHECK
+// PUBLISHER DETECTION
 // ================================================================
 
-function hostMatches(
-  url,
-  expectedDomain
-) {
-
-  try {
-
-    const host =
-      new URL(url)
-        .hostname
-        .replace(/^www\./, '')
-        .toLowerCase();
-
-    const expected =
-      expectedDomain
-        .replace(/^www\./, '')
-        .toLowerCase();
-
-    return (
-      host === expected ||
-      host.endsWith(
-        `.${expected}`
-      )
-    );
-
-  } catch {
-
-    return false;
-
-  }
-
-}
-
-
-// ================================================================
-// 7. EVENT HASH
-// ================================================================
-
-function normalizeTitleForHash(
-  title
-) {
-
-  return cleanText(title)
-
-    .toLowerCase()
-
-    .replace(
-      /[“”‘’'"`]/g,
-      ''
-    )
-
-    .replace(
-      /[^\p{L}\p{N}\s]/gu,
-      ' '
-    )
-
-    .replace(
-      /\s+/g,
-      ' '
-    )
-
-    .trim();
-
-}
-
-
-function createEventHash(
-  title
+function findPublisherByName(
+  name = ''
 ) {
 
   const normalized =
-    normalizeTitleForHash(title);
+    lower(name);
 
-  return crypto
+  if (!normalized)
+    return null;
 
-    .createHash('sha256')
 
-    .update(normalized)
+  return (
 
-    .digest('hex');
+    PUBLISHERS.find(
+      (publisher) =>
+
+        publisher.aliases.some(
+          (alias) => {
+
+            const a =
+              lower(alias);
+
+            return (
+              normalized === a ||
+              normalized.includes(a) ||
+              a.includes(normalized)
+            );
+
+          }
+        )
+
+    ) || null
+
+  );
+
+}
+
+
+function findPublisherByUrl(
+  rawUrl = ''
+) {
+
+  try {
+
+    const hostname =
+      new URL(rawUrl)
+        .hostname
+        .replace(
+          /^www\./,
+          ''
+        )
+        .toLowerCase();
+
+
+    return (
+
+      PUBLISHERS.find(
+        (publisher) =>
+
+          publisher.domains.some(
+            (domain) =>
+              hostname === domain ||
+              hostname.endsWith(
+                `.${domain}`
+              )
+          )
+
+      ) || null
+
+    );
+
+  }
+
+  catch {
+
+    return null;
+
+  }
 
 }
 
 
 // ================================================================
-// 8. FETCH WITH TIMEOUT
+// FETCH HELPERS
 // ================================================================
 
 async function fetchWithTimeout(
@@ -473,11 +426,14 @@ async function fetchWithTimeout(
   const controller =
     new AbortController();
 
-  const timeout =
+
+  const timer =
     setTimeout(
-      () => controller.abort(),
+      () =>
+        controller.abort(),
       REQUEST_TIMEOUT_MS
     );
+
 
   try {
 
@@ -487,92 +443,79 @@ async function fetchWithTimeout(
 
         ...options,
 
+        redirect:
+          'follow',
+
         headers: {
 
-          ...REQUEST_HEADERS,
+          ...HEADERS,
 
-          ...(options.headers || {})
+          ...(
+            options.headers ||
+            {}
+          )
 
         },
 
         signal:
-          controller.signal,
-
-        redirect:
-          'follow'
+          controller.signal
 
       }
     );
 
-  } finally {
+  }
 
-    clearTimeout(timeout);
+  finally {
+
+    clearTimeout(timer);
 
   }
 
 }
 
 
-// ================================================================
-// 9. FETCH HTML
-// ================================================================
-
-async function fetchHtml(
-  url
+async function fetchText(
+  url,
+  options = {}
 ) {
 
   try {
 
     const response =
-      await fetchWithTimeout(url);
-
-    if (!response.ok) {
-
-      console.log(
-        `⚠️ HTTP ${response.status}: ${url}`
+      await fetchWithTimeout(
+        url,
+        options
       );
 
-      return null;
-
-    }
-
-    const type =
-      response.headers.get(
-        'content-type'
-      ) || '';
 
     if (
-
-      !type.includes(
-        'text/html'
-      ) &&
-
-      !type.includes(
-        'application/xhtml+xml'
-      )
-
+      !response.ok
     ) {
 
       return null;
 
     }
 
+
     return {
 
-      html:
+      text:
         await response.text(),
 
       finalUrl:
-        removeTrackingParams(
-          response.url || url
-        )
+        response.url ||
+        url
 
     };
 
-  } catch (error) {
+  }
+
+  catch (
+    error
+  ) {
 
     console.log(
-      `⚠️ Fetch failed: ${url} | ${error.message}`
+      `⚠️ Fetch failed: ${error.message}`
     );
 
     return null;
@@ -582,243 +525,198 @@ async function fetchHtml(
 }
 
 
-// ================================================================
-// 10. ARTICLE LINK FILTER
-// ================================================================
-
-function isLikelyArticleUrl(
-  url,
-  source
+function absoluteUrl(
+  raw,
+  base
 ) {
 
+  if (!raw)
+    return '';
+
+
+  const value =
+    clean(raw);
+
+
   if (
-    !url ||
-    !hostMatches(
-      url,
-      source.domain
+    !value ||
+    value.startsWith(
+      'data:'
+    ) ||
+    value.startsWith(
+      'javascript:'
     )
   ) {
 
-    return false;
-
-  }
-
-  const lower =
-    url.toLowerCase();
-
-  const blockedSegments = [
-
-    '/tag/',
-
-    '/tags/',
-
-    '/author/',
-
-    '/authors/',
-
-    '/category/',
-
-    '/categories/',
-
-    '/topic/',
-
-    '/topics/',
-
-    '/archive/',
-
-    '/archives/',
-
-    '/search',
-
-    '/login',
-
-    '/signup',
-
-    '/privacy',
-
-    '/terms',
-
-    '/contact',
-
-    '/about',
-
-    '/photo/',
-
-    '/photos/',
-
-    '/video/',
-
-    '/videos/',
-
-    '/live/',
-
-    '/epaper',
-
-    '/e-paper',
-
-    '/pdf/'
-
-  ];
-
-  if (
-    blockedSegments.some(
-      segment =>
-        lower.includes(segment)
-    )
-  ) {
-
-    return false;
+    return '';
 
   }
 
 
   try {
 
-    const u =
-      new URL(url);
+    const url =
+      new URL(
+        value,
+        base
+      );
 
-    const parts =
-      u.pathname
-        .split('/')
-        .filter(Boolean);
 
-    if (
-      parts.length < 1
-    ) {
+    [
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_term',
+      'utm_content',
+      'fbclid',
+      'gclid'
 
-      return false;
+    ].forEach(
+      (key) =>
+        url.searchParams.delete(
+          key
+        )
+    );
 
-    }
 
-    if (
-      u.pathname === '/' ||
-      u.pathname.length < 8
-    ) {
+    url.hash = '';
 
-      return false;
 
-    }
-
-  } catch {
-
-    return false;
+    return url.toString();
 
   }
 
+  catch {
 
-  // Most news URLs contain either numeric ID/date
-  // or a fairly long slug/path
+    return '';
+
+  }
+
+}
+
+
+// ================================================================
+// GOOGLE NEWS DISCOVERY FEEDS
+// ================================================================
+
+const GOOGLE_FEEDS = [
+
+  {
+    category:
+      'বাংলাদেশ',
+
+    url:
+      'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn'
+  },
+
+  {
+    category:
+      'বাংলাদেশ',
+
+    query:
+      'বাংলাদেশ when:1d'
+  },
+
+  {
+    category:
+      'রাজনীতি',
+
+    query:
+      'বাংলাদেশ রাজনীতি নির্বাচন সংসদ when:1d'
+  },
+
+  {
+    category:
+      'আন্তর্জাতিক',
+
+    query:
+      'বিশ্ব আন্তর্জাতিক when:1d'
+  },
+
+  {
+    category:
+      'খেলাধুলা',
+
+    query:
+      'ক্রিকেট ফুটবল খেলাধুলা when:1d'
+  },
+
+  {
+    category:
+      'বাণিজ্য',
+
+    query:
+      'অর্থনীতি বাণিজ্য ব্যাংক শেয়ারবাজার when:1d'
+  },
+
+  {
+    category:
+      'আইন-আদালত',
+
+    query:
+      'আদালত হাইকোর্ট সুপ্রিম কোর্ট মামলা when:1d'
+  },
+
+  {
+    category:
+      'প্রযুক্তি',
+
+    query:
+      'প্রযুক্তি ইন্টারনেট কৃত্রিম বুদ্ধিমত্তা when:1d'
+  },
+
+  {
+    category:
+      'বিনোদন',
+
+    query:
+      'বিনোদন চলচ্চিত্র নাটক when:1d'
+  },
+
+  {
+    category:
+      'শিক্ষা',
+
+    query:
+      'শিক্ষা বিশ্ববিদ্যালয় পরীক্ষা when:1d'
+  }
+
+];
+
+
+function feedUrl(
+  feed
+) {
 
   return (
 
-    /\d/.test(lower) ||
+    feed.url ||
 
-    lower.length >= 55
+    `https://news.google.com/rss/search?q=${encodeURIComponent(feed.query)}&hl=bn&gl=BD&ceid=BD:bn`
 
   );
 
 }
 
 
-// ================================================================
-// 11. COLLECT DIRECT ARTICLE LINKS
-// ================================================================
+async function collectGoogleNewsItems() {
 
-function collectDirectLinks(
-  html,
-  pageUrl,
-  source
-) {
-
-  const $ =
-    cheerio.load(html);
+  const items = [];
 
   const seen =
     new Set();
 
-  const links =
-    [];
 
-  $('a[href]').each(
-    (_, el) => {
-
-      const href =
-        $(el).attr('href');
-
-      const url =
-        absoluteUrl(
-          href,
-          pageUrl
-        );
-
-      if (!url)
-        return;
-
-      if (
-        !isLikelyArticleUrl(
-          url,
-          source
-        )
-      ) {
-
-        return;
-
-      }
-
-      if (
-        seen.has(url)
-      ) {
-
-        return;
-
-      }
-
-      seen.add(url);
-
-      links.push(url);
-
-    }
-  );
-
-  return links.slice(
-    0,
-    MAX_CANDIDATE_LINKS_PER_SOURCE
-  );
-
-}
-
-
-// ================================================================
-// 12. GOOGLE NEWS
-//     INTERNAL DISCOVERY BACKUP ONLY
-// ================================================================
-
-async function discoverFromGoogleNews(
-  source
-) {
-
-  if (
-    !ENABLE_GOOGLE_NEWS_BACKUP
+  for (
+    const feed
+    of GOOGLE_FEEDS
   ) {
 
-    return [];
+    const fetched =
+      await fetchText(
 
-  }
+        feedUrl(feed),
 
-  const query =
-    encodeURIComponent(
-      `site:${source.domain}`
-    );
-
-  const rssUrl =
-    `https://news.google.com/rss/search?q=${query}` +
-    `&hl=bn&gl=BD&ceid=BD:bn`;
-
-  try {
-
-    const response =
-      await fetchWithTimeout(
-        rssUrl,
         {
 
           headers: {
@@ -831,127 +729,459 @@ async function discoverFromGoogleNews(
           }
 
         }
+
       );
 
-    if (!response.ok)
-      return [];
 
-    const xml =
-      await response.text();
+    if (!fetched)
+      continue;
+
 
     const $ =
       cheerio.load(
-        xml,
+        fetched.text,
         {
           xmlMode: true
         }
       );
 
-    const googleLinks =
-      [];
 
     $('item').each(
-      (_, item) => {
+      (_, element) => {
 
         if (
-          googleLinks.length >= 10
+          items.length >=
+          MAX_ITEMS_TO_INSPECT
         ) {
 
           return;
 
         }
 
-        const link =
-          cleanText(
-            $(item)
+
+        const node =
+          $(element);
+
+
+        const sourceName =
+          clean(
+            node
+              .find('source')
+              .first()
+              .text()
+          );
+
+
+        const publisher =
+          findPublisherByName(
+            sourceName
+          );
+
+
+        if (!publisher)
+          return;
+
+
+        const googleUrl =
+          clean(
+            node
               .find('link')
               .first()
               .text()
           );
 
-        if (link) {
 
-          googleLinks.push(link);
+        const title =
+          cleanRssTitle(
+
+            node
+              .find('title')
+              .first()
+              .text(),
+
+            sourceName
+
+          );
+
+
+        if (
+          !googleUrl ||
+          title.length < 10
+        ) {
+
+          return;
 
         }
+
+
+        const key =
+          `${publisher.bnName}|${lower(title)}`;
+
+
+        if (
+          seen.has(key)
+        ) {
+
+          return;
+
+        }
+
+
+        seen.add(key);
+
+
+        const date =
+          new Date(
+
+            clean(
+              node
+                .find('pubDate')
+                .first()
+                .text()
+            )
+
+          );
+
+
+        items.push({
+
+          title,
+
+          googleUrl,
+
+          publisher,
+
+          categoryHint:
+            feed.category,
+
+          googlePubDate:
+
+            Number.isNaN(
+              date.getTime()
+            )
+
+              ? null
+
+              : date
+
+        });
 
       }
     );
 
 
-    const resolved =
-      [];
+    await delay(250);
+
+  }
 
 
-    for (
-      const googleUrl
-      of googleLinks
-    ) {
+  items.sort(
+    (a, b) =>
 
-      try {
+      (
+        b.googlePubDate?.getTime() ||
+        0
+      ) -
 
-        const response2 =
-          await fetchWithTimeout(
-            googleUrl,
-            {
-
-              headers: {
-
-                Accept:
-                  'text/html,*/*'
-
-              }
-
-            }
-          );
+      (
+        a.googlePubDate?.getTime() ||
+        0
+      )
+  );
 
 
-        const finalUrl =
-          removeTrackingParams(
-            response2.url || ''
-          );
+  return items.slice(
+    0,
+    MAX_ITEMS_TO_INSPECT
+  );
+
+}
 
 
-        if (
-          finalUrl &&
+// ================================================================
+// GOOGLE NEWS URL DECODER
+// ================================================================
 
-          hostMatches(
-            finalUrl,
-            source.domain
-          )
-        ) {
+function unescapeGoogle(
+  value
+) {
 
-          if (
+  try {
 
-            !resolved.includes(
-              finalUrl
-            ) &&
+    return JSON.parse(
+      `"${value}"`
+    );
 
-            isLikelyArticleUrl(
-              finalUrl,
-              source
-            )
+  }
 
-          ) {
+  catch {
 
-            resolved.push(
-              finalUrl
-            );
+    return value
+      .replace(
+        /\\u003d/g,
+        '='
+      )
+      .replace(
+        /\\u0026/g,
+        '&'
+      )
+      .replace(
+        /\\u002f/gi,
+        '/'
+      )
+      .replace(
+        /\\\//g,
+        '/'
+      );
 
-          }
+  }
 
-        }
+}
 
-      } catch {
 
-        // Backup discovery only.
-        // Ignore failures.
+async function decodeViaBatch(
+  id
+) {
+
+  const request =
+
+    '[[["Fbv4je","[\\"garturlreq\\",[[\\"en-US\\",\\"US\\",[\\"FINANCE_TOP_INDICES\\",\\"WEB_TEST_1_0_0\\"],null,null,1,1,\\"US:en\\",null,180,null,null,null,null,null,0,null,null,[1608992183,723341000]],\\"en-US\\",\\"US\\",1,[2,3,4,8],1,0,\\"655000234\\",0,0,null,0],\\"' +
+
+    id +
+
+    '\\"]",null,"generic"]]]';
+
+
+  const response =
+    await fetchWithTimeout(
+
+      'https://news.google.com/_/DotsSplashUi/data/batchexecute?rpcids=Fbv4je',
+
+      {
+
+        method:
+          'POST',
+
+        headers: {
+
+          'Content-Type':
+            'application/x-www-form-urlencoded;charset=utf-8',
+
+          Referer:
+            'https://news.google.com/'
+
+        },
+
+        body:
+          `f.req=${encodeURIComponent(request)}`
 
       }
 
+    );
+
+
+  if (
+    !response.ok
+  ) {
+
+    throw new Error(
+      `Google decoder HTTP ${response.status}`
+    );
+
+  }
+
+
+  const text =
+    await response.text();
+
+
+  const marker =
+    '[\\"garturlres\\",\\"';
+
+
+  const index =
+    text.indexOf(
+      marker
+    );
+
+
+  if (
+    index < 0
+  ) {
+
+    throw new Error(
+      'Google decoder marker not found'
+    );
+
+  }
+
+
+  const rest =
+    text.slice(
+      index +
+      marker.length
+    );
+
+
+  const end =
+    rest.indexOf(
+      '\\",'
+    );
+
+
+  if (
+    end < 0
+  ) {
+
+    throw new Error(
+      'Google decoder URL end not found'
+    );
+
+  }
+
+
+  return unescapeGoogle(
+    rest.slice(
+      0,
+      end
+    )
+  );
+
+}
+
+
+function decodeOldId(
+  id
+) {
+
+  try {
+
+    const base64 =
+      id
+        .replace(
+          /-/g,
+          '+'
+        )
+        .replace(
+          /_/g,
+          '/'
+        );
+
+
+    let buffer =
+      Buffer.from(
+
+        base64 +
+
+        '='.repeat(
+          (
+            4 -
+            base64.length % 4
+          ) % 4
+        ),
+
+        'base64'
+
+      );
+
+
+    const prefix =
+      Buffer.from(
+        [
+          0x08,
+          0x13,
+          0x22
+        ]
+      );
+
+
+    const suffix =
+      Buffer.from(
+        [
+          0xd2,
+          0x01,
+          0x00
+        ]
+      );
+
+
+    if (
+      buffer
+        .subarray(
+          0,
+          3
+        )
+        .equals(
+          prefix
+        )
+    ) {
+
+      buffer =
+        buffer.subarray(
+          3
+        );
+
+    }
+
+
+    if (
+
+      buffer.length >= 3 &&
+
+      buffer
+        .subarray(
+          buffer.length - 3
+        )
+        .equals(
+          suffix
+        )
+
+    ) {
+
+      buffer =
+        buffer.subarray(
+          0,
+          buffer.length - 3
+        );
+
+    }
+
+
+    let position = 0;
+
+    let length = 0;
+
+    let shift = 0;
+
+
+    while (
+
+      position <
+        buffer.length &&
+
+      shift <= 28
+
+    ) {
+
+      const byte =
+        buffer[
+          position++
+        ];
+
+
+      length |=
+        (
+          byte &
+          0x7f
+        ) <<
+        shift;
+
 
       if (
-        resolved.length >= 6
+        !(
+          byte &
+          0x80
+        )
       ) {
 
         break;
@@ -959,16 +1189,143 @@ async function discoverFromGoogleNews(
       }
 
 
-      await delay(250);
+      shift += 7;
 
     }
 
 
-    return resolved;
+    if (
 
-  } catch {
+      length <= 0 ||
 
-    return [];
+      position +
+        length >
+        buffer.length
+
+    ) {
+
+      return '';
+
+    }
+
+
+    return buffer
+      .subarray(
+        position,
+        position + length
+      )
+      .toString(
+        'utf8'
+      );
+
+  }
+
+  catch {
+
+    return '';
+
+  }
+
+}
+
+
+async function resolveGoogleUrl(
+  url
+) {
+
+  try {
+
+    const parsed =
+      new URL(url);
+
+
+    if (
+      parsed.hostname !==
+      'news.google.com'
+    ) {
+
+      return url;
+
+    }
+
+
+    const parts =
+      parsed.pathname
+        .split('/')
+        .filter(Boolean);
+
+
+    const articleIndex =
+      parts.lastIndexOf(
+        'articles'
+      );
+
+
+    if (
+
+      articleIndex < 0 ||
+
+      !parts[
+        articleIndex + 1
+      ]
+
+    ) {
+
+      return url;
+
+    }
+
+
+    const id =
+      parts[
+        articleIndex + 1
+      ];
+
+
+    const oldDecoded =
+      decodeOldId(id);
+
+
+    if (
+      /^https?:\/\//i.test(
+        oldDecoded
+      )
+    ) {
+
+      return oldDecoded;
+
+    }
+
+
+    const decoded =
+      await decodeViaBatch(
+        id
+      );
+
+
+    return (
+
+      /^https?:\/\//i.test(
+        decoded
+      )
+
+        ? decoded
+
+        : url
+
+    );
+
+  }
+
+  catch (
+    error
+  ) {
+
+    console.log(
+      `⚠️ Google URL decode failed: ${error.message}`
+    );
+
+    return url;
 
   }
 
@@ -976,26 +1333,26 @@ async function discoverFromGoogleNews(
 
 
 // ================================================================
-// 13. META TAG HELPER
+// META + JSON-LD
 // ================================================================
 
 function getMeta(
   $,
-  keys
+  names
 ) {
 
   for (
-    const key
-    of keys
+    const name
+    of names
   ) {
 
     const selectors = [
 
-      `meta[property="${key}"]`,
+      `meta[property="${name}"]`,
 
-      `meta[name="${key}"]`,
+      `meta[name="${name}"]`,
 
-      `meta[itemprop="${key}"]`
+      `meta[itemprop="${name}"]`
 
     ];
 
@@ -1008,16 +1365,17 @@ function getMeta(
       const value =
         $(selector)
           .first()
-          .attr('content');
+          .attr(
+            'content'
+          );
+
 
       if (
         value &&
-        cleanText(value)
+        clean(value)
       ) {
 
-        return cleanText(
-          value
-        );
+        return clean(value);
 
       }
 
@@ -1025,71 +1383,17 @@ function getMeta(
 
   }
 
+
   return '';
 
 }
 
 
-// ================================================================
-// 14. JSON-LD PARSER
-// ================================================================
-
-function getJsonLdObjects(
+function jsonLdNodes(
   $
 ) {
 
-  const objects =
-    [];
-
-
-  $(
-    'script[type="application/ld+json"]'
-  ).each(
-    (_, el) => {
-
-      const raw =
-        $(el)
-          .contents()
-          .text()
-          .trim();
-
-      if (!raw)
-        return;
-
-
-      try {
-
-        const parsed =
-          JSON.parse(raw);
-
-        if (
-          Array.isArray(parsed)
-        ) {
-
-          objects.push(
-            ...parsed
-          );
-
-        } else {
-
-          objects.push(
-            parsed
-          );
-
-        }
-
-      } catch {
-
-        // malformed JSON-LD ignored
-
-      }
-
-    }
-  );
-
-
-  const flattened =
-    [];
+  const output = [];
 
 
   function walk(
@@ -1098,24 +1402,34 @@ function getJsonLdObjects(
 
     if (
       !value ||
-      typeof value !== 'object'
+      typeof value !==
+        'object'
     ) {
 
       return;
 
     }
+
 
     if (
-      Array.isArray(value)
+      Array.isArray(
+        value
+      )
     ) {
 
-      value.forEach(walk);
+      value.forEach(
+        walk
+      );
 
       return;
 
     }
 
-    flattened.push(value);
+
+    output.push(
+      value
+    );
+
 
     if (
       value['@graph']
@@ -1130,539 +1444,148 @@ function getJsonLdObjects(
   }
 
 
-  objects.forEach(walk);
+  $(
+    'script[type="application/ld+json"]'
+  ).each(
+    (_, element) => {
+
+      const raw =
+        $(element)
+          .contents()
+          .text()
+          .trim();
 
 
-  return flattened;
+      if (!raw)
+        return;
+
+
+      try {
+
+        walk(
+          JSON.parse(
+            raw
+          )
+        );
+
+      }
+
+      catch {
+
+      }
+
+    }
+  );
+
+
+  return output;
 
 }
 
 
-// ================================================================
-// 15. FIND JSON-LD ARTICLE OBJECT
-// ================================================================
-
-function pickJsonLdArticle(
+function articleJsonLd(
   $
 ) {
 
-  const all =
-    getJsonLdObjects($);
-
-
-  const wantedTypes =
-    new Set([
-
-      'NewsArticle',
-
-      'Article',
-
-      'ReportageNewsArticle',
-
-      'LiveBlogPosting'
-
-    ]);
+  const types =
+    new Set(
+      [
+        'NewsArticle',
+        'Article',
+        'ReportageNewsArticle',
+        'LiveBlogPosting'
+      ]
+    );
 
 
   return (
 
-    all.find(
-      obj => {
+    jsonLdNodes($)
+      .find(
+        (node) => {
 
-        const type =
-          obj['@type'];
+          const type =
+            node['@type'];
 
 
-        if (
-          Array.isArray(type)
-        ) {
+          return (
 
-          return type.some(
-            t =>
-              wantedTypes.has(t)
+            Array.isArray(
+              type
+            )
+
+              ?
+
+              type.some(
+                (value) =>
+                  types.has(
+                    value
+                  )
+              )
+
+              :
+
+              types.has(
+                type
+              )
+
           );
 
         }
+      ) ||
 
-
-        return wantedTypes.has(
-          type
-        );
-
-      }
-    ) || null
+    null
 
   );
 
 }
 
 
-// ================================================================
-// 16. JSON-LD IMAGE
-// ================================================================
-
-function extractJsonLdImage(
-  article,
-  baseUrl
-) {
-
-  if (
-    !article ||
-    !article.image
-  ) {
-
-    return '';
-
-  }
-
-
-  const image =
-    article.image;
-
-
-  let raw =
-    '';
-
-
-  if (
-    typeof image === 'string'
-  ) {
-
-    raw =
-      image;
-
-  }
-
-
-  else if (
-    Array.isArray(image)
-  ) {
-
-    const first =
-      image[0];
-
-
-    if (
-      typeof first === 'string'
-    ) {
-
-      raw =
-        first;
-
-    }
-
-
-    else if (
-      first &&
-      typeof first === 'object'
-    ) {
-
-      raw =
-        first.url ||
-        first.contentUrl ||
-        '';
-
-    }
-
-  }
-
-
-  else if (
-    typeof image === 'object'
-  ) {
-
-    raw =
-      image.url ||
-      image.contentUrl ||
-      '';
-
-  }
-
-
-  return absoluteUrl(
-    raw,
-    baseUrl
-  );
-
-}
-
-
-// ================================================================
-// 17. INVALID IMAGE FILTER
-// ================================================================
-
-function isBadImageUrl(
-  url
-) {
-
-  if (!url)
-    return true;
-
-
-  const lower =
-    url.toLowerCase();
-
-
-  if (
-    lower.startsWith(
-      'data:'
-    )
-  ) {
-
-    return true;
-
-  }
-
-
-  if (
-    lower.endsWith(
-      '.svg'
-    )
-  ) {
-
-    return true;
-
-  }
-
-
-  const badWords = [
-
-    'logo',
-
-    'favicon',
-
-    'avatar',
-
-    'author',
-
-    'profile',
-
-    'placeholder',
-
-    'default',
-
-    'sprite',
-
-    'icon',
-
-    'loading',
-
-    'blank',
-
-    'ads',
-
-    'advertisement',
-
-    'banner'
-
-  ];
-
-
-  return badWords.some(
-    word =>
-      lower.includes(word)
-  );
-
-}
-
-
-// ================================================================
-// 18. EXTRACT IMAGE FROM IMG ELEMENT
-// ================================================================
-
-function imageFromElement(
+function canonicalUrl(
   $,
-  el,
-  baseUrl
+  pageUrl
 ) {
 
-  const candidates = [
+  return (
 
-    $(el).attr(
-      'data-src'
-    ),
+    absoluteUrl(
 
-    $(el).attr(
-      'data-lazy-src'
-    ),
+      $(
+        'link[rel="canonical"]'
+      )
+        .first()
+        .attr(
+          'href'
+        ),
 
-    $(el).attr(
-      'data-original'
-    ),
+      pageUrl
 
-    $(el).attr(
-      'data-image'
-    ),
-
-    $(el).attr(
-      'src'
-    )
-
-  ];
-
-
-  const srcset =
-
-    $(el).attr(
-      'srcset'
     ) ||
 
-    $(el).attr(
-      'data-srcset'
-    );
+    pageUrl
 
-
-  if (srcset) {
-
-    const parts =
-      srcset
-
-        .split(',')
-
-        .map(
-          part =>
-            cleanText(part)
-              .split(' ')[0]
-        )
-
-        .filter(Boolean);
-
-
-    if (
-      parts.length
-    ) {
-
-      candidates.unshift(
-        parts[
-          parts.length - 1
-        ]
-      );
-
-    }
-
-  }
-
-
-  for (
-    const candidate
-    of candidates
-  ) {
-
-    const url =
-      absoluteUrl(
-        candidate,
-        baseUrl
-      );
-
-
-    if (
-      url &&
-      !isBadImageUrl(url)
-    ) {
-
-      return url;
-
-    }
-
-  }
-
-
-  return '';
+  );
 
 }
 
 
 // ================================================================
-// 19. EXTRACT MAIN ARTICLE IMAGE
+// ARTICLE TITLE + DESCRIPTION
 // ================================================================
 
-function extractImage(
+function articleTitle(
   $,
-  article,
-  baseUrl
+  json,
+  rssTitle
 ) {
-
-  // ------------------------------------
-  // Priority 1:
-  // JSON-LD article image
-  // ------------------------------------
-
-  const jsonLdImage =
-    extractJsonLdImage(
-      article,
-      baseUrl
-    );
-
-
-  if (
-    jsonLdImage &&
-    !isBadImageUrl(
-      jsonLdImage
-    )
-  ) {
-
-    return jsonLdImage;
-
-  }
-
-
-  // ------------------------------------
-  // Priority 2:
-  // OpenGraph / Twitter
-  // ------------------------------------
-
-  const metaCandidates = [
-
-    getMeta(
-      $,
-      ['og:image:secure_url']
-    ),
-
-    getMeta(
-      $,
-      ['og:image']
-    ),
-
-    getMeta(
-      $,
-      ['twitter:image']
-    ),
-
-    getMeta(
-      $,
-      ['twitter:image:src']
-    )
-
-  ];
-
-
-  for (
-    const candidate
-    of metaCandidates
-  ) {
-
-    const url =
-      absoluteUrl(
-        candidate,
-        baseUrl
-      );
-
-
-    if (
-      url &&
-      !isBadImageUrl(url)
-    ) {
-
-      return url;
-
-    }
-
-  }
-
-
-  // ------------------------------------
-  // Priority 3:
-  // Actual article images
-  // ------------------------------------
-
-  const selectors = [
-
-    'article figure img',
-
-    'article img',
-
-    'main figure img',
-
-    'main img',
-
-    '.article-body figure img',
-
-    '.article-body img',
-
-    '.news-content figure img',
-
-    '.news-content img',
-
-    '.story-content img',
-
-    '.details-content img',
-
-    '.post-content img'
-
-  ];
-
-
-  for (
-    const selector
-    of selectors
-  ) {
-
-    const elements =
-      $(selector)
-        .toArray();
-
-
-    for (
-      const el
-      of elements
-    ) {
-
-      const url =
-        imageFromElement(
-          $,
-          el,
-          baseUrl
-        );
-
-
-      if (url) {
-
-        return url;
-
-      }
-
-    }
-
-  }
-
-
-  return '';
-
-}
-
-
-// ================================================================
-// 20. EXTRACT TITLE
-// ================================================================
-
-function extractTitle(
-  $,
-  article
-) {
-
-  const jsonTitle =
-
-    article &&
-    (
-      article.headline ||
-      article.name
-    )
-
-      ?
-
-      cleanText(
-        article.headline ||
-        article.name
-      )
-
-      :
-
-      '';
-
 
   const title =
 
-    jsonTitle ||
+    clean(
+      json?.headline ||
+      json?.name ||
+      ''
+    ) ||
 
     getMeta(
       $,
@@ -1674,44 +1597,34 @@ function extractTitle(
       ['twitter:title']
     ) ||
 
-    cleanText(
+    clean(
       $('article h1')
         .first()
         .text()
     ) ||
 
-    cleanText(
+    clean(
       $('main h1')
         .first()
         .text()
     ) ||
 
-    cleanText(
+    clean(
       $('h1')
         .first()
         .text()
     ) ||
 
-    cleanText(
-      $('title')
-        .first()
-        .text()
+    clean(
+      rssTitle
     );
 
 
-  // common:
-  // Headline | Prothom Alo
-  // Headline - Newspaper name
-  // suffix remove
-
-  return cleanText(
+  return clean(
 
     title.replace(
-
-      /\s+[|–—-]\s+[^|–—-]{2,40}$/u,
-
+      /\s+[|–—-]\s+[^|–—-]{2,45}$/u,
       ''
-
     )
 
   );
@@ -1719,34 +1632,17 @@ function extractTitle(
 }
 
 
-// ================================================================
-// 21. EXTRACT DESCRIPTION
-// ================================================================
-
-function extractDescription(
+function articleDescription(
   $,
-  article
+  json
 ) {
 
-  const jsonDescription =
+  const meta =
 
-    article &&
-    article.description
-
-      ?
-
-      stripHtml(
-        article.description
-      )
-
-      :
-
-      '';
-
-
-  const metaDescription =
-
-    jsonDescription ||
+    clean(
+      json?.description ||
+      ''
+    ) ||
 
     getMeta(
       $,
@@ -1765,40 +1661,32 @@ function extractDescription(
 
 
   if (
-    metaDescription &&
-    metaDescription.length >= 40
+    meta.length >= 35
   ) {
 
-    return cleanText(
-      metaDescription
+    return stripHtml(
+      meta
     );
 
   }
+
+
+  const paragraphs = [];
 
 
   const selectors = [
 
     'article p',
 
-    'main article p',
+    '[class*="article"] p',
 
-    '.article-body p',
+    '[class*="story"] p',
 
-    '.news-content p',
-
-    '.story-content p',
-
-    '.details-content p',
-
-    '.post-content p',
+    '[class*="details"] p',
 
     'main p'
 
   ];
-
-
-  const paragraphs =
-    [];
 
 
   for (
@@ -1807,11 +1695,12 @@ function extractDescription(
   ) {
 
     $(selector).each(
-      (_, el) => {
+      (_, element) => {
 
         const text =
-          cleanText(
-            $(el).text()
+          clean(
+            $(element)
+              .text()
           );
 
 
@@ -1819,7 +1708,7 @@ function extractDescription(
 
           text.length >= 45 &&
 
-          text.length <= 500
+          text.length <= 700
 
         ) {
 
@@ -1844,16 +1733,16 @@ function extractDescription(
   }
 
 
-  return cleanText(
+  return clean(
 
     paragraphs
-
       .slice(
         0,
         2
       )
-
-      .join(' ')
+      .join(
+        ' '
+      )
 
   );
 
@@ -1861,10 +1750,10 @@ function extractDescription(
 
 
 // ================================================================
-// 22. PUBLISHED DATE
+// ARTICLE DATE
 // ================================================================
 
-function parseDateValue(
+function parseDate(
   value
 ) {
 
@@ -1873,37 +1762,37 @@ function parseDateValue(
 
 
   const date =
-    new Date(value);
+    new Date(
+      value
+    );
 
 
-  if (
+  return (
+
     Number.isNaN(
       date.getTime()
     )
-  ) {
 
-    return null;
+      ? null
 
-  }
+      : date
 
-
-  return date;
+  );
 
 }
 
 
-function extractPublishedAt(
+function publishedAt(
   $,
-  article
+  json,
+  rssDate
 ) {
 
-  const candidates = [
+  const values = [
 
-    article &&
-      article.datePublished,
+    json?.datePublished,
 
-    article &&
-      article.dateCreated,
+    json?.dateCreated,
 
     getMeta(
       $,
@@ -1915,32 +1804,323 @@ function extractPublishedAt(
       ['datePublished']
     ),
 
-    getMeta(
-      $,
-      ['date']
-    ),
-
-    $('time[datetime]')
+    $(
+      'time[datetime]'
+    )
       .first()
-      .attr('datetime')
+      .attr(
+        'datetime'
+      )
 
   ];
 
 
   for (
-    const candidate
-    of candidates
+    const value
+    of values
   ) {
 
     const date =
-      parseDateValue(
-        candidate
+      parseDate(
+        value
       );
 
 
-    if (date) {
-
+    if (date)
       return date;
+
+  }
+
+
+  return rssDate || null;
+
+}
+
+
+// ================================================================
+// SMART IMAGE SELECTION
+// ================================================================
+
+const BAD_IMAGE_WORDS = [
+
+  'logo',
+
+  'favicon',
+
+  'brand',
+
+  'branding',
+
+  'avatar',
+
+  'author',
+
+  'profile',
+
+  'placeholder',
+
+  'default-image',
+
+  'default_image',
+
+  'no-image',
+
+  'no_image',
+
+  'sprite',
+
+  'icon',
+
+  'loading',
+
+  'blank',
+
+  'advertisement',
+
+  '/ads/',
+
+  'social-share',
+
+  'share-icon'
+
+];
+
+
+function badImage(
+  url
+) {
+
+  if (!url)
+    return true;
+
+
+  const value =
+    url.toLowerCase();
+
+
+  return (
+
+    value.startsWith(
+      'data:'
+    ) ||
+
+    /\.(svg|gif)(\?|$)/i.test(
+      value
+    ) ||
+
+    BAD_IMAGE_WORDS.some(
+      (word) =>
+        value.includes(
+          word
+        )
+    )
+
+  );
+
+}
+
+
+function dimension(
+  value
+) {
+
+  const number =
+    parseInt(
+
+      String(
+        value ||
+        ''
+      ).replace(
+        /[^0-9]/g,
+        ''
+      ),
+
+      10
+
+    );
+
+
+  return (
+
+    Number.isFinite(
+      number
+    )
+
+      ? number
+
+      : 0
+
+  );
+
+}
+
+
+function titleOverlap(
+  title,
+  alt
+) {
+
+  const getTokens =
+    (value) =>
+
+      lower(value)
+        .replace(
+          /[^\p{L}\p{N}\s]/gu,
+          ' '
+        )
+        .split(
+          /\s+/
+        )
+        .filter(
+          (token) =>
+            token.length >= 3
+        );
+
+
+  const titleTokens =
+    new Set(
+      getTokens(
+        title
+      )
+    );
+
+
+  return getTokens(
+    alt
+  ).filter(
+    (token) =>
+      titleTokens.has(
+        token
+      )
+  ).length;
+
+}
+
+
+function imageFromElement(
+  $,
+  element,
+  base
+) {
+
+  const node =
+    $(element);
+
+
+  const values = [
+
+    node.attr(
+      'data-src'
+    ),
+
+    node.attr(
+      'data-lazy-src'
+    ),
+
+    node.attr(
+      'data-original'
+    ),
+
+    node.attr(
+      'data-image'
+    ),
+
+    node.attr(
+      'src'
+    )
+
+  ];
+
+
+  const srcset =
+
+    node.attr(
+      'srcset'
+    ) ||
+
+    node.attr(
+      'data-srcset'
+    );
+
+
+  if (
+    srcset
+  ) {
+
+    values.unshift(
+
+      ...srcset
+        .split(',')
+        .map(
+          (item) =>
+            clean(item)
+              .split(
+                /\s+/
+              )[0]
+        )
+        .filter(
+          Boolean
+        )
+        .reverse()
+
+    );
+
+  }
+
+
+  for (
+    const raw
+    of values
+  ) {
+
+    const url =
+      absoluteUrl(
+        raw,
+        base
+      );
+
+
+    if (
+      url &&
+      !badImage(
+        url
+      )
+    ) {
+
+      return {
+
+        url,
+
+        alt:
+          clean(
+
+            node.attr(
+              'alt'
+            ) ||
+
+            node.attr(
+              'title'
+            ) ||
+
+            ''
+
+          ),
+
+        width:
+          dimension(
+            node.attr(
+              'width'
+            )
+          ),
+
+        height:
+          dimension(
+            node.attr(
+              'height'
+            )
+          )
+
+      };
 
     }
 
@@ -1952,422 +2132,856 @@ function extractPublishedAt(
 }
 
 
-// ================================================================
-// 23. OLD NEWS FILTER
-// ================================================================
-
-function isTooOld(
-  date
+function addJsonImages(
+  output,
+  json,
+  base
 ) {
 
-  if (!date)
-    return false;
-
-
-  const ageMs =
-    Date.now() -
-    date.getTime();
-
-
-  // future timestamp হলে
-  // old হিসেবে ধরবে না
-
   if (
-    ageMs < 0
+    !json?.image
   ) {
 
-    return false;
+    return;
 
   }
 
 
+  const images =
+
+    Array.isArray(
+      json.image
+    )
+
+      ? json.image
+
+      : [
+          json.image
+        ];
+
+
+  for (
+    const image
+    of images
+  ) {
+
+    let raw = '';
+
+    let width = 0;
+
+    let height = 0;
+
+    let alt = '';
+
+
+    if (
+      typeof image ===
+      'string'
+    ) {
+
+      raw =
+        image;
+
+    }
+
+    else if (
+      image &&
+      typeof image ===
+      'object'
+    ) {
+
+      raw =
+
+        image.url ||
+
+        image.contentUrl ||
+
+        '';
+
+
+      width =
+        dimension(
+
+          image.width?.value ??
+          image.width
+
+        );
+
+
+      height =
+        dimension(
+
+          image.height?.value ??
+          image.height
+
+        );
+
+
+      alt =
+        clean(
+
+          image.caption ||
+
+          image.name ||
+
+          image.description ||
+
+          ''
+
+        );
+
+    }
+
+
+    const url =
+      absoluteUrl(
+        raw,
+        base
+      );
+
+
+    if (
+      url
+    ) {
+
+      output.push(
+        {
+
+          url,
+
+          score: 112,
+
+          width,
+
+          height,
+
+          alt,
+
+          kind:
+            'jsonld'
+
+        }
+      );
+
+    }
+
+  }
+
+}
+
+
+function bestImage(
+  $,
+  json,
+  base,
+  title,
+  publisher,
+  imageUseCounts
+) {
+
+  const output = [];
+
+
+  // ------------------------------------------------
+  // Highest priority:
+  // actual article/figure images
+  // ------------------------------------------------
+
+  const strongSelectors = [
+
+    'article figure img',
+
+    'article picture img',
+
+    '[class*="article"] figure img',
+
+    '[class*="article"] picture img',
+
+    '[class*="story"] figure img',
+
+    '[class*="story"] picture img',
+
+    '[class*="details"] figure img',
+
+    'main figure img',
+
+    'main picture img'
+
+  ];
+
+
+  for (
+    const selector
+    of strongSelectors
+  ) {
+
+    $(selector).each(
+      (_, element) => {
+
+        const image =
+          imageFromElement(
+            $,
+            element,
+            base
+          );
+
+
+        if (
+          image
+        ) {
+
+          output.push(
+            {
+
+              ...image,
+
+              score: 140,
+
+              kind:
+                'article-dom'
+
+            }
+          );
+
+        }
+
+      }
+    );
+
+  }
+
+
+  // ------------------------------------------------
+  // Normal article/main images
+  // ------------------------------------------------
+
+  const bodySelectors = [
+
+    'article img',
+
+    '[class*="article"] img',
+
+    '[class*="story"] img',
+
+    'main img'
+
+  ];
+
+
+  for (
+    const selector
+    of bodySelectors
+  ) {
+
+    $(selector)
+      .slice(
+        0,
+        12
+      )
+      .each(
+        (_, element) => {
+
+          const node =
+            $(element);
+
+
+          if (
+            node.closest(
+              'header,nav,aside,footer'
+            ).length
+          ) {
+
+            return;
+
+          }
+
+
+          const image =
+            imageFromElement(
+              $,
+              element,
+              base
+            );
+
+
+          if (
+            image
+          ) {
+
+            output.push(
+              {
+
+                ...image,
+
+                score: 105,
+
+                kind:
+                  'body-dom'
+
+              }
+            );
+
+          }
+
+        }
+      );
+
+  }
+
+
+  // ------------------------------------------------
+  // Schema.org / JSON-LD
+  // ------------------------------------------------
+
+  addJsonImages(
+    output,
+    json,
+    base
+  );
+
+
+  // ------------------------------------------------
+  // og:image is now fallback,
+  // NOT automatically the first choice
+  // ------------------------------------------------
+
+  const ogWidth =
+    dimension(
+      getMeta(
+        $,
+        ['og:image:width']
+      )
+    );
+
+
+  const ogHeight =
+    dimension(
+      getMeta(
+        $,
+        ['og:image:height']
+      )
+    );
+
+
+  const ogAlt =
+    getMeta(
+      $,
+      ['og:image:alt']
+    );
+
+
+  const metadataImages = [
+
+    [
+      getMeta(
+        $,
+        ['og:image:secure_url']
+      ),
+      100,
+      ogWidth,
+      ogHeight,
+      ogAlt
+    ],
+
+    [
+      getMeta(
+        $,
+        ['og:image']
+      ),
+      98,
+      ogWidth,
+      ogHeight,
+      ogAlt
+    ],
+
+    [
+      getMeta(
+        $,
+        ['twitter:image']
+      ),
+      92,
+      0,
+      0,
+      getMeta(
+        $,
+        ['twitter:image:alt']
+      )
+    ],
+
+    [
+      $(
+        'link[rel="image_src"]'
+      )
+        .first()
+        .attr(
+          'href'
+        ),
+      88,
+      0,
+      0,
+      ''
+    ]
+
+  ];
+
+
+  for (
+    const candidate
+    of metadataImages
+  ) {
+
+    const url =
+      absoluteUrl(
+        candidate[0],
+        base
+      );
+
+
+    if (
+      url
+    ) {
+
+      output.push(
+        {
+
+          url,
+
+          score:
+            candidate[1],
+
+          width:
+            candidate[2],
+
+          height:
+            candidate[3],
+
+          alt:
+            candidate[4],
+
+          kind:
+            'meta'
+
+        }
+      );
+
+    }
+
+  }
+
+
+  // ------------------------------------------------
+  // Deduplicate candidates
+  // ------------------------------------------------
+
+  const merged =
+    new Map();
+
+
+  for (
+    const candidate
+    of output
+  ) {
+
+    if (
+      !candidate.url ||
+      badImage(
+        candidate.url
+      )
+    ) {
+
+      continue;
+
+    }
+
+
+    if (
+
+      !merged.has(
+        candidate.url
+      ) ||
+
+      candidate.score >
+        merged.get(
+          candidate.url
+        ).score
+
+    ) {
+
+      merged.set(
+        candidate.url,
+        candidate
+      );
+
+    }
+
+  }
+
+
+  const publisherText =
+    lower(
+
+      [
+        publisher?.bnName,
+        ...(
+          publisher?.aliases ||
+          []
+        )
+      ].join(
+        ' '
+      )
+
+    );
+
+
+  const scored =
+    [
+      ...merged.values()
+    ]
+      .map(
+        (candidate) => {
+
+          let score =
+            candidate.score;
+
+
+          const alt =
+            lower(
+              candidate.alt ||
+              ''
+            );
+
+
+          const overlap =
+            titleOverlap(
+
+              title,
+
+              candidate.alt ||
+              ''
+
+            );
+
+
+          // Large images are more likely
+          // to be real news photos.
+          if (
+
+            candidate.width >= 600 &&
+
+            candidate.height >= 300
+
+          ) {
+
+            score += 25;
+
+          }
+
+
+          // Small assets are usually
+          // icons/logos.
+          if (
+
+            candidate.width &&
+
+            candidate.height &&
+
+            (
+              candidate.width < 280 ||
+
+              candidate.height < 150
+            )
+
+          ) {
+
+            score -= 120;
+
+          }
+
+
+          // ALT related to title =
+          // strong positive evidence.
+          score +=
+            Math.min(
+              overlap * 12,
+              36
+            );
+
+
+          // ALT is basically the
+          // publisher name = likely logo.
+          if (
+
+            alt &&
+
+            publisherText.includes(
+              alt
+            ) &&
+
+            overlap === 0
+
+          ) {
+
+            score -= 110;
+
+          }
+
+
+          if (
+            /\/static\/.*(logo|brand)/i.test(
+              candidate.url
+            )
+          ) {
+
+            score -= 150;
+
+          }
+
+
+          // The same exact image appearing
+          // in many different stories is
+          // probably a site placeholder.
+          const used =
+            imageUseCounts.get(
+              candidate.url
+            ) ||
+            0;
+
+
+          if (
+            used >= 2
+          ) {
+
+            score -= 160;
+
+          }
+
+          else if (
+            used === 1
+          ) {
+
+            score -= 35;
+
+          }
+
+
+          return {
+
+            ...candidate,
+
+            finalScore:
+              score
+
+          };
+
+        }
+      )
+      .sort(
+        (a, b) =>
+          b.finalScore -
+          a.finalScore
+      );
+
+
+  const winner =
+    scored.find(
+      (candidate) =>
+        candidate.finalScore >= 70
+    );
+
+
   return (
-
-    ageMs >
-
-    MAX_ARTICLE_AGE_HOURS *
-      60 *
-      60 *
-      1000
-
+    winner?.url ||
+    ''
   );
 
 }
 
 
 // ================================================================
-// 24. CATEGORY CLASSIFICATION
-//     WITHOUT AI
+// CATEGORY DETECTION
 // ================================================================
 
 const CATEGORY_RULES = [
 
-  {
-    category:
-      'খেলাধুলা',
-
-    words: [
-
+  [
+    'খেলাধুলা',
+    [
       'ক্রিকেট',
-
       'ফুটবল',
-
-      'খেলা',
-
       'ম্যাচ',
-
       'টেস্ট',
-
       'ওয়ানডে',
-
       'টি-টোয়েন্টি',
-
-      'বিসিবি',
-
-      'ফিফা',
-
       'বিশ্বকাপ',
-
-      'চ্যাম্পিয়ন',
-
-      'গোল',
-
-      'টুর্নামেন্ট'
-
+      'বিসিবি',
+      'ফিফা'
     ]
-  },
+  ],
 
-
-  {
-    category:
-      'বাণিজ্য',
-
-    words: [
-
+  [
+    'বাণিজ্য',
+    [
       'ব্যাংক',
-
-      'শেয়ারবাজার',
-
-      'পুঁজিবাজার',
-
       'অর্থনীতি',
-
       'বাণিজ্য',
-
+      'শেয়ারবাজার',
+      'পুঁজিবাজার',
       'ডলার',
-
       'রপ্তানি',
-
       'আমদানি',
-
-      'মূল্যস্ফীতি',
-
       'বাজেট',
-
-      'রাজস্ব',
-
-      'ঋণ',
-
-      'ব্যবসা'
-
+      'ঋণ'
     ]
-  },
+  ],
 
-
-  {
-    category:
-      'রাজনীতি',
-
-    words: [
-
+  [
+    'রাজনীতি',
+    [
       'বিএনপি',
-
       'আওয়ামী লীগ',
-
       'জামায়াত',
-
       'নির্বাচন',
-
       'ভোট',
-
       'রাজনীতি',
-
-      'রাজনৈতিক',
-
       'সংসদ',
-
-      'দলীয়',
-
-      'প্রার্থী',
-
-      'কমিশন'
-
+      'প্রার্থী'
     ]
-  },
+  ],
 
-
-  {
-    category:
-      'আন্তর্জাতিক',
-
-    words: [
-
-      'যুক্তরাষ্ট্র',
-
-      'ভারত',
-
-      'চীন',
-
-      'রাশিয়া',
-
-      'ইউক্রেন',
-
-      'গাজা',
-
-      'ইসরায়েল',
-
-      'পাকিস্তান',
-
-      'জাতিসংঘ',
-
-      'ট্রাম্প',
-
-      'মোদি',
-
-      'ইরান',
-
-      'নেপাল',
-
-      'মিয়ানমার',
-
-      'বিশ্ব'
-
-    ]
-  },
-
-
-  {
-    category:
-      'আইন-আদালত',
-
-    words: [
-
+  [
+    'আইন-আদালত',
+    [
       'আদালত',
-
       'হাইকোর্ট',
-
       'সুপ্রিম কোর্ট',
-
       'আপিল বিভাগ',
-
       'মামলা',
-
       'জামিন',
-
       'রিমান্ড',
-
-      'বিচারক',
-
-      'আইনজীবী',
-
-      'ট্রাইব্যুনাল',
-
-      'রায়'
-
+      'রায়',
+      'ট্রাইব্যুনাল'
     ]
-  },
+  ],
 
-
-  {
-    category:
+  [
+    'প্রযুক্তি',
+    [
       'প্রযুক্তি',
-
-    words: [
-
-      'প্রযুক্তি',
-
       'স্মার্টফোন',
-
-      'মোবাইল',
-
       'ইন্টারনেট',
-
-      'ফেসবুক',
-
       'গুগল',
-
       'মাইক্রোসফট',
-
       'কৃত্রিম বুদ্ধিমত্তা',
-
       'এআই',
-
-      'সাইবার',
-
-      'অ্যাপ'
-
+      'সাইবার'
     ]
-  },
+  ],
 
-
-  {
-    category:
-      'বিনোদন',
-
-    words: [
-
+  [
+    'বিনোদন',
+    [
       'সিনেমা',
-
       'অভিনেতা',
-
       'অভিনেত্রী',
-
       'নায়ক',
-
       'নায়িকা',
-
-      'গায়ক',
-
-      'গায়িকা',
-
       'নাটক',
-
-      'বিনোদন',
-
       'চলচ্চিত্র',
-
       'বলিউড',
-
       'হলিউড'
-
     ]
-  },
+  ],
 
-
-  {
-    category:
-      'শিক্ষা',
-
-    words: [
-
+  [
+    'শিক্ষা',
+    [
       'বিশ্ববিদ্যালয়',
-
       'শিক্ষা',
-
       'স্কুল',
-
       'কলেজ',
-
       'শিক্ষার্থী',
-
       'পরীক্ষা',
-
-      'এইচএসসি',
-
-      'এসএসসি',
-
       'ভর্তি',
-
       'শিক্ষক'
-
     ]
-  },
+  ],
 
-
-  {
-    category:
+  [
+    'চাকরি',
+    [
       'চাকরি',
-
-    words: [
-
-      'চাকরি',
-
       'নিয়োগ',
-
-      'পদে আবেদন',
-
       'ক্যারিয়ার',
-
       'বেতন',
-
       'পদসংখ্যা'
-
     ]
-  },
+  ],
 
-
-  {
-    category:
-      'ধর্ম',
-
-    words: [
-
+  [
+    'ধর্ম',
+    [
       'ইসলাম',
-
       'হজ',
-
       'ওমরাহ',
-
       'মসজিদ',
-
       'কোরআন',
-
       'রমজান',
-
       'পূজা',
-
       'মন্দির',
-
       'ধর্ম'
-
     ]
-  },
+  ],
 
-
-  {
-    category:
-      'জীবনযাপন',
-
-    words: [
-
+  [
+    'জীবনযাপন',
+    [
       'স্বাস্থ্য',
-
       'জীবনযাপন',
-
       'খাদ্য',
-
       'রেসিপি',
-
       'ফ্যাশন',
-
       'ভ্রমণ',
-
       'লাইফস্টাইল'
-
     ]
-  }
+  ],
+
+  [
+    'আন্তর্জাতিক',
+    [
+      'যুক্তরাষ্ট্র',
+      'ভারত',
+      'চীন',
+      'রাশিয়া',
+      'ইউক্রেন',
+      'গাজা',
+      'ইসরায়েল',
+      'পাকিস্তান',
+      'জাতিসংঘ',
+      'ট্রাম্প',
+      'মোদি',
+      'ইরান',
+      'নেপাল',
+      'মিয়ানমার'
+    ]
+  ]
 
 ];
 
 
-// ================================================================
-// 25. DETECT CATEGORY
-// ================================================================
-
 function detectCategory(
   title,
   description,
-  fallback
+  hint = 'বাংলাদেশ'
 ) {
 
-  const haystack =
-    `${title} ${description}`
-      .toLowerCase();
+  const text =
+    lower(
+      `${title} ${description}`
+    );
 
 
-  let bestCategory =
-    fallback ||
-    'বাংলাদেশ';
+  let best =
+    hint;
 
 
   let bestScore =
@@ -2375,30 +2989,37 @@ function detectCategory(
 
 
   for (
-    const rule
+    const [
+      category,
+      words
+    ]
     of CATEGORY_RULES
   ) {
 
-    let score =
-      0;
+    const score =
+      words.reduce(
 
+        (
+          total,
+          word
+        ) =>
 
-    for (
-      const word
-      of rule.words
-    ) {
+          total +
 
-      if (
-        haystack.includes(
-          word.toLowerCase()
-        )
-      ) {
+          (
+            text.includes(
+              lower(word)
+            )
 
-        score++;
+              ? 1
 
-      }
+              : 0
 
-    }
+          ),
+
+        0
+
+      );
 
 
     if (
@@ -2409,222 +3030,283 @@ function detectCategory(
       bestScore =
         score;
 
-      bestCategory =
-        rule.category;
+      best =
+        category;
 
     }
 
   }
 
 
-  return bestCategory;
+  return best;
 
 }
 
 
+const CATEGORY_LIMITS = {
+
+  'বাংলাদেশ': 7,
+
+  'রাজনীতি': 4,
+
+  'আন্তর্জাতিক': 3,
+
+  'আইন-আদালত': 3,
+
+  'বাণিজ্য': 3,
+
+  'খেলাধুলা': 3,
+
+  'বিনোদন': 2,
+
+  'প্রযুক্তি': 2,
+
+  'শিক্ষা': 2,
+
+  'চাকরি': 1,
+
+  'ধর্ম': 1,
+
+  'জীবনযাপন': 1
+
+};
+
+
 // ================================================================
-// 26. IMPORTANCE SCORE
+// HASH / AGE / IMPORTANCE
 // ================================================================
 
-function calculateImportance(
+function hashFor(
+  title,
+  source
+) {
+
+  const key =
+    lower(title)
+      .replace(
+        /[“”‘’'"`]/g,
+        ''
+      )
+      .replace(
+        /[^\p{L}\p{N}\s]/gu,
+        ' '
+      )
+      .replace(
+        /\s+/g,
+        ' '
+      )
+      .trim();
+
+
+  return crypto
+    .createHash(
+      'sha256'
+    )
+    .update(
+      `${source}|${key}`
+    )
+    .digest(
+      'hex'
+    );
+
+}
+
+
+function tooOld(
+  date
+) {
+
+  if (!date)
+    return false;
+
+
+  const difference =
+    Date.now() -
+    date.getTime();
+
+
+  return (
+
+    difference >= 0 &&
+
+    difference >
+
+      MAX_ARTICLE_AGE_HOURS *
+
+      3600000
+
+  );
+
+}
+
+
+function importance(
   title,
   category
 ) {
 
-  const text =
-    title.toLowerCase();
-
-
   let score =
-    5;
 
-
-  const highWords = [
-
-    'প্রধানমন্ত্রী',
-
-    'রাষ্ট্রপতি',
-
-    'জাতীয়',
-
-    'নির্বাচন',
-
-    'আদালত',
-
-    'হাইকোর্ট',
-
-    'সুপ্রিম কোর্ট',
-
-    'দুর্ঘটনা',
-
-    'আগুন',
-
-    'ভূমিকম্প',
-
-    'বন্যা',
-
-    'ঘূর্ণিঝড়',
-
-    'মৃত্যু',
-
-    'নিহত',
-
-    'গ্রেপ্তার',
-
-    'বাজেট',
-
-    'রেকর্ড'
-
-  ];
-
-
-  highWords.forEach(
-    word => {
-
-      if (
-        text.includes(word)
-      ) {
-
-        score += 1;
-
-      }
-
-    }
-  );
-
-
-  if (
     [
-
       'বাংলাদেশ',
-
       'রাজনীতি',
-
       'আন্তর্জাতিক',
-
       'আইন-আদালত'
 
     ].includes(
       category
     )
-  ) {
 
-    score += 1;
+      ? 7
 
-  }
-
-
-  return Math.max(
-
-    1,
-
-    Math.min(
-      10,
-      score
-    )
-
-  );
-
-}
-
-
-// ================================================================
-// 27. BREAKING NEWS DETECTION
-// ================================================================
-
-function isBreakingTitle(
-  title
-) {
-
-  const text =
-    title.toLowerCase();
+      : 6;
 
 
   const words = [
 
-    'এইমাত্র',
+    'প্রধানমন্ত্রী',
 
-    'জরুরি',
+    'রাষ্ট্রপতি',
 
-    'ব্রেকিং',
+    'নির্বাচন',
 
-    'নিহত',
+    'হাইকোর্ট',
 
-    'ভূমিকম্প',
+    'সুপ্রিম কোর্ট',
 
     'আগুন',
 
     'বিস্ফোরণ',
 
-    'ঘূর্ণিঝড়',
+    'ভূমিকম্প',
+
+    'বন্যা',
+
+    'নিহত',
 
     'গ্রেপ্তার',
 
-    'পদত্যাগ'
+    'বাজেট'
 
   ];
 
 
-  return words.some(
-    word =>
-      text.includes(word)
+  for (
+    const word
+    of words
+  ) {
+
+    if (
+      lower(title).includes(
+        lower(word)
+      )
+    ) {
+
+      score++;
+
+    }
+
+  }
+
+
+  return Math.min(
+    10,
+    score
   );
 
 }
 
 
 // ================================================================
-// 28. EXTRACT COMPLETE ARTICLE METADATA
+// ORIGINAL ARTICLE EXTRACTION
 // ================================================================
 
 async function extractArticle(
-  url,
-  source
+  item,
+  imageUseCounts
 ) {
 
+  const resolved =
+    await resolveGoogleUrl(
+      item.googleUrl
+    );
+
+
+  const publisher =
+    findPublisherByUrl(
+      resolved
+    ) ||
+
+    item.publisher;
+
+
+  // Never publish random/unapproved sites.
+  if (
+
+    !publisher ||
+
+    !findPublisherByUrl(
+      resolved
+    )
+
+  ) {
+
+    return null;
+
+  }
+
+
   const fetched =
-    await fetchHtml(url);
+    await fetchText(
+      resolved
+    );
 
 
   if (!fetched)
     return null;
 
 
-  const finalUrl =
-    fetched.finalUrl ||
-    url;
-
-
-  if (
-    !hostMatches(
-      finalUrl,
-      source.domain
-    )
-  ) {
-
-    return null;
-
-  }
-
-
   const $ =
     cheerio.load(
-      fetched.html
+      fetched.text
     );
 
 
-  const articleJson =
-    pickJsonLdArticle($);
+  const pageUrl =
+    canonicalUrl(
+
+      $,
+
+      fetched.finalUrl ||
+      resolved
+
+    );
 
 
-  // ----------------------------------
-  // TITLE
-  // ----------------------------------
+  const finalPublisher =
+
+    findPublisherByUrl(
+      pageUrl
+    ) ||
+
+    publisher;
+
+
+  const json =
+    articleJsonLd(
+      $
+    );
+
 
   const title =
-    extractTitle(
+    articleTitle(
+
       $,
-      articleJson
+
+      json,
+
+      item.title
+
     );
 
 
@@ -2632,9 +3314,9 @@ async function extractArticle(
 
     !title ||
 
-    title.length < 12 ||
+    title.length < 10 ||
 
-    title.length > 240
+    title.length > 260
 
   ) {
 
@@ -2643,79 +3325,66 @@ async function extractArticle(
   }
 
 
-  // ----------------------------------
-  // SHORT DESCRIPTION
-  // ----------------------------------
-
   const description =
-    extractDescription(
+    articleDescription(
       $,
-      articleJson
+      json
     );
 
 
-  // ----------------------------------
-  // IMAGE
-  // ----------------------------------
+  const date =
+    publishedAt(
 
-  const imageUrl =
-    extractImage(
       $,
-      articleJson,
-      finalUrl
+
+      json,
+
+      item.googlePubDate
+
     );
 
-
-  // ----------------------------------
-  // PUBLISHED DATE
-  // ----------------------------------
-
-  const publishedAt =
-    extractPublishedAt(
-      $,
-      articleJson
-    );
-
-
-  // ----------------------------------
-  // OLD ARTICLE FILTER
-  // ----------------------------------
 
   if (
-    publishedAt &&
-    isTooOld(
-      publishedAt
+    date &&
+    tooOld(
+      date
     )
   ) {
 
-    console.log(
-
-      `🕓 পুরোনো সংবাদ, স্কিপ: ` +
-
-      `${title.substring(
-        0,
-        55
-      )}...`
-
-    );
-
     return null;
 
   }
 
 
-  // ----------------------------------
-  // IMAGE REQUIRED
-  // ----------------------------------
+  const image =
+    bestImage(
+
+      $,
+
+      json,
+
+      pageUrl,
+
+      title,
+
+      finalPublisher,
+
+      imageUseCounts
+
+    );
+
 
   if (
+
     REQUIRE_IMAGE &&
-    !imageUrl
+
+    !image
+
   ) {
 
     console.log(
 
-      `🖼️ ছবি পাওয়া যায়নি, স্কিপ: ` +
+      `🖼️ Story image পাওয়া যায়নি: ` +
 
       `${title.substring(
         0,
@@ -2724,14 +3393,11 @@ async function extractArticle(
 
     );
 
+
     return null;
 
   }
 
-
-  // ----------------------------------
-  // CATEGORY
-  // ----------------------------------
 
   const category =
     detectCategory(
@@ -2740,17 +3406,13 @@ async function extractArticle(
 
       description,
 
-      source.defaultCategory
+      item.categoryHint
 
     );
 
 
-  // ----------------------------------
-  // IMPORTANCE
-  // ----------------------------------
-
-  const importance =
-    calculateImportance(
+  const importanceScore =
+    importance(
 
       title,
 
@@ -2759,44 +3421,11 @@ async function extractArticle(
     );
 
 
-  // ----------------------------------
-  // SNIPPET
-  // ----------------------------------
-
-  const fallbackDescription =
-    `${source.bnName}-এ প্রকাশিত এই সংবাদটির ` +
-    `বিস্তারিত জানতে মূল সংবাদে ক্লিক করুন।`;
-
-
-  const finalDescription =
-    description ||
-    fallbackDescription;
-
-
   const snippetBase =
+
     description ||
-    `${source.bnName}-এ প্রকাশিত সংবাদ।`;
 
-
-  const snippet =
-
-    snippetBase.substring(
-      0,
-      220
-    ) +
-
-    (
-      snippetBase.length >
-      220
-
-        ?
-
-        '…'
-
-        :
-
-        ''
-    );
+    `${finalPublisher.bnName}-এ প্রকাশিত সংবাদ।`;
 
 
   return {
@@ -2804,24 +3433,40 @@ async function extractArticle(
     title,
 
     content:
-      finalDescription,
 
-    snippet,
+      description ||
+
+      `${finalPublisher.bnName}-এ প্রকাশিত সংবাদটির বিস্তারিত জানতে শিরোনামে ক্লিক করুন।`,
+
+    snippet:
+
+      snippetBase.length > 220
+
+        ?
+
+        `${snippetBase.substring(
+          0,
+          220
+        )}…`
+
+        :
+
+        snippetBase,
 
     image_url:
-      imageUrl ||
+      image ||
       null,
 
     source_url:
-      finalUrl,
+      pageUrl,
 
     source_name:
-      source.bnName,
+      finalPublisher.bnName,
 
     category,
 
     image_source:
-      source.bnName,
+      finalPublisher.bnName,
 
     is_published:
       true,
@@ -2830,28 +3475,36 @@ async function extractArticle(
       false,
 
     is_lead:
-      importance >= 8,
+      importanceScore >= 9,
 
     importance_score:
-      importance,
+      importanceScore,
 
     editorial_score:
       Math.min(
         100,
-        60 +
-        importance * 4
+        68 +
+        importanceScore *
+        3
       ),
 
     breaking_news:
-      isBreakingTitle(title),
+      false,
 
     event_hash:
-      createEventHash(title),
+      hashFor(
+        title,
+        finalPublisher.bnName
+      ),
 
     event_type:
       category,
 
-    publishedAt
+    created_at:
+      (
+        date ||
+        new Date()
+      ).toISOString()
 
   };
 
@@ -2859,31 +3512,22 @@ async function extractArticle(
 
 
 // ================================================================
-// 29. DATABASE DUPLICATE CHECK
+// DUPLICATE CHECK
 // ================================================================
 
-async function alreadyExists(
+async function exists(
   article
 ) {
 
-  // ----------------------------------
-  // Check original URL
-  // ----------------------------------
-
   const {
-
     count:
-      byUrl,
-
-    error:
-      urlError
-
+      urlCount
   } =
 
     await supabase
-
-      .from('news')
-
+      .from(
+        'news'
+      )
       .select(
         '*',
         {
@@ -2891,7 +3535,6 @@ async function alreadyExists(
           head: true
         }
       )
-
       .eq(
         'source_url',
         article.source_url
@@ -2899,22 +3542,10 @@ async function alreadyExists(
 
 
   if (
-    urlError
-  ) {
-
-    console.log(
-
-      `⚠️ URL duplicate check error: ` +
-
-      `${urlError.message}`
-
-    );
-
-  }
-
-
-  if (
-    (byUrl || 0) > 0
+    (
+      urlCount ||
+      0
+    ) > 0
   ) {
 
     return true;
@@ -2922,24 +3553,15 @@ async function alreadyExists(
   }
 
 
-  // ----------------------------------
-  // Check normalized headline hash
-  // ----------------------------------
-
   const {
-
     count:
-      byHash,
-
-    error:
-      hashError
-
+      hashCount
   } =
 
     await supabase
-
-      .from('news')
-
+      .from(
+        'news'
+      )
       .select(
         '*',
         {
@@ -2947,283 +3569,396 @@ async function alreadyExists(
           head: true
         }
       )
-
       .eq(
         'event_hash',
         article.event_hash
       );
 
 
-  if (
-    hashError
-  ) {
-
-    console.log(
-
-      `⚠️ Hash duplicate check error: ` +
-
-      `${hashError.message}`
-
-    );
-
-  }
-
-
   return (
-    (byHash || 0) > 0
+    (
+      hashCount ||
+      0
+    ) > 0
   );
 
 }
 
 
 // ================================================================
-// 30. INSERT ARTICLE
+// REPAIR ALREADY-SAVED BAD THUMBNAILS
 // ================================================================
 
-async function insertArticle(
-  article
+async function repairRecentImages(
+  imageUseCounts
 ) {
 
-  // IMPORTANT:
-  // Only existing database fields are used here.
-  // No new Supabase column is required.
-
-  const row = {
-
-    title:
-      article.title,
-
-    content:
-      article.content,
-
-    snippet:
-      article.snippet,
-
-    image_url:
-      article.image_url,
-
-    source_url:
-      article.source_url,
-
-    source_name:
-      article.source_name,
-
-    category:
-      article.category,
-
-    image_source:
-      article.image_source,
-
-    is_published:
-      article.is_published,
-
-    is_custom:
-      article.is_custom,
-
-    is_lead:
-      article.is_lead,
-
-    importance_score:
-      article.importance_score,
-
-    editorial_score:
-      article.editorial_score,
-
-    breaking_news:
-      article.breaking_news,
-
-    event_hash:
-      article.event_hash,
-
-    event_type:
-      article.event_type
-
-  };
+  console.log(
+    '\n🛠️ সাম্প্রতিক ভুল logo/thumbnail repair শুরু...'
+  );
 
 
   const {
+    data,
     error
   } =
 
     await supabase
+      .from(
+        'news'
+      )
+      .select(
+        'id,title,source_url,source_name,image_url,is_custom,created_at'
+      )
+      .eq(
+        'is_custom',
+        false
+      )
+      .order(
+        'created_at',
+        {
+          ascending: false
+        }
+      )
+      .limit(
+        REPAIR_RECENT_LIMIT
+      );
 
-      .from('news')
 
-      .insert([
-        row
-      ]);
+  if (
+    error ||
+    !data?.length
+  ) {
+
+    if (
+      error
+    ) {
+
+      console.log(
+        `⚠️ Repair query failed: ${error.message}`
+      );
+
+    }
 
 
-  return error;
+    return;
+
+  }
+
+
+  let repaired =
+    0;
+
+
+  for (
+    const row
+    of data
+  ) {
+
+    try {
+
+      if (
+        !row.source_url
+      ) {
+
+        continue;
+
+      }
+
+
+      let url =
+        row.source_url;
+
+
+      if (
+        url.includes(
+          'news.google.com/'
+        )
+      ) {
+
+        url =
+          await resolveGoogleUrl(
+            url
+          );
+
+      }
+
+
+      const publisher =
+
+        findPublisherByUrl(
+          url
+        ) ||
+
+        findPublisherByName(
+          row.source_name ||
+          ''
+        );
+
+
+      if (
+
+        !publisher ||
+
+        !findPublisherByUrl(
+          url
+        )
+
+      ) {
+
+        continue;
+
+      }
+
+
+      const fetched =
+        await fetchText(
+          url
+        );
+
+
+      if (!fetched)
+        continue;
+
+
+      const $ =
+        cheerio.load(
+          fetched.text
+        );
+
+
+      const pageUrl =
+        canonicalUrl(
+
+          $,
+
+          fetched.finalUrl ||
+          url
+
+        );
+
+
+      const json =
+        articleJsonLd(
+          $
+        );
+
+
+      const title =
+        articleTitle(
+
+          $,
+
+          json,
+
+          row.title
+
+        );
+
+
+      const image =
+        bestImage(
+
+          $,
+
+          json,
+
+          pageUrl,
+
+          title ||
+          row.title,
+
+          publisher,
+
+          imageUseCounts
+
+        );
+
+
+      if (
+
+        !image ||
+
+        image ===
+          row.image_url
+
+      ) {
+
+        continue;
+
+      }
+
+
+      const {
+        error:
+          updateError
+      } =
+
+        await supabase
+          .from(
+            'news'
+          )
+          .update(
+            {
+
+              image_url:
+                image,
+
+              image_source:
+                publisher.bnName,
+
+              source_name:
+                publisher.bnName,
+
+              source_url:
+                pageUrl
+
+            }
+          )
+          .eq(
+            'id',
+            row.id
+          );
+
+
+      if (
+        !updateError
+      ) {
+
+        repaired++;
+
+
+        imageUseCounts.set(
+
+          image,
+
+          (
+            imageUseCounts.get(
+              image
+            ) ||
+            0
+          ) +
+          1
+
+        );
+
+
+        console.log(
+
+          `✅ Thumbnail repaired: ` +
+
+          `${row.title.substring(
+            0,
+            55
+          )}...`
+
+        );
+
+      }
+
+    }
+
+    catch (
+      error
+    ) {
+
+      console.log(
+        `⚠️ Repair skip: ${error.message}`
+      );
+
+    }
+
+
+    await delay(200);
+
+  }
+
+
+  console.log(
+
+    `🛠️ Repair শেষ: ` +
+
+    `${repaired}টি thumbnail আপডেট।`
+
+  );
 
 }
 
 
 // ================================================================
-// 31. PROCESS ONE NEWS SOURCE
+// MAIN
 // ================================================================
 
-async function processSource(
-  source,
-  remainingBudget
-) {
+async function runBot() {
 
   console.log(
-
-    `\n📰 সরাসরি স্ক্র্যাপ হচ্ছে: ` +
-
-    `${source.bnName}`
-
+    '🚀 বঙ্গীয় টাইমস Google News Discovery Aggregator শুরু...'
   );
 
 
-  // ----------------------------------
-  // Newspaper homepage fetch
-  // ----------------------------------
-
-  const home =
-    await fetchHtml(
-      source.url
-    );
+  console.log(
+    '🔎 Discovery = Google News'
+  );
 
 
-  if (!home) {
-
-    console.log(
-
-      `⚠️ ${source.bnName}: ` +
-
-      `source page পাওয়া যায়নি।`
-
-    );
-
-    return 0;
-
-  }
+  console.log(
+    '🖼️ Image = Original Publisher Article'
+  );
 
 
-  // ----------------------------------
-  // Collect direct links
-  // ----------------------------------
+  console.log(
+    '✍️ Gemini Rewrite = OFF'
+  );
 
-  let links =
-    collectDirectLinks(
 
-      home.html,
+  const imageUseCounts =
+    new Map();
 
-      home.finalUrl ||
-      source.url,
 
-      source
+  // First repair existing bad thumbnails
+  await repairRecentImages(
+    imageUseCounts
+  );
 
-    );
+
+  // Then discover latest news
+  const items =
+    await collectGoogleNewsItems();
 
 
   console.log(
 
-    `🔗 ${source.bnName}: ` +
+    `\n📰 অনুমোদিত Google News candidate: ` +
 
-    `${links.length} direct candidate link পাওয়া গেছে।`
+    `${items.length}`
 
   );
-
-
-  // ----------------------------------
-  // Hidden Google News backup
-  // ----------------------------------
-
-  if (
-
-    links.length < 5 &&
-
-    ENABLE_GOOGLE_NEWS_BACKUP
-
-  ) {
-
-    console.log(
-
-      `🔎 ${source.bnName}: ` +
-
-      `direct link কম, hidden Google News ` +
-
-      `discovery চেষ্টা হচ্ছে...`
-
-    );
-
-
-    const backupLinks =
-      await discoverFromGoogleNews(
-        source
-      );
-
-
-    links = [
-
-      ...new Set([
-
-        ...links,
-
-        ...backupLinks
-
-      ])
-
-    ];
-
-
-    console.log(
-
-      `🔗 Backup-এর পর total candidate: ` +
-
-      `${links.length}`
-
-    );
-
-  }
-
-
-  if (
-    !links.length
-  ) {
-
-    console.log(
-
-      `⚠️ ${source.bnName}: ` +
-
-      `usable article link পাওয়া যায়নি।`
-
-    );
-
-    return 0;
-
-  }
 
 
   let published =
     0;
 
 
-  const sourceLimit =
-    Math.min(
-
-      MAX_ARTICLES_PER_SOURCE,
-
-      remainingBudget
-
-    );
+  let inspected =
+    0;
 
 
-  // ----------------------------------
-  // Process candidate article links
-  // ----------------------------------
+  const categoryCounts = {};
+
 
   for (
-    const link
-    of links
+    const item
+    of items
   ) {
 
     if (
+
       published >=
-      sourceLimit
+        MAX_ARTICLES_PER_RUN ||
+
+      inspected >=
+        MAX_ITEMS_TO_INSPECT
+
     ) {
 
       break;
@@ -3231,14 +3966,29 @@ async function processSource(
     }
 
 
+    inspected++;
+
+
     try {
+
+      console.log(
+
+        `\n➡️ ${item.publisher.bnName}: ` +
+
+        `${item.title.substring(
+          0,
+          72
+        )}...`
+
+      );
+
 
       const article =
         await extractArticle(
 
-          link,
+          item,
 
-          source
+          imageUseCounts
 
         );
 
@@ -3247,25 +3997,48 @@ async function processSource(
         continue;
 
 
-      // ------------------------------
-      // Duplicate check
-      // ------------------------------
+      const limit =
+
+        CATEGORY_LIMITS[
+          article.category
+        ] ||
+
+        2;
+
+
+      categoryCounts[
+        article.category
+      ] =
+
+        categoryCounts[
+          article.category
+        ] ||
+
+        0;
+
 
       if (
-        await alreadyExists(
+
+        categoryCounts[
+          article.category
+        ] >=
+        limit
+
+      ) {
+
+        continue;
+
+      }
+
+
+      if (
+        await exists(
           article
         )
       ) {
 
         console.log(
-
-          `⏭️ ডুপ্লিকেট: ` +
-
-          `${article.title.substring(
-            0,
-            55
-          )}...`
-
+          '⏭️ ডুপ্লিকেট, স্কিপ।'
         );
 
         continue;
@@ -3273,31 +4046,58 @@ async function processSource(
       }
 
 
-      // ------------------------------
-      // Insert into Supabase
-      // ------------------------------
+      const {
+        error
+      } =
 
-      const insertError =
-        await insertArticle(
-          article
-        );
+        await supabase
+          .from(
+            'news'
+          )
+          .insert(
+            [
+              article
+            ]
+          );
 
 
       if (
-        insertError
+        error
       ) {
 
         console.error(
-
-          `❌ Supabase insert error: ` +
-
-          `${insertError.message}`
-
+          `❌ Supabase insert error: ${error.message}`
         );
 
         continue;
 
       }
+
+
+      if (
+        article.image_url
+      ) {
+
+        imageUseCounts.set(
+
+          article.image_url,
+
+          (
+            imageUseCounts.get(
+              article.image_url
+            ) ||
+            0
+          ) +
+          1
+
+        );
+
+      }
+
+
+      categoryCounts[
+        article.category
+      ]++;
 
 
       published++;
@@ -3311,27 +4111,15 @@ async function processSource(
 
         `${article.title.substring(
           0,
-          65
-        )}` +
+          60
+        )}... | ` +
 
-        `${
-          article.title.length > 65
-
-            ?
-
-            '...'
-
-            :
-
-            ''
-        }` +
-
-        ` | ${article.source_name}`
+        `${article.source_name}`
 
       );
 
 
-      await delay(800);
+      await delay(450);
 
     }
 
@@ -3340,185 +4128,13 @@ async function processSource(
     ) {
 
       console.log(
-
-        `⚠️ Article processing error: ` +
-
-        `${error.message}`
-
+        `⚠️ Candidate failed: ${error.message}`
       );
 
     }
 
   }
 
-
-  console.log(
-
-    `📌 ${source.bnName}: ` +
-
-    `${published}টি নতুন সংবাদ publish হয়েছে।`
-
-  );
-
-
-  return published;
-
-}
-
-
-// ================================================================
-// 32. MAIN BOT
-// ================================================================
-
-async function runBot() {
-
-  console.log(
-
-    '🚀 বঙ্গীয় টাইমস Direct-Source Aggregator শুরু হয়েছে...'
-
-  );
-
-
-  console.log(
-
-    `🖼️ ছবি বাধ্যতামূলক: ` +
-
-    `${REQUIRE_IMAGE ? 'হ্যাঁ' : 'না'}`
-
-  );
-
-
-  console.log(
-
-    `📰 সর্বোচ্চ সংবাদ/রান: ` +
-
-    `${MAX_ARTICLES_PER_RUN}`
-
-  );
-
-
-  console.log(
-
-    `🕓 সর্বোচ্চ article age: ` +
-
-    `${MAX_ARTICLE_AGE_HOURS} ঘণ্টা`
-
-  );
-
-
-  let totalPublished =
-    0;
-
-
-  // ==============================================================
-  // SOURCE ROTATION
-  //
-  // প্রতিবার একই newspaper প্রথমে না আসার জন্য
-  // প্রতিদিন source order rotate হবে।
-  // ==============================================================
-
-  const todaySeed =
-    Math.floor(
-
-      Date.now() /
-
-      (
-        24 *
-        60 *
-        60 *
-        1000
-      )
-
-    );
-
-
-  const rotateIndex =
-    todaySeed %
-    SOURCES.length;
-
-
-  const rotatedSources = [
-
-    ...SOURCES.slice(
-      rotateIndex
-    ),
-
-    ...SOURCES.slice(
-      0,
-      rotateIndex
-    )
-
-  ];
-
-
-  // ==============================================================
-  // RUN ALL SOURCES
-  // ==============================================================
-
-  for (
-    const source
-    of rotatedSources
-  ) {
-
-    if (
-      totalPublished >=
-      MAX_ARTICLES_PER_RUN
-    ) {
-
-      break;
-
-    }
-
-
-    try {
-
-      const remainingBudget =
-
-        MAX_ARTICLES_PER_RUN -
-
-        totalPublished;
-
-
-      const count =
-        await processSource(
-
-          source,
-
-          remainingBudget
-
-        );
-
-
-      totalPublished +=
-        count;
-
-    }
-
-    catch (
-      error
-    ) {
-
-      console.error(
-
-        `❌ ${source.bnName} ` +
-
-        `ক্র্যাশ করেছে: ` +
-
-        `${error.message}`
-
-      );
-
-    }
-
-
-    await delay(1200);
-
-  }
-
-
-  // ==============================================================
-  // FINAL RESULT
-  // ==============================================================
 
   console.log(
 
@@ -3526,30 +4142,26 @@ async function runBot() {
 
     `মোট নতুন সংবাদ: ` +
 
-    `${totalPublished}`
+    `${published}`
 
   );
 
 
   if (
-    totalPublished === 0
+    !published
   ) {
 
     console.log(
 
-      'ℹ️ নতুন সংবাদ ০ হলে সম্ভাব্য কারণ:\n' +
+      'ℹ️ ০ হলে সম্ভাব্য কারণ: ' +
 
-      '1. সব সংবাদ আগেই database-এ আছে\n' +
+      'সব খবর duplicate, ' +
 
-      '2. newspaper-এর HTML layout বদলেছে\n' +
+      'Google URL decode ব্যর্থ, ' +
 
-      '3. article image পাওয়া যায়নি\n' +
+      'publisher bot-block করেছে, ' +
 
-      '4. article 72 ঘণ্টার বেশি পুরোনো\n' +
-
-      '5. Supabase insert policy block করছে\n' +
-
-      '6. website anti-bot protection ব্যবহার করছে'
+      'বা usable lead image পাওয়া যায়নি।'
 
     );
 
@@ -3558,21 +4170,13 @@ async function runBot() {
 }
 
 
-// ================================================================
-// 33. START BOT
-// ================================================================
-
 runBot()
-
   .catch(
-    error => {
+    (error) => {
 
       console.error(
-
         '❌ Fatal scraper error:',
-
         error
-
       );
 
       process.exit(1);
