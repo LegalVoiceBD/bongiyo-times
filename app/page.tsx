@@ -167,11 +167,13 @@ function NewsImage({ news, className }: { news: NewsItem | null | undefined; cla
     return <SafeImage src={src} alt={getNewsTitle(news)} className={className} />;
   }
 
+  // Rare fallback only. Auto-scraped publisher stories are filtered to prefer
+  // real article images, so this should appear mainly for custom/legacy rows.
   return (
-    <div className={`${className} bg-[#f3f5f7] border border-gray-200 flex items-center justify-center overflow-hidden`}>
-      <div className="px-3 text-center">
-        <div className="mx-auto mb-2 h-8 w-8 rounded-full bg-[#104f96] text-white flex items-center justify-center text-sm font-bold">বি</div>
-        <span className="text-[12px] md:text-[13px] font-bold text-gray-500 leading-snug">{getNewsSource(news)}</span>
+    <div className={`${className} bg-gradient-to-br from-[#f8fafc] to-[#eef2f7] border border-gray-200 flex items-center justify-center overflow-hidden`}>
+      <div className="px-3 text-center max-w-full">
+        <div className="text-[10px] md:text-[11px] uppercase tracking-[0.14em] text-gray-400 font-bold">সংবাদ</div>
+        <div className="mt-1 text-[12px] md:text-[13px] font-bold text-gray-600 leading-snug line-clamp-2">{getNewsSource(news)}</div>
       </div>
     </div>
   );
@@ -203,167 +205,6 @@ function formatNewsMeta(news: NewsItem | null | undefined) {
   const source = getNewsSource(news);
   const time = formatDateTime(news.created_at);
   return [source, time].filter(Boolean).join(' • ');
-}
-
-function decodeXmlEntities(value: string) {
-  return value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, num) => String.fromCodePoint(parseInt(num, 10)))
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"')
-    .replace(/&apos;|&#39;/gi, "'")
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>');
-}
-
-function stripHtml(value: string) {
-  return decodeXmlEntities(value)
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function readXmlTag(block: string, tag: string) {
-  const pattern = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, 'i');
-  const match = block.match(pattern);
-  return match ? decodeXmlEntities(match[1]).trim() : '';
-}
-
-function readXmlTagAttribute(block: string, tag: string, attribute: string) {
-  const pattern = new RegExp(`<${tag}[^>]*\\s${attribute}=["']([^"']+)["'][^>]*>`, 'i');
-  const match = block.match(pattern);
-  return match ? decodeXmlEntities(match[1]).trim() : '';
-}
-
-function extractRssImage(block: string, description: string) {
-  const candidates = [
-    block.match(/<media:content[^>]+url=["']([^"']+)["']/i)?.[1],
-    block.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i)?.[1],
-    block.match(/<enclosure[^>]+url=["']([^"']+)["'][^>]+type=["']image\//i)?.[1],
-    description.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1],
-  ];
-
-  for (const candidate of candidates) {
-    if (candidate && /^https?:\/\//i.test(candidate)) return decodeXmlEntities(candidate);
-  }
-  return '';
-}
-
-function simpleHash(value: string) {
-  let hash = 2166136261;
-  for (let i = 0; i < value.length; i += 1) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(36);
-}
-
-function cleanGoogleNewsTitle(rawTitle: string, sourceName: string) {
-  const title = rawTitle.trim();
-  if (!sourceName) return cleanDisplayText(title);
-  const escaped = sourceName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return cleanDisplayText(title.replace(new RegExp(`\\s+-\\s+${escaped}\\s*$`, 'i'), ''));
-}
-
-function parseGoogleNewsRss(xml: string, category: string, limit: number): NewsItem[] {
-  const blocks = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
-  const items: NewsItem[] = [];
-
-  for (const block of blocks) {
-    if (items.length >= limit) break;
-
-    const rawTitle = readXmlTag(block, 'title');
-    const sourceRawName = readXmlTag(block, 'source') || '';
-    const sourceHomeUrl = readXmlTagAttribute(block, 'source', 'url');
-
-    // Keep the live fallback focused on established Bangladeshi national outlets.
-    if (!isNationalPublisher(sourceRawName, sourceHomeUrl)) continue;
-
-    const sourceName = resolveBanglaPublisherName(sourceRawName, sourceHomeUrl);
-    const link = readXmlTag(block, 'link');
-    const descriptionHtml = readXmlTag(block, 'description');
-    const publishedRaw = readXmlTag(block, 'pubDate');
-    const parsedDate = publishedRaw ? new Date(publishedRaw) : new Date();
-    const createdAt = Number.isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
-    const title = cleanGoogleNewsTitle(rawTitle, sourceRawName);
-
-    if (!title || !link) continue;
-
-    items.push({
-      id: `gnews-${simpleHash(link || `${title}-${createdAt}`)}`,
-      title,
-      original_title: title,
-      category: category || 'সর্বশেষ',
-      created_at: createdAt,
-      image_url: extractRssImage(block, descriptionHtml),
-      snippet: cleanDisplayText(stripHtml(descriptionHtml)).slice(0, 220),
-      source_name: sourceName,
-      source_home_url: sourceHomeUrl,
-      source_url: link,
-      is_published: true,
-      feed_source: 'google-news-rss',
-    });
-  }
-
-  return items;
-}
-
-async function fetchGoogleNewsFeed(query: string, category: string, limit = 40): Promise<NewsItem[]> {
-  const cleanQuery = query.trim();
-  const url = cleanQuery
-    ? `https://news.google.com/rss/search?q=${encodeURIComponent(cleanQuery)}&hl=bn&gl=BD&ceid=BD:bn`
-    : 'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn';
-
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; BongiyoTimes/1.0; +https://bongiyo-times.vercel.app)',
-        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-      },
-      next: { revalidate: 600 },
-    });
-
-    if (!response.ok) return [];
-    const xml = await response.text();
-    return parseGoogleNewsRss(xml, category, limit);
-  } catch (error) {
-    console.error('Google News RSS fetch failed:', error);
-    return [];
-  }
-}
-
-function mergeNews(...lists: NewsItem[][]): NewsItem[] {
-  const map = new Map<string, NewsItem>();
-
-  for (const list of lists) {
-    for (const item of list) {
-      if (!item) continue;
-      const title = getNewsTitle(item).toLowerCase().replace(/\s+/g, ' ').trim();
-      const href = getNewsHref(item).toLowerCase().trim();
-      const key = href.startsWith('http') ? href : `${title}|${getNewsSource(item).toLowerCase()}`;
-      if (!key || map.has(key)) continue;
-      map.set(key, item);
-    }
-  }
-
-  return Array.from(map.values()).sort((a, b) => {
-    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return bTime - aTime;
-  });
-}
-
-function isFreshEnough(items: NewsItem[], minutes = 90) {
-  if (!items.length) return false;
-  const newest = items.reduce((max, item) => {
-    const time = item.created_at ? new Date(item.created_at).getTime() : 0;
-    return Math.max(max, Number.isNaN(time) ? 0 : time);
-  }, 0);
-  return newest > 0 && Date.now() - newest <= minutes * 60 * 1000;
 }
 
 function normalizeOptionalUrl(value: FormDataEntryValue | null) {
@@ -484,16 +325,11 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const { data: newsItems, count } = await query;
   const dbNews = (newsItems || []) as NewsItem[];
 
-  const liveQuery = searchQuery || activeCategory;
-  const liveCategory = activeCategory || (searchQuery ? 'সার্চ' : 'সর্বশেষ');
-  const liveNews = currentPage === 1
-    ? await fetchGoogleNewsFeed(liveQuery, liveCategory, activeCategory || searchQuery ? 40 : 90)
-    : [];
-
-  const mergedMainNews = mergeNews(dbNews, liveNews);
+  // Public page shows only records collected from the original publishers
+  // (plus manually uploaded/custom news). Google News is not rendered here.
   const allNews = (activeCategory || searchQuery)
-    ? mergedMainNews.slice(0, limitPerPage)
-    : mergedMainNews.slice(0, 150);
+    ? dbNews.slice(0, limitPerPage)
+    : dbNews.slice(0, 150);
 
   const totalPages = count ? Math.max(1, Math.ceil(count / limitPerPage)) : 1;
 
@@ -522,7 +358,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const middleListNews = remainingNews.splice(0, 10); // মিডল কলাম
   const rightSideNews = remainingNews.splice(0, 5); // ডানপাশের কলাম
   
-  // --- Category Data Mapping (Supabase + Google News RSS fallback) ---
+  // --- Category Data Mapping: database only ---
+  // Auto news is now populated by scripts/scraper.js directly from each publisher.
   const fetchDirectCategory = async (catName: string, amt: number) => {
     const { data } = await supabase
       .from('news')
@@ -532,16 +369,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
       .order('created_at', { ascending: false })
       .limit(amt);
 
-    const dbItems = (data || []) as NewsItem[];
-
-    // If the scraper is already supplying fresh rows, keep using them.
-    // If it is empty/stale, fall back to Google News RSS without rewriting the article.
-    if (dbItems.length >= amt && isFreshEnough(dbItems, 90)) {
-      return dbItems.slice(0, amt);
-    }
-
-    const liveItems = await fetchGoogleNewsFeed(catName, catName, Math.max(amt * 2, 10));
-    return mergeNews(dbItems, liveItems).slice(0, amt);
+    return ((data || []) as NewsItem[]).slice(0, amt);
   };
 
   const [
@@ -807,7 +635,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   </div>
 
                   <div className="md:col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 pt-4">
-                    <p className="text-[12px] md:text-[13px] text-gray-500">Google News-এর মতো: শিরোনাম + ছোট preview + উৎসের নাম + মূল লিংক।</p>
+                    <p className="text-[12px] md:text-[13px] text-gray-500">সংক্ষিপ্ত preview, উৎসের নাম ও মূল লিংকসহ পরিষ্কার নিউজ কার্ড হিসেবে প্রকাশ হবে।</p>
                     <button type="submit" className="bg-[#104f96] hover:bg-[#0b3d78] text-white font-bold px-6 py-3 rounded transition-colors">
                       সংবাদ প্রকাশ করুন
                     </button>
