@@ -66,6 +66,11 @@ function getNewsSnippet(news: NewsItem | null | undefined) {
   return String(news.snippet || news.description || news.summary || news.excerpt || '').trim();
 }
 
+function getNewsImage(news: NewsItem | null | undefined): string {
+  if (!news) return '';
+  return typeof news.image_url === 'string' ? news.image_url : '';
+}
+
 function getNewsHref(news: NewsItem | null | undefined) {
   if (!news) return '#';
   const candidates = [
@@ -510,7 +515,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                 <p className="text-xs text-red-600 mb-1">■ {news.category} <span className="text-gray-500 font-normal">• {getNewsSource(news)}</span></p>
                 <h3 className="text-[15px] leading-tight font-semibold group-hover:text-blue-600 line-clamp-2">{getNewsTitle(news)}</h3>
              </div>
-             <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-16 h-16 object-cover border border-gray-100" />
+             <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-16 h-16 object-cover border border-gray-100" />
           </a>
        ))}
     </div>
@@ -709,7 +714,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                  <p className="text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{getNewsSnippet(news)}</p>
                                  <p className="text-[13px] text-gray-400 mt-3">{formatNewsMeta(news)}</p>
                               </div>
-                              <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[120px] h-[90px] md:w-[180px] md:h-[120px] aspect-video object-cover rounded-sm border border-gray-100 shrink-0" />
+                              <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[120px] h-[90px] md:w-[180px] md:h-[120px] aspect-video object-cover rounded-sm border border-gray-100 shrink-0" />
                            </a>
                         ))}
                      </div>
@@ -761,7 +766,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                            {allNews.slice(0, 12).map((news) => (
                               <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group flex flex-col">
                                  <div className="overflow-hidden mb-3">
-                                    <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover group-hover:scale-105 transition duration-300 border border-gray-100 rounded-sm" />
+                                    <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-full aspect-video object-cover group-hover:scale-105 transition duration-300 border border-gray-100 rounded-sm" />
                                  </div>
                                  <h3 className="text-[17px] md:text-[18px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{getNewsTitle(news)}</h3>
                                  <p className="text-[12px] md:text-[13px] text-gray-400 mt-2">{formatNewsMeta(news)}</p>
@@ -814,7 +819,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                    <h3 className="text-[17px] md:text-[18px] lg:text-[20px] font-bold group-hover:text-[#104f96] leading-snug text-[#1a1a1a]">{getNewsTitle(news)}</h3>
                                    <p className="text-[12px] md:text-[13px] text-gray-400 mt-2">{formatNewsMeta(news)}</p>
                                 </div>
-                                <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[100px] sm:w-[120px] aspect-video object-cover rounded-sm" />
+                                <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[100px] sm:w-[120px] aspect-video object-cover rounded-sm" />
                              </a>
                           ))}
                        </div>
@@ -848,7 +853,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
               <div className="max-w-[1200px] mx-auto px-4 grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                 {topHighlightNews.map(news => (
                   <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group block transition">
-                    <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-3 border border-gray-200/50 rounded-sm" />
+                    <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-3 border border-gray-200/50 rounded-sm" />
                     <h3 className="font-bold text-[16px] md:text-[17px] text-[#1a1a1a] group-hover:text-[#104f96] leading-snug line-clamp-3">{getNewsTitle(news)}</h3>
                     <p className="text-[12px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                   </a>
@@ -865,7 +870,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                    {leadNews && (
                      <a href={getNewsHref(leadNews)} target="_blank" rel="noopener noreferrer" className="group block mb-6 border-b border-gray-200 pb-6">
                        <h1 className="text-[28px] md:text-[32px] font-bold leading-[1.35] text-[#1a1a1a] group-hover:text-[#104f96] mb-4">{getNewsTitle(leadNews)}</h1>
-                       <SafeImage src={leadNews.image_url} alt={getNewsTitle(leadNews)} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
+                       <SafeImage src={getNewsImage(leadNews)} alt={getNewsTitle(leadNews)} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
                        <p className="text-[15px] md:text-[16px] text-gray-600 leading-[1.65] line-clamp-4">{leadNews.snippet}</p>
                        <p className="text-[13px] text-gray-400 mt-3">{formatNewsMeta(leadNews)}</p>
                      </a>
@@ -878,7 +883,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                            <p className="text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{getNewsSnippet(news)}</p>
                            <p className="text-[12px] text-gray-400 mt-2">{formatNewsMeta(news)}</p>
                          </div>
-                         <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[120px] sm:w-[130px] aspect-video object-cover shrink-0 rounded-sm border border-gray-100" />
+                         <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[120px] sm:w-[130px] aspect-video object-cover shrink-0 rounded-sm border border-gray-100" />
                        </a>
                      ))}
                    </div>
@@ -888,7 +893,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                 <div className="lg:col-span-4 flex flex-col lg:border-r border-gray-300 lg:pr-6">
                    {middleTopNews && (
                      <a href={getNewsHref(middleTopNews)} target="_blank" rel="noopener noreferrer" className="group block mb-6 border-b border-gray-200 pb-6">
-                       <SafeImage src={middleTopNews.image_url} alt={getNewsTitle(middleTopNews)} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
+                       <SafeImage src={getNewsImage(middleTopNews)} alt={getNewsTitle(middleTopNews)} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
                        <h2 className="text-[20px] md:text-[22px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug mb-3">{getNewsTitle(middleTopNews)}</h2>
                        <p className="text-[14px] md:text-[15px] text-gray-600 leading-[1.65] line-clamp-3">{middleTopNews.snippet}</p>
                        <p className="text-[13px] text-gray-400 mt-3">{formatNewsMeta(middleTopNews)}</p>
@@ -913,7 +918,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                            <h3 className="text-[15px] md:text-[16px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{getNewsTitle(news)}</h3>
                            <p className="text-[12px] text-gray-400 mt-1.5">{formatNewsMeta(news)}</p>
                          </div>
-                         <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[85px] sm:w-[95px] aspect-video object-cover shrink-0 rounded-sm border border-gray-100" />
+                         <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[85px] sm:w-[95px] aspect-video object-cover shrink-0 rounded-sm border border-gray-100" />
                        </a>
                      ))}
                    </div>
@@ -951,7 +956,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                            {bdNews.slice(0, 6).map((news) => (
                               <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group flex flex-col">
                                  <div className="overflow-hidden mb-3">
-                                    <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover group-hover:scale-105 transition duration-300 border border-gray-100 rounded-sm" />
+                                    <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-full aspect-video object-cover group-hover:scale-105 transition duration-300 border border-gray-100 rounded-sm" />
                                  </div>
                                  <h3 className="text-[17px] md:text-[18px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{getNewsTitle(news)}</h3>
                                  <p className="text-[12px] md:text-[13px] text-gray-400 mt-2">{formatNewsMeta(news)}</p>
@@ -986,7 +991,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#bbf2d8] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {intlNews[0] && (
                               <a href={getNewsHref(intlNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
-                                 <SafeImage src={intlNews[0].image_url} alt={getNewsTitle(intlNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <SafeImage src={getNewsImage(intlNews[0])} alt={getNewsTitle(intlNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
                                  <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#2db97a] leading-snug">{getNewsTitle(intlNews[0])}</h3>
                                  <p className="text-[13px] md:text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{intlNews[0].snippet}</p>
                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(intlNews[0])}</p>
@@ -1017,7 +1022,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                     <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#2db97a] leading-snug">{getNewsTitle(news)}</h3>
                                     <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -1037,7 +1042,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#fbcbcb] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {lawNews[0] && (
                               <a href={getNewsHref(lawNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
-                                 <SafeImage src={lawNews[0].image_url} alt={getNewsTitle(lawNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <SafeImage src={getNewsImage(lawNews[0])} alt={getNewsTitle(lawNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
                                  <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#d73f3f] leading-snug">{getNewsTitle(lawNews[0])}</h3>
                                 <p className="text-[13px] md:text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{lawNews[0].snippet}</p>
                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(lawNews[0])}</p>
@@ -1067,7 +1072,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                     <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#d73f3f] leading-snug">{getNewsTitle(news)}</h3>
                                     <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -1129,7 +1134,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
                      {lifestyleNews.map((news) => (
                         <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group block">
-                           <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
+                           <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
                            <h3 className="text-[17px] md:text-[18px] font-bold group-hover:text-blue-600 leading-snug text-[#1a1a1a]">{getNewsTitle(news)}</h3>
                            <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(news)}</p>
                         </a>
@@ -1152,7 +1157,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#c8dceb] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {entertainmentNews[0] && (
                               <a href={getNewsHref(entertainmentNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
-                                 <SafeImage src={entertainmentNews[0].image_url} alt={getNewsTitle(entertainmentNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <SafeImage src={getNewsImage(entertainmentNews[0])} alt={getNewsTitle(entertainmentNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
                                  <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-blue-600 leading-snug">{getNewsTitle(entertainmentNews[0])}</h3>
                                  <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(entertainmentNews[0])}</p>
                               </a>
@@ -1181,7 +1186,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                     <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-blue-600 leading-snug">{getNewsTitle(news)}</h3>
                                     <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -1201,7 +1206,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#e8dfce] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {politicsNews[0] && (
                               <a href={getNewsHref(politicsNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
-                                 <SafeImage src={politicsNews[0].image_url} alt={getNewsTitle(politicsNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <SafeImage src={getNewsImage(politicsNews[0])} alt={getNewsTitle(politicsNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
                                  <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#e05e3b] leading-snug">{getNewsTitle(politicsNews[0])}</h3>
                                  <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(politicsNews[0])}</p>
                               </a>
@@ -1230,7 +1235,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                     <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#e05e3b] leading-snug">{getNewsTitle(news)}</h3>
                                     <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -1251,7 +1256,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="flex flex-col gap-3">
                         {eduNews[0] && (
                            <a href={getNewsHref(eduNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-2 border-b border-gray-200 pb-3">
-                              <SafeImage src={eduNews[0].image_url} alt={getNewsTitle(eduNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
+                              <SafeImage src={getNewsImage(eduNews[0])} alt={getNewsTitle(eduNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
                               <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{getNewsTitle(eduNews[0])}</h3>
                            </a>
                         )}
@@ -1273,7 +1278,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="flex flex-col gap-3">
                         {jobsNews[0] && (
                            <a href={getNewsHref(jobsNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-2 border-b border-gray-200 pb-3">
-                              <SafeImage src={jobsNews[0].image_url} alt={getNewsTitle(jobsNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
+                              <SafeImage src={getNewsImage(jobsNews[0])} alt={getNewsTitle(jobsNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
                               <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{getNewsTitle(jobsNews[0])}</h3>
                            </a>
                         )}
@@ -1295,7 +1300,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="flex flex-col gap-3">
                         {techNews[0] && (
                            <a href={getNewsHref(techNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-2 border-b border-gray-200 pb-3">
-                              <SafeImage src={techNews[0].image_url} alt={getNewsTitle(techNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
+                              <SafeImage src={getNewsImage(techNews[0])} alt={getNewsTitle(techNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
                               <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{getNewsTitle(techNews[0])}</h3>
                            </a>
                         )}
@@ -1317,7 +1322,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="flex flex-col gap-3">
                         {businessNews[0] && (
                            <a href={getNewsHref(businessNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-2 border-b border-gray-200 pb-3">
-                              <SafeImage src={businessNews[0].image_url} alt={getNewsTitle(businessNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
+                              <SafeImage src={getNewsImage(businessNews[0])} alt={getNewsTitle(businessNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
                               <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{getNewsTitle(businessNews[0])}</h3>
                            </a>
                         )}
@@ -1344,7 +1349,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="flex flex-col gap-5 lg:col-span-1">
                         {sportsNews.slice(1, 3).map((news) => (
                            <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group flex flex-col bg-white p-3 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition">
-                              <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-2 rounded-sm" />
+                              <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-2 rounded-sm" />
                               <h3 className="text-[16px] lg:text-[17px] font-bold group-hover:text-red-600 leading-snug">{getNewsTitle(news)}</h3>
                            </a>
                         ))}
@@ -1352,7 +1357,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="lg:col-span-2">
                         {sportsNews[0] && (
                            <a href={getNewsHref(sportsNews[0])} target="_blank" rel="noopener noreferrer" className="group block h-full bg-white p-4 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition relative">
-                              <SafeImage src={sportsNews[0].image_url} alt={getNewsTitle(sportsNews[0])} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
+                              <SafeImage src={getNewsImage(sportsNews[0])} alt={getNewsTitle(sportsNews[0])} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
                               <h3 className="text-[20px] md:text-[24px] font-bold text-gray-900 group-hover:text-red-600 leading-[1.3]">{getNewsTitle(sportsNews[0])}</h3>
                               <p className="text-[13px] md:text-[14px] text-gray-600 mt-2">{formatNewsMeta(sportsNews[0])}</p>
                            </a>
@@ -1361,7 +1366,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      <div className="flex flex-col gap-5 lg:col-span-1">
                         {sportsNews.slice(3, 5).map((news) => (
                            <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group flex flex-col bg-white p-3 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition">
-                              <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-2 rounded-sm" />
+                              <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-2 rounded-sm" />
                               <h3 className="text-[16px] lg:text-[17px] font-bold group-hover:text-red-600 leading-snug">{getNewsTitle(news)}</h3>
                            </a>
                         ))}
@@ -1384,7 +1389,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         <div className="sm:border-r border-[#c1dff0] sm:pr-6">
                            {hasyroshNews[0] && (
                               <a href={getNewsHref(hasyroshNews[0])} target="_blank" rel="noopener noreferrer" className="group block">
-                                 <SafeImage src={hasyroshNews[0].image_url} alt={getNewsTitle(hasyroshNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm shadow-sm" />
+                                 <SafeImage src={getNewsImage(hasyroshNews[0])} alt={getNewsTitle(hasyroshNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm shadow-sm" />
                                  <h3 className="text-[18px] md:text-[20px] font-bold text-gray-800 group-hover:text-[#006699] leading-snug">{getNewsTitle(hasyroshNews[0])}</h3>
                                  <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(hasyroshNews[0])}</p>
                               </a>
@@ -1396,7 +1401,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                  <div className="flex-1 pr-2">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#006699] leading-snug">{getNewsTitle(news)}</h3>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shadow-sm shrink-0" />
+                                 <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shadow-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -1416,7 +1421,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         <div className="sm:border-r border-[#e8dfce] sm:pr-6">
                            {featureNews[0] && (
                               <a href={getNewsHref(featureNews[0])} target="_blank" rel="noopener noreferrer" className="group block">
-                                 <SafeImage src={featureNews[0].image_url} alt={getNewsTitle(featureNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm shadow-sm" />
+                                 <SafeImage src={getNewsImage(featureNews[0])} alt={getNewsTitle(featureNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm shadow-sm" />
                                  <h3 className="text-[18px] md:text-[20px] font-bold text-gray-900 group-hover:text-[#966b22] leading-snug">{getNewsTitle(featureNews[0])}</h3>
                                  <p className="text-[13px] text-gray-500 mt-2 line-clamp-2">ফিচারের বিশেষ আয়োজন সম্পর্কে বিস্তারিত পড়তে ক্লিক করুন।</p>
                               </a>
@@ -1429,7 +1434,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#966b22] leading-snug">{getNewsTitle(news)}</h3>
                                     <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shadow-sm shrink-0" />
+                                 <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shadow-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -1452,7 +1457,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                      {religionNews.map((news) => (
                         <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="min-w-[220px] md:min-w-[260px] w-[220px] md:w-[260px] snap-start group shrink-0 block">
                            <div className="overflow-hidden rounded-sm mb-3">
-                              <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover transform group-hover:scale-105 transition duration-500 ease-in-out border border-gray-100" />
+                              <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-full aspect-video object-cover transform group-hover:scale-105 transition duration-500 ease-in-out border border-gray-100" />
                            </div>
                            <h3 className="text-[16px] md:text-[17px] lg:text-[18px] font-bold text-[#1a1a1a] group-hover:text-red-600 leading-snug">{getNewsTitle(news)}</h3>
                         </a>
@@ -1475,7 +1480,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#c8d4e6] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {lawAndAdviceNews[0] && (
                               <a href={getNewsHref(lawAndAdviceNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
-                                 <SafeImage src={lawAndAdviceNews[0].image_url} alt={getNewsTitle(lawAndAdviceNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <SafeImage src={getNewsImage(lawAndAdviceNews[0])} alt={getNewsTitle(lawAndAdviceNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
                                  <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#355580] leading-snug">{getNewsTitle(lawAndAdviceNews[0])}</h3>
                                  <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(lawAndAdviceNews[0])}</p>
                               </a>
@@ -1504,7 +1509,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                     <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#355580] leading-snug">{getNewsTitle(news)}</h3>
                                     <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -1524,7 +1529,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#bce8db] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {literatureNews[0] && (
                               <a href={getNewsHref(literatureNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
-                                 <SafeImage src={literatureNews[0].image_url} alt={getNewsTitle(literatureNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <SafeImage src={getNewsImage(literatureNews[0])} alt={getNewsTitle(literatureNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
                                  <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#258c73] leading-snug">{getNewsTitle(literatureNews[0])}</h3>
                                  <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(literatureNews[0])}</p>
                               </a>
@@ -1553,7 +1558,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                                     <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#258c73] leading-snug">{getNewsTitle(news)}</h3>
                                     <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={getNewsImage(news)} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
