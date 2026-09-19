@@ -1,23 +1,329 @@
 import React from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import ClientTabs from './components/ClientTabs';
 import SafeImage from './components/SafeImage';
 import LocationFilter from './components/LocationFilter';
 export const revalidate = 60;
 
-function formatDateTime(dateString: string) {
+type NewsItem = {
+  id: string | number;
+  title?: string | null;
+  original_title?: string | null;
+  source_title?: string | null;
+  headline?: string | null;
+  category?: string | null;
+  created_at?: string | null;
+  image_url?: string | null;
+  snippet?: string | null;
+  description?: string | null;
+  summary?: string | null;
+  excerpt?: string | null;
+  source_name?: string | null;
+  source_url?: string | null;
+  original_url?: string | null;
+  url?: string | null;
+  link?: string | null;
+  article_url?: string | null;
+  is_published?: boolean | null;
+  [key: string]: any;
+};
+
+function formatDateTime(dateString?: string | null) {
+  if (!dateString) return '';
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+
   const diffMs = Date.now() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
+  const diffMins = Math.max(0, Math.floor(diffMs / 60000));
   const diffHours = Math.floor(diffMins / 60);
 
   if (diffMins < 60) return `${diffMins} মিনিট আগে`;
   if (diffHours < 24) return `${diffHours} ঘণ্টা আগে`;
-  
+
   return date.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-export default async function Home({ searchParams }: { searchParams: { category?: string, tab?: string, page?: string, q?: string } }) {
+function getNewsTitle(news: NewsItem | null | undefined) {
+  if (!news) return '';
+  return String(
+    news.original_title ||
+    news.source_title ||
+    news.headline ||
+    news.title ||
+    ''
+  ).trim();
+}
+
+function getNewsSource(news: NewsItem | null | undefined) {
+  if (!news) return 'সংবাদ উৎস';
+  return String(news.source_name || news.publisher || news.source || 'সংবাদ উৎস').trim();
+}
+
+function getNewsSnippet(news: NewsItem | null | undefined) {
+  if (!news) return '';
+  return String(news.snippet || news.description || news.summary || news.excerpt || '').trim();
+}
+
+function getNewsHref(news: NewsItem | null | undefined) {
+  if (!news) return '#';
+  const candidates = [
+    news.source_url,
+    news.original_url,
+    news.article_url,
+    news.url,
+    news.link,
+    news.original_link,
+    news.news_url,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const value = candidate.trim();
+    if (/^https?:\/\//i.test(value) || value.startsWith('/')) return value;
+  }
+
+  return `/news/${news.id}`;
+}
+
+function formatNewsMeta(news: NewsItem | null | undefined) {
+  if (!news) return '';
+  const source = getNewsSource(news);
+  const time = formatDateTime(news.created_at);
+  return [source, time].filter(Boolean).join(' • ');
+}
+
+function decodeXmlEntities(value: string) {
+  return value
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, num) => String.fromCodePoint(parseInt(num, 10)))
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;|&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>');
+}
+
+function stripHtml(value: string) {
+  return decodeXmlEntities(value)
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function readXmlTag(block: string, tag: string) {
+  const pattern = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, 'i');
+  const match = block.match(pattern);
+  return match ? decodeXmlEntities(match[1]).trim() : '';
+}
+
+function extractRssImage(block: string, description: string) {
+  const candidates = [
+    block.match(/<media:content[^>]+url=["']([^"']+)["']/i)?.[1],
+    block.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i)?.[1],
+    description.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1],
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && /^https?:\/\//i.test(candidate)) return decodeXmlEntities(candidate);
+  }
+  return '';
+}
+
+function simpleHash(value: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function cleanGoogleNewsTitle(rawTitle: string, sourceName: string) {
+  const title = rawTitle.trim();
+  if (!sourceName) return title;
+  const escaped = sourceName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return title.replace(new RegExp(`\\s+-\\s+${escaped}\\s*$`, 'i'), '').trim();
+}
+
+function parseGoogleNewsRss(xml: string, category: string, limit: number): NewsItem[] {
+  const blocks = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
+
+  return blocks.slice(0, limit).map((block) => {
+    const rawTitle = readXmlTag(block, 'title');
+    const sourceName = readXmlTag(block, 'source') || 'Google News';
+    const link = readXmlTag(block, 'link');
+    const descriptionHtml = readXmlTag(block, 'description');
+    const publishedRaw = readXmlTag(block, 'pubDate');
+    const parsedDate = publishedRaw ? new Date(publishedRaw) : new Date();
+    const createdAt = Number.isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
+    const title = cleanGoogleNewsTitle(rawTitle, sourceName);
+
+    return {
+      id: `gnews-${simpleHash(link || `${title}-${createdAt}`)}`,
+      title,
+      original_title: title,
+      category: category || 'সর্বশেষ',
+      created_at: createdAt,
+      image_url: extractRssImage(block, descriptionHtml),
+      snippet: stripHtml(descriptionHtml).slice(0, 280),
+      source_name: sourceName,
+      source_url: link,
+      is_published: true,
+      feed_source: 'google-news-rss',
+    };
+  }).filter((item) => Boolean(item.title && item.source_url));
+}
+
+async function fetchGoogleNewsFeed(query: string, category: string, limit = 40): Promise<NewsItem[]> {
+  const cleanQuery = query.trim();
+  const url = cleanQuery
+    ? `https://news.google.com/rss/search?q=${encodeURIComponent(cleanQuery)}&hl=bn&gl=BD&ceid=BD:bn`
+    : 'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn';
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; BongiyoTimes/1.0; +https://bongiyo-times.vercel.app)',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+      },
+      next: { revalidate: 600 },
+    });
+
+    if (!response.ok) return [];
+    const xml = await response.text();
+    return parseGoogleNewsRss(xml, category, limit);
+  } catch (error) {
+    console.error('Google News RSS fetch failed:', error);
+    return [];
+  }
+}
+
+function mergeNews(...lists: NewsItem[][]): NewsItem[] {
+  const map = new Map<string, NewsItem>();
+
+  for (const list of lists) {
+    for (const item of list) {
+      if (!item) continue;
+      const title = getNewsTitle(item).toLowerCase().replace(/\s+/g, ' ').trim();
+      const href = getNewsHref(item).toLowerCase().trim();
+      const key = href.startsWith('http') ? href : `${title}|${getNewsSource(item).toLowerCase()}`;
+      if (!key || map.has(key)) continue;
+      map.set(key, item);
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => {
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
+function isFreshEnough(items: NewsItem[], minutes = 90) {
+  if (!items.length) return false;
+  const newest = items.reduce((max, item) => {
+    const time = item.created_at ? new Date(item.created_at).getTime() : 0;
+    return Math.max(max, Number.isNaN(time) ? 0 : time);
+  }, 0);
+  return newest > 0 && Date.now() - newest <= minutes * 60 * 1000;
+}
+
+function normalizeOptionalUrl(value: FormDataEntryValue | null) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (/^https?:\/\//i.test(text)) return text;
+  return `https://${text}`;
+}
+
+function isMissingColumnError(error: any, column: string) {
+  const message = String(error?.message || '').toLowerCase();
+  const target = column.toLowerCase();
+  return message.includes(target) && (message.includes('column') || message.includes('schema cache'));
+}
+
+async function publishCustomNews(formData: FormData) {
+  'use server';
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    redirect('/?upload=1&upload_status=config_error');
+  }
+
+  const title = String(formData.get('title') || '').trim();
+  const category = String(formData.get('category') || 'বাংলাদেশ').trim();
+  const snippet = String(formData.get('snippet') || '').trim();
+  const sourceName = String(formData.get('source_name') || 'বঙ্গীয় টাইমস').trim();
+  const imageUrl = normalizeOptionalUrl(formData.get('image_url'));
+  const sourceUrl = normalizeOptionalUrl(formData.get('source_url'));
+
+  if (!title) {
+    redirect('/?upload=1&upload_status=missing_title');
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const basePayload: Record<string, any> = {
+    title,
+    category,
+    snippet: snippet || null,
+    source_name: sourceName || 'বঙ্গীয় টাইমস',
+    image_url: imageUrl || null,
+    is_published: true,
+    created_at: new Date().toISOString(),
+  };
+
+  let error: any = null;
+
+  if (sourceUrl) {
+    const urlColumns = ['source_url', 'url', 'original_url'];
+    let inserted = false;
+
+    for (const column of urlColumns) {
+      const result = await supabase.from('news').insert({ ...basePayload, [column]: sourceUrl });
+      if (!result.error) {
+        inserted = true;
+        error = null;
+        break;
+      }
+
+      if (isMissingColumnError(result.error, column)) {
+        error = result.error;
+        continue;
+      }
+
+      error = result.error;
+      break;
+    }
+
+    if (!inserted && error && ['source_url', 'url', 'original_url'].some((column) => isMissingColumnError(error, column))) {
+      const fallback = await supabase.from('news').insert(basePayload);
+      error = fallback.error;
+    }
+  } else {
+    const result = await supabase.from('news').insert(basePayload);
+    error = result.error;
+  }
+
+  if (error) {
+    const message = encodeURIComponent(String(error.message || 'Unknown upload error').slice(0, 220));
+    redirect(`/?upload=1&upload_status=error&upload_error=${message}`);
+  }
+
+  revalidatePath('/');
+  redirect('/?upload=1&upload_status=success');
+}
+
+export default async function Home({ searchParams }: { searchParams: { category?: string, tab?: string, page?: string, q?: string, upload?: string, upload_status?: string, upload_error?: string } }) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
@@ -25,7 +331,10 @@ export default async function Home({ searchParams }: { searchParams: { category?
 
   const activeCategory = searchParams.category ? searchParams.category.trim() : '';
   const searchQuery = searchParams.q ? searchParams.q.trim() : '';
-  const currentPage = parseInt(searchParams.page || '1');
+  const currentPage = Math.max(1, parseInt(searchParams.page || '1') || 1);
+  const showUpload = searchParams.upload === '1';
+  const uploadStatus = searchParams.upload_status || '';
+  const uploadError = searchParams.upload_error || '';
   const limitPerPage = 20; 
   const startRow = (currentPage - 1) * limitPerPage;
   const endRow = startRow + limitPerPage - 1;
@@ -41,8 +350,20 @@ export default async function Home({ searchParams }: { searchParams: { category?
   }
 
   const { data: newsItems, count } = await query;
-  const allNews = newsItems || [];
-  const totalPages = count ? Math.ceil(count / limitPerPage) : 1;
+  const dbNews = (newsItems || []) as NewsItem[];
+
+  const liveQuery = searchQuery || activeCategory;
+  const liveCategory = activeCategory || (searchQuery ? 'সার্চ' : 'সর্বশেষ');
+  const liveNews = currentPage === 1
+    ? await fetchGoogleNewsFeed(liveQuery, liveCategory, activeCategory || searchQuery ? 40 : 90)
+    : [];
+
+  const mergedMainNews = mergeNews(liveNews, dbNews);
+  const allNews = (activeCategory || searchQuery)
+    ? mergedMainNews.slice(0, limitPerPage)
+    : mergedMainNews.slice(0, 150);
+
+  const totalPages = count ? Math.max(1, Math.ceil(count / limitPerPage)) : 1;
 
   // --- Hero Section Data (Updated Layout Allocations) ---
   let remainingNews = [...allNews];
@@ -69,8 +390,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const middleListNews = remainingNews.splice(0, 10); // মিডল কলাম
   const rightSideNews = remainingNews.splice(0, 5); // ডানপাশের কলাম
   
-  // --- Category Data Mapping (Live Fetch) ---
-const fetchDirectCategory = async (catName: string, amt: number) => {
+  // --- Category Data Mapping (Supabase + Google News RSS fallback) ---
+  const fetchDirectCategory = async (catName: string, amt: number) => {
     const { data } = await supabase
       .from('news')
       .select('*')
@@ -78,25 +399,56 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
       .eq('is_published', true)
       .order('created_at', { ascending: false })
       .limit(amt);
-    return data || [];
+
+    const dbItems = (data || []) as NewsItem[];
+
+    // If the scraper is already supplying fresh rows, keep using them.
+    // If it is empty/stale, fall back to Google News RSS without rewriting the article.
+    if (dbItems.length >= amt && isFreshEnough(dbItems, 90)) {
+      return dbItems.slice(0, amt);
+    }
+
+    const liveItems = await fetchGoogleNewsFeed(catName, catName, Math.max(amt * 2, 10));
+    return mergeNews(liveItems, dbItems).slice(0, amt);
   };
-  const bdNews = await fetchDirectCategory('বাংলাদেশ', 11);
-  const intlNews = await fetchDirectCategory('আন্তর্জাতিক', 7);
-  const politicsNews = await fetchDirectCategory('রাজনীতি', 7); 
-  const opinionNews = await fetchDirectCategory('মতামত', 5); 
-  const sportsNews = await fetchDirectCategory('খেলাধুলা', 5); 
-  const businessNews = await fetchDirectCategory('বাণিজ্য', 4); 
-  const entertainmentNews = await fetchDirectCategory('বিনোদন', 7); 
-  const lawNews = await fetchDirectCategory('আইন-আদালত', 7);
-  const lifestyleNews = await fetchDirectCategory('জীবনযাপন', 4);
-  const eduNews = await fetchDirectCategory('শিক্ষা', 4);
-  const jobsNews = await fetchDirectCategory('চাকরি', 4);
-  const techNews = await fetchDirectCategory('প্রযুক্তি', 4);
-  const featureNews = await fetchDirectCategory('ফিচার', 4); 
-  const hasyroshNews = await fetchDirectCategory('হাস্যরস', 4);
-  const religionNews = await fetchDirectCategory('ধর্ম', 8);
-  const lawAndAdviceNews = await fetchDirectCategory('আইন ও পরামর্শ', 7);
-  const literatureNews = await fetchDirectCategory('সাহিত্য', 7);
+
+  const [
+    bdNews,
+    intlNews,
+    politicsNews,
+    opinionNews,
+    sportsNews,
+    businessNews,
+    entertainmentNews,
+    lawNews,
+    lifestyleNews,
+    eduNews,
+    jobsNews,
+    techNews,
+    featureNews,
+    hasyroshNews,
+    religionNews,
+    lawAndAdviceNews,
+    literatureNews,
+  ] = await Promise.all([
+    fetchDirectCategory('বাংলাদেশ', 11),
+    fetchDirectCategory('আন্তর্জাতিক', 7),
+    fetchDirectCategory('রাজনীতি', 7),
+    fetchDirectCategory('মতামত', 5),
+    fetchDirectCategory('খেলাধুলা', 5),
+    fetchDirectCategory('বাণিজ্য', 4),
+    fetchDirectCategory('বিনোদন', 7),
+    fetchDirectCategory('আইন-আদালত', 7),
+    fetchDirectCategory('জীবনযাপন', 4),
+    fetchDirectCategory('শিক্ষা', 4),
+    fetchDirectCategory('চাকরি', 4),
+    fetchDirectCategory('প্রযুক্তি', 4),
+    fetchDirectCategory('ফিচার', 4),
+    fetchDirectCategory('হাস্যরস', 4),
+    fetchDirectCategory('ধর্ম', 8),
+    fetchDirectCategory('আইন ও পরামর্শ', 7),
+    fetchDirectCategory('সাহিত্য', 7),
+  ]);
 
   const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস", "আইন ও পরামর্শ", "সাহিত্য"];
 
@@ -153,12 +505,12 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
     {/* রাইট সাইড মেনু / Header News */}
     <div className="hidden lg:flex divide-x divide-gray-300">
        {headerNews.map((news, index) => (
-          <a href={`/news/${news.id}`} target="_blank" rel="noreferrer" key={index} className="flex gap-3 px-4 w-[250px] group">
+          <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={index} className="flex gap-3 px-4 w-[250px] group">
              <div className="flex-1">
-                <p className="text-xs text-red-600 mb-1">■ {news.category}</p>
-                <h3 className="text-[15px] leading-tight font-semibold group-hover:text-blue-600 line-clamp-2">{news.title}</h3>
+                <p className="text-xs text-red-600 mb-1">■ {news.category} <span className="text-gray-500 font-normal">• {getNewsSource(news)}</span></p>
+                <h3 className="text-[15px] leading-tight font-semibold group-hover:text-blue-600 line-clamp-2">{getNewsTitle(news)}</h3>
              </div>
-             <SafeImage src={news.image_url} alt={news.title} className="w-16 h-16 object-cover border border-gray-100" />
+             <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-16 h-16 object-cover border border-gray-100" />
           </a>
        ))}
     </div>
@@ -183,6 +535,12 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                       {cat}
                    </a>
                  ))}
+                 <a
+                   href="/?upload=1"
+                   className={`h-12 flex items-center whitespace-nowrap shrink-0 px-3 rounded-md font-bold transition-colors ${showUpload ? 'text-white bg-[#104f96]' : 'text-[#104f96] hover:bg-[#eef5ff]'}`}
+                 >
+                   + নিজস্ব সংবাদ
+                 </a>
                </nav>
             </div>
             
@@ -212,6 +570,121 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
 
       {/* Main Content Body */}
       <main className="mt-0 pb-10">
+
+        {showUpload && (
+          <section className="max-w-[1000px] mx-auto px-4 pt-6 pb-2">
+            <div className="border border-[#dbe5f0] bg-[#f8fbff] rounded-md shadow-sm overflow-hidden">
+              <div className="bg-[#104f96] text-white px-5 py-4 flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-[21px] md:text-[24px] font-bold">নিজস্ব সংবাদ প্রকাশ</h2>
+                  <p className="text-[13px] md:text-[14px] text-blue-100 mt-1">নিজস্ব সংবাদ বা কোনো উৎসের সংবাদ-লিংক ম্যানুয়ালি যোগ করুন।</p>
+                </div>
+                <a href="/" className="text-[14px] font-bold bg-white/15 hover:bg-white/25 px-3 py-2 rounded">বন্ধ করুন</a>
+              </div>
+
+              <div className="p-5 md:p-6">
+                {uploadStatus === 'success' && (
+                  <div className="mb-5 border border-green-200 bg-green-50 text-green-800 px-4 py-3 rounded font-bold text-[14px]">
+                    সংবাদ সফলভাবে প্রকাশ হয়েছে।
+                  </div>
+                )}
+                {uploadStatus === 'missing_title' && (
+                  <div className="mb-5 border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 rounded font-bold text-[14px]">
+                    সংবাদ শিরোনাম অবশ্যই দিতে হবে।
+                  </div>
+                )}
+                {uploadStatus === 'config_error' && (
+                  <div className="mb-5 border border-red-200 bg-red-50 text-red-700 px-4 py-3 rounded text-[14px]">
+                    Supabase configuration পাওয়া যায়নি।
+                  </div>
+                )}
+                {uploadStatus === 'error' && (
+                  <div className="mb-5 border border-red-200 bg-red-50 text-red-700 px-4 py-3 rounded text-[14px] break-words">
+                    সংবাদ প্রকাশ করা যায়নি{uploadError ? `: ${uploadError}` : '।'}
+                  </div>
+                )}
+
+                <form action={publishCustomNews} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="md:col-span-2">
+                    <label htmlFor="title" className="block text-[14px] font-bold mb-2">সংবাদ শিরোনাম *</label>
+                    <input
+                      id="title"
+                      name="title"
+                      type="text"
+                      required
+                      maxLength={250}
+                      placeholder="সংবাদের মূল শিরোনাম লিখুন"
+                      className="w-full border border-gray-300 rounded px-4 py-3 outline-none focus:border-[#104f96] bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="category" className="block text-[14px] font-bold mb-2">বিভাগ *</label>
+                    <select id="category" name="category" defaultValue="বাংলাদেশ" className="w-full border border-gray-300 rounded px-4 py-3 outline-none focus:border-[#104f96] bg-white">
+                      {menuCategories.filter((cat) => cat !== 'সর্বশেষ').map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="source_name" className="block text-[14px] font-bold mb-2">উৎসের নাম</label>
+                    <input
+                      id="source_name"
+                      name="source_name"
+                      type="text"
+                      defaultValue="বঙ্গীয় টাইমস"
+                      maxLength={120}
+                      className="w-full border border-gray-300 rounded px-4 py-3 outline-none focus:border-[#104f96] bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="source_url" className="block text-[14px] font-bold mb-2">মূল সংবাদ/উৎসের লিংক</label>
+                    <input
+                      id="source_url"
+                      name="source_url"
+                      type="text"
+                      placeholder="https://example.com/news/..."
+                      className="w-full border border-gray-300 rounded px-4 py-3 outline-none focus:border-[#104f96] bg-white"
+                    />
+                    <p className="text-[12px] text-gray-500 mt-1">লিংক দিলে পাঠক সরাসরি মূল উৎসে যাবে। ফাঁকা রাখলে আপনার সাইটের নিজস্ব নিউজ পেজ খোলা হবে।</p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="image_url" className="block text-[14px] font-bold mb-2">ছবির URL</label>
+                    <input
+                      id="image_url"
+                      name="image_url"
+                      type="text"
+                      placeholder="https://example.com/image.jpg"
+                      className="w-full border border-gray-300 rounded px-4 py-3 outline-none focus:border-[#104f96] bg-white"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label htmlFor="snippet" className="block text-[14px] font-bold mb-2">সংক্ষিপ্ত বিবরণ</label>
+                    <textarea
+                      id="snippet"
+                      name="snippet"
+                      rows={4}
+                      maxLength={1200}
+                      placeholder="২–৪ লাইনের সংক্ষিপ্ত বিবরণ লিখুন। অন্য উৎসের পুরো লেখা কপি না করে ছোট preview দিন।"
+                      className="w-full border border-gray-300 rounded px-4 py-3 outline-none focus:border-[#104f96] bg-white resize-y"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 pt-4">
+                    <p className="text-[12px] md:text-[13px] text-gray-500">Google News-এর মতো: শিরোনাম + ছোট preview + উৎসের নাম + মূল লিংক।</p>
+                    <button type="submit" className="bg-[#104f96] hover:bg-[#0b3d78] text-white font-bold px-6 py-3 rounded transition-colors">
+                      সংবাদ প্রকাশ করুন
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </section>
+        )}
         
         {activeCategory === 'বাংলাদেশ' && searchQuery ? (
             /* --- প্রথম আলোর মতো এলাকার খবরের সার্চ রেজাল্ট পেজ --- */
@@ -230,13 +703,13 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                   ) : (
                      <div className="flex flex-col gap-6">
                         {allNews.map(news => (
-                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-6 last:border-0">
+                           <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-6 last:border-0">
                               <div className="flex-1">
-                                 <h3 className="text-[18px] md:text-[20px] font-bold group-hover:text-[#104f96] leading-snug text-[#1a1a1a]">{news.title}</h3>
-                                 <p className="text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{news.snippet}</p>
-                                 <p className="text-[13px] text-gray-400 mt-3">{formatDateTime(news.created_at)}</p>
+                                 <h3 className="text-[18px] md:text-[20px] font-bold group-hover:text-[#104f96] leading-snug text-[#1a1a1a]">{getNewsTitle(news)}</h3>
+                                 <p className="text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{getNewsSnippet(news)}</p>
+                                 <p className="text-[13px] text-gray-400 mt-3">{formatNewsMeta(news)}</p>
                               </div>
-                              <SafeImage src={news.image_url} alt={news.title} className="w-[120px] h-[90px] md:w-[180px] md:h-[120px] aspect-video object-cover rounded-sm border border-gray-100 shrink-0" />
+                              <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[120px] h-[90px] md:w-[180px] md:h-[120px] aspect-video object-cover rounded-sm border border-gray-100 shrink-0" />
                            </a>
                         ))}
                      </div>
@@ -286,20 +759,20 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                      <>
                         <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
                            {allNews.slice(0, 12).map((news) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex flex-col">
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group flex flex-col">
                                  <div className="overflow-hidden mb-3">
-                                    <SafeImage src={news.image_url} alt={news.title} className="w-full aspect-video object-cover group-hover:scale-105 transition duration-300 border border-gray-100 rounded-sm" />
+                                    <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover group-hover:scale-105 transition duration-300 border border-gray-100 rounded-sm" />
                                  </div>
-                                 <h3 className="text-[17px] md:text-[18px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{news.title}</h3>
-                                 <p className="text-[12px] md:text-[13px] text-gray-400 mt-2">{formatDateTime(news.created_at)}</p>
+                                 <h3 className="text-[17px] md:text-[18px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{getNewsTitle(news)}</h3>
+                                 <p className="text-[12px] md:text-[13px] text-gray-400 mt-2">{formatNewsMeta(news)}</p>
                               </a>
                            ))}
                         </div>
                         <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-gray-200 pt-5 lg:pt-0 lg:pl-6 flex flex-col gap-5">
                            {allNews.slice(12, 20).map((news) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
-                                 <h3 className="text-[15px] lg:text-[16px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{news.title}</h3>
-                                 <p className="text-[12px] md:text-[13px] text-gray-400 mt-1.5">{formatDateTime(news.created_at)}</p>
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
+                                 <h3 className="text-[15px] lg:text-[16px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{getNewsTitle(news)}</h3>
+                                 <p className="text-[12px] md:text-[13px] text-gray-400 mt-1.5">{formatNewsMeta(news)}</p>
                               </a>
                            ))}
                         </div>
@@ -336,12 +809,12 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                     <>
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                           {allNews.map(news => (
-                             <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-4">
+                             <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-4">
                                 <div className="flex-1">
-                                   <h3 className="text-[17px] md:text-[18px] lg:text-[20px] font-bold group-hover:text-[#104f96] leading-snug text-[#1a1a1a]">{news.title}</h3>
-                                   <p className="text-[12px] md:text-[13px] text-gray-400 mt-2">{formatDateTime(news.created_at)}</p>
+                                   <h3 className="text-[17px] md:text-[18px] lg:text-[20px] font-bold group-hover:text-[#104f96] leading-snug text-[#1a1a1a]">{getNewsTitle(news)}</h3>
+                                   <p className="text-[12px] md:text-[13px] text-gray-400 mt-2">{formatNewsMeta(news)}</p>
                                 </div>
-                                <SafeImage src={news.image_url} alt={news.title} className="w-[100px] sm:w-[120px] aspect-video object-cover rounded-sm" />
+                                <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[100px] sm:w-[120px] aspect-video object-cover rounded-sm" />
                              </a>
                           ))}
                        </div>
@@ -374,9 +847,10 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
             <div className="bg-[#f2efe9] py-6 mb-8 border-b border-gray-200">
               <div className="max-w-[1200px] mx-auto px-4 grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                 {topHighlightNews.map(news => (
-                  <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block transition">
-                    <SafeImage src={news.image_url} alt={news.title} className="w-full aspect-video object-cover mb-3 border border-gray-200/50 rounded-sm" />
-                    <h3 className="font-bold text-[16px] md:text-[17px] text-[#1a1a1a] group-hover:text-[#104f96] leading-snug line-clamp-3">{news.title}</h3>
+                  <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group block transition">
+                    <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-3 border border-gray-200/50 rounded-sm" />
+                    <h3 className="font-bold text-[16px] md:text-[17px] text-[#1a1a1a] group-hover:text-[#104f96] leading-snug line-clamp-3">{getNewsTitle(news)}</h3>
+                    <p className="text-[12px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                   </a>
                 ))}
               </div>
@@ -389,22 +863,22 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                 {/* Left: Lead News (col-span-5) */}
                 <div className="lg:col-span-5 flex flex-col lg:border-r border-gray-300 lg:pr-6">
                    {leadNews && (
-                     <a href={`/news/${leadNews.id}`} target="_blank" className="group block mb-6 border-b border-gray-200 pb-6">
-                       <h1 className="text-[28px] md:text-[32px] font-bold leading-[1.35] text-[#1a1a1a] group-hover:text-[#104f96] mb-4">{leadNews.title}</h1>
-                       <SafeImage src={leadNews.image_url} alt={leadNews.title} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
+                     <a href={getNewsHref(leadNews)} target="_blank" rel="noopener noreferrer" className="group block mb-6 border-b border-gray-200 pb-6">
+                       <h1 className="text-[28px] md:text-[32px] font-bold leading-[1.35] text-[#1a1a1a] group-hover:text-[#104f96] mb-4">{getNewsTitle(leadNews)}</h1>
+                       <SafeImage src={leadNews.image_url} alt={getNewsTitle(leadNews)} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
                        <p className="text-[15px] md:text-[16px] text-gray-600 leading-[1.65] line-clamp-4">{leadNews.snippet}</p>
-                       <p className="text-[13px] text-gray-400 mt-3">{formatDateTime(leadNews.created_at)}</p>
+                       <p className="text-[13px] text-gray-400 mt-3">{formatNewsMeta(leadNews)}</p>
                      </a>
                    )}
                    <div className="flex flex-col gap-5">
                      {underLeadNews.map((news, idx) => (
-                       <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-5 last:border-0 last:pb-0">
+                       <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group flex gap-4 border-b border-gray-200 pb-5 last:border-0 last:pb-0">
                          <div className="flex-1">
-                           <h3 className="text-[18px] md:text-[19px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{news.title}</h3>
-                           <p className="text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{news.snippet}</p>
-                           <p className="text-[12px] text-gray-400 mt-2">{formatDateTime(news.created_at)}</p>
+                           <h3 className="text-[18px] md:text-[19px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{getNewsTitle(news)}</h3>
+                           <p className="text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{getNewsSnippet(news)}</p>
+                           <p className="text-[12px] text-gray-400 mt-2">{formatNewsMeta(news)}</p>
                          </div>
-                         <SafeImage src={news.image_url} alt={news.title} className="w-[120px] sm:w-[130px] aspect-video object-cover shrink-0 rounded-sm border border-gray-100" />
+                         <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[120px] sm:w-[130px] aspect-video object-cover shrink-0 rounded-sm border border-gray-100" />
                        </a>
                      ))}
                    </div>
@@ -413,18 +887,18 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                 {/* Middle Column (col-span-4) */}
                 <div className="lg:col-span-4 flex flex-col lg:border-r border-gray-300 lg:pr-6">
                    {middleTopNews && (
-                     <a href={`/news/${middleTopNews.id}`} target="_blank" className="group block mb-6 border-b border-gray-200 pb-6">
-                       <SafeImage src={middleTopNews.image_url} alt={middleTopNews.title} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
-                       <h2 className="text-[20px] md:text-[22px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug mb-3">{middleTopNews.title}</h2>
+                     <a href={getNewsHref(middleTopNews)} target="_blank" rel="noopener noreferrer" className="group block mb-6 border-b border-gray-200 pb-6">
+                       <SafeImage src={middleTopNews.image_url} alt={getNewsTitle(middleTopNews)} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
+                       <h2 className="text-[20px] md:text-[22px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug mb-3">{getNewsTitle(middleTopNews)}</h2>
                        <p className="text-[14px] md:text-[15px] text-gray-600 leading-[1.65] line-clamp-3">{middleTopNews.snippet}</p>
-                       <p className="text-[13px] text-gray-400 mt-3">{formatDateTime(middleTopNews.created_at)}</p>
+                       <p className="text-[13px] text-gray-400 mt-3">{formatNewsMeta(middleTopNews)}</p>
                      </a>
                    )}
                    <div className="flex flex-col gap-4 divide-y divide-gray-200">
                      {middleListNews.map((news, idx) => (
-                       <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group block ${idx !== 0 ? 'pt-4' : ''}`}>
-                         <h3 className="text-[16px] md:text-[17px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{news.title}</h3>
-                         <p className="text-[12px] text-gray-400 mt-2">{formatDateTime(news.created_at)}</p>
+                       <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className={`group block ${idx !== 0 ? 'pt-4' : ''}`}>
+                         <h3 className="text-[16px] md:text-[17px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{getNewsTitle(news)}</h3>
+                         <p className="text-[12px] text-gray-400 mt-2">{formatNewsMeta(news)}</p>
                        </a>
                      ))}
                    </div>
@@ -434,12 +908,12 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                 <div className="lg:col-span-3 flex flex-col">
                    <div className="flex flex-col gap-5 divide-y divide-gray-200 mb-6">
                      {rightSideNews.map((news, idx) => (
-                       <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 items-start ${idx !== 0 ? 'pt-5' : ''}`}>
+                       <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className={`group flex gap-3 items-start ${idx !== 0 ? 'pt-5' : ''}`}>
                          <div className="flex-1">
-                           <h3 className="text-[15px] md:text-[16px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{news.title}</h3>
-                           <p className="text-[12px] text-gray-400 mt-1.5">{formatDateTime(news.created_at)}</p>
+                           <h3 className="text-[15px] md:text-[16px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{getNewsTitle(news)}</h3>
+                           <p className="text-[12px] text-gray-400 mt-1.5">{formatNewsMeta(news)}</p>
                          </div>
-                         <SafeImage src={news.image_url} alt={news.title} className="w-[85px] sm:w-[95px] aspect-video object-cover shrink-0 rounded-sm border border-gray-100" />
+                         <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[85px] sm:w-[95px] aspect-video object-cover shrink-0 rounded-sm border border-gray-100" />
                        </a>
                      ))}
                    </div>
@@ -475,20 +949,20 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                      <>
                         <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
                            {bdNews.slice(0, 6).map((news) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex flex-col">
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group flex flex-col">
                                  <div className="overflow-hidden mb-3">
-                                    <SafeImage src={news.image_url} alt={news.title} className="w-full aspect-video object-cover group-hover:scale-105 transition duration-300 border border-gray-100 rounded-sm" />
+                                    <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover group-hover:scale-105 transition duration-300 border border-gray-100 rounded-sm" />
                                  </div>
-                                 <h3 className="text-[17px] md:text-[18px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{news.title}</h3>
-                                 <p className="text-[12px] md:text-[13px] text-gray-400 mt-2">{formatDateTime(news.created_at)}</p>
+                                 <h3 className="text-[17px] md:text-[18px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{getNewsTitle(news)}</h3>
+                                 <p className="text-[12px] md:text-[13px] text-gray-400 mt-2">{formatNewsMeta(news)}</p>
                               </a>
                            ))}
                         </div>
                         <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-gray-200 pt-5 lg:pt-0 lg:pl-6 flex flex-col gap-5">
                            {bdNews.slice(6, 10).map((news) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
-                                 <h3 className="text-[15px] lg:text-[16px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{news.title}</h3>
-                                 <p className="text-[12px] md:text-[13px] text-gray-400 mt-1.5">{formatDateTime(news.created_at)}</p>
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group block border-b border-gray-100 pb-4 last:border-0">
+                                 <h3 className="text-[15px] lg:text-[16px] font-bold text-[#1a1a1a] group-hover:text-[#104f96] leading-snug">{getNewsTitle(news)}</h3>
+                                 <p className="text-[12px] md:text-[13px] text-gray-400 mt-1.5">{formatNewsMeta(news)}</p>
                               </a>
                            ))}
                         </div>
@@ -511,26 +985,26 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#bbf2d8] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {intlNews[0] && (
-                              <a href={`/news/${intlNews[0].id}`} target="_blank" className="group block mb-4">
-                                 <SafeImage src={intlNews[0].image_url} alt={intlNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm" />
-                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#2db97a] leading-snug">{intlNews[0].title}</h3>
+                              <a href={getNewsHref(intlNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
+                                 <SafeImage src={intlNews[0].image_url} alt={getNewsTitle(intlNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#2db97a] leading-snug">{getNewsTitle(intlNews[0])}</h3>
                                  <p className="text-[13px] md:text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{intlNews[0].snippet}</p>
-                                <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(intlNews[0].created_at)}</p>
+                                <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(intlNews[0])}</p>
                               </a>
                            )}
                            
                            <div className="mt-auto space-y-4 pt-3 border-t border-[#bbf2d8]">
                               {intlNews[1] && (
-                                 <a href={`/news/${intlNews[1].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(intlNews[1])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#2db97a] leading-snug">
-                                       <span className="text-[#2db97a] mr-1">■</span> {intlNews[1].title}
+                                       <span className="text-[#2db97a] mr-1">■</span> {getNewsTitle(intlNews[1])}
                                     </h3>
                                  </a>
                               )}
                               {intlNews[2] && (
-                                 <a href={`/news/${intlNews[2].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(intlNews[2])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#2db97a] leading-snug">
-                                       <span className="text-[#2db97a] mr-1">■</span> {intlNews[2].title}
+                                       <span className="text-[#2db97a] mr-1">■</span> {getNewsTitle(intlNews[2])}
                                     </h3>
                                  </a>
                               )}
@@ -538,12 +1012,12 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#bbf2d8]">
                            {intlNews.slice(3, 7).map((news, idx) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
-                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#2db97a] leading-snug">{news.title}</h3>
-                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatDateTime(news.created_at)}</p>
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#2db97a] leading-snug">{getNewsTitle(news)}</h3>
+                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={news.title} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -562,25 +1036,25 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#fbcbcb] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {lawNews[0] && (
-                              <a href={`/news/${lawNews[0].id}`} target="_blank" className="group block mb-4">
-                                 <SafeImage src={lawNews[0].image_url} alt={lawNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm" />
-                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#d73f3f] leading-snug">{lawNews[0].title}</h3>
+                              <a href={getNewsHref(lawNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
+                                 <SafeImage src={lawNews[0].image_url} alt={getNewsTitle(lawNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#d73f3f] leading-snug">{getNewsTitle(lawNews[0])}</h3>
                                 <p className="text-[13px] md:text-[14px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">{lawNews[0].snippet}</p>
-                                <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(lawNews[0].created_at)}</p>
+                                <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(lawNews[0])}</p>
                               </a>
                            )}
                            <div className="mt-auto space-y-4 pt-3 border-t border-[#fbcbcb]">
                               {lawNews[1] && (
-                                 <a href={`/news/${lawNews[1].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(lawNews[1])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#d73f3f] leading-snug">
-                                       <span className="text-[#d73f3f] mr-1">■</span> {lawNews[1].title}
+                                       <span className="text-[#d73f3f] mr-1">■</span> {getNewsTitle(lawNews[1])}
                                     </h3>
                                  </a>
                               )}
                               {lawNews[2] && (
-                                 <a href={`/news/${lawNews[2].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(lawNews[2])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#d73f3f] leading-snug">
-                                       <span className="text-[#d73f3f] mr-1">■</span> {lawNews[2].title}
+                                       <span className="text-[#d73f3f] mr-1">■</span> {getNewsTitle(lawNews[2])}
                                     </h3>
                                  </a>
                               )}
@@ -588,12 +1062,12 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#fbcbcb]">
                            {lawNews.slice(3, 7).map((news, idx) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
-                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#d73f3f] leading-snug">{news.title}</h3>
-                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatDateTime(news.created_at)}</p>
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#d73f3f] leading-snug">{getNewsTitle(news)}</h3>
+                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={news.title} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -613,13 +1087,13 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-6">
                      {opinionNews[0] && (
                      <div className="md:col-span-5 lg:col-span-4">
-                        <a href={`/news/${opinionNews[0].id}`} target="_blank" className="group flex flex-col h-full border border-gray-200 p-4 sm:p-5 hover:shadow-sm transition rounded-sm">
+                        <a href={getNewsHref(opinionNews[0])} target="_blank" rel="noopener noreferrer" className="group flex flex-col h-full border border-gray-200 p-4 sm:p-5 hover:shadow-sm transition rounded-sm">
                            <h3 className="text-[18px] lg:text-[20px] font-bold leading-snug mb-3">
                               <span className="bg-[#11233f] text-[#fcd105] px-2 py-1 mr-2 text-[13px] inline-block mb-1">মতামত •</span>
-                              <span className="group-hover:text-blue-600">{opinionNews[0].title}</span>
+                              <span className="group-hover:text-blue-600">{getNewsTitle(opinionNews[0])}</span>
                            </h3>
                            <p className="text-[14px] lg:text-[15px] text-gray-600 flex-1 line-clamp-4 mt-1">
-                              {opinionNews[0].title} প্রসঙ্গে আরও বিস্তারিত পড়তে লিংকে ক্লিক করুন।
+                              {getNewsTitle(opinionNews[0])} প্রসঙ্গে আরও বিস্তারিত পড়তে লিংকে ক্লিক করুন।
                            </p>
                            <p className="text-[13px] text-gray-800 mt-4 font-bold">{opinionNews[0].source_name || 'নিবন্ধকার'}</p>
                         </a>
@@ -627,13 +1101,13 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                      )}
                      <div className="md:col-span-7 lg:col-span-8 flex flex-col justify-between divide-y divide-gray-200">
                         {opinionNews.slice(1, 5).map((news, idx) => (
-                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-4 sm:gap-5 items-center ${idx === 0 ? 'pb-4' : 'py-4'} last:pb-0`}>
+                           <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className={`group flex gap-4 sm:gap-5 items-center ${idx === 0 ? 'pb-4' : 'py-4'} last:pb-0`}>
                               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#e6e6e6] flex items-center justify-center shrink-0">
                                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                               </div>
                               <div className="flex-1">
                                  <h3 className="text-[16px] md:text-[17px] font-bold group-hover:text-blue-600 leading-snug">
-                                    <span className="text-red-600 mr-1">মতামত •</span>{news.title}
+                                    <span className="text-red-600 mr-1">মতামত •</span>{getNewsTitle(news)}
                                  </h3>
                                  <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">লেখা: {news.source_name || 'নিবন্ধকার'}</p>
                               </div>
@@ -654,10 +1128,10 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
                      {lifestyleNews.map((news) => (
-                        <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block">
-                           <SafeImage src={news.image_url} alt={news.title} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
-                           <h3 className="text-[17px] md:text-[18px] font-bold group-hover:text-blue-600 leading-snug text-[#1a1a1a]">{news.title}</h3>
-                           <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(news.created_at)}</p>
+                        <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group block">
+                           <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
+                           <h3 className="text-[17px] md:text-[18px] font-bold group-hover:text-blue-600 leading-snug text-[#1a1a1a]">{getNewsTitle(news)}</h3>
+                           <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(news)}</p>
                         </a>
                      ))}
                   </div>
@@ -677,24 +1151,24 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#c8dceb] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {entertainmentNews[0] && (
-                              <a href={`/news/${entertainmentNews[0].id}`} target="_blank" className="group block mb-4">
-                                 <SafeImage src={entertainmentNews[0].image_url} alt={entertainmentNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm" />
-                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-blue-600 leading-snug">{entertainmentNews[0].title}</h3>
-                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(entertainmentNews[0].created_at)}</p>
+                              <a href={getNewsHref(entertainmentNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
+                                 <SafeImage src={entertainmentNews[0].image_url} alt={getNewsTitle(entertainmentNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-blue-600 leading-snug">{getNewsTitle(entertainmentNews[0])}</h3>
+                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(entertainmentNews[0])}</p>
                               </a>
                            )}
                            <div className="mt-auto space-y-4 pt-3 border-t border-[#c8dceb]">
                               {entertainmentNews[1] && (
-                                 <a href={`/news/${entertainmentNews[1].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(entertainmentNews[1])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">
-                                       <span className="text-[#5293c4] mr-1">■</span> {entertainmentNews[1].title}
+                                       <span className="text-[#5293c4] mr-1">■</span> {getNewsTitle(entertainmentNews[1])}
                                     </h3>
                                  </a>
                               )}
                               {entertainmentNews[2] && (
-                                 <a href={`/news/${entertainmentNews[2].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(entertainmentNews[2])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-blue-600 leading-snug">
-                                       <span className="text-[#5293c4] mr-1">■</span> {entertainmentNews[2].title}
+                                       <span className="text-[#5293c4] mr-1">■</span> {getNewsTitle(entertainmentNews[2])}
                                     </h3>
                                  </a>
                               )}
@@ -702,12 +1176,12 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#c8dceb]">
                            {entertainmentNews.slice(3, 7).map((news, idx) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
-                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-blue-600 leading-snug">{news.title}</h3>
-                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatDateTime(news.created_at)}</p>
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-blue-600 leading-snug">{getNewsTitle(news)}</h3>
+                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={news.title} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -726,24 +1200,24 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#e8dfce] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {politicsNews[0] && (
-                              <a href={`/news/${politicsNews[0].id}`} target="_blank" className="group block mb-4">
-                                 <SafeImage src={politicsNews[0].image_url} alt={politicsNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm" />
-                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#e05e3b] leading-snug">{politicsNews[0].title}</h3>
-                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(politicsNews[0].created_at)}</p>
+                              <a href={getNewsHref(politicsNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
+                                 <SafeImage src={politicsNews[0].image_url} alt={getNewsTitle(politicsNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#e05e3b] leading-snug">{getNewsTitle(politicsNews[0])}</h3>
+                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(politicsNews[0])}</p>
                               </a>
                            )}
                            <div className="mt-auto space-y-4 pt-3 border-t border-[#e8dfce]">
                               {politicsNews[1] && (
-                                 <a href={`/news/${politicsNews[1].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(politicsNews[1])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#e05e3b] leading-snug">
-                                       <span className="text-[#d4b072] mr-1">■</span> {politicsNews[1].title}
+                                       <span className="text-[#d4b072] mr-1">■</span> {getNewsTitle(politicsNews[1])}
                                     </h3>
                                  </a>
                               )}
                               {politicsNews[2] && (
-                                 <a href={`/news/${politicsNews[2].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(politicsNews[2])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#e05e3b] leading-snug">
-                                       <span className="text-[#d4b072] mr-1">■</span> {politicsNews[2].title}
+                                       <span className="text-[#d4b072] mr-1">■</span> {getNewsTitle(politicsNews[2])}
                                     </h3>
                                  </a>
                               )}
@@ -751,12 +1225,12 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#e8dfce]">
                            {politicsNews.slice(3, 7).map((news, idx) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
-                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#e05e3b] leading-snug">{news.title}</h3>
-                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatDateTime(news.created_at)}</p>
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#e05e3b] leading-snug">{getNewsTitle(news)}</h3>
+                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={news.title} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -776,14 +1250,14 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                   {eduNews.length === 0 ? <div className="text-gray-400 py-4">খবর আপডেট হচ্ছে...</div> : (
                      <div className="flex flex-col gap-3">
                         {eduNews[0] && (
-                           <a href={`/news/${eduNews[0].id}`} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
-                              <SafeImage src={eduNews[0].image_url} alt={eduNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
-                              <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{eduNews[0].title}</h3>
+                           <a href={getNewsHref(eduNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-2 border-b border-gray-200 pb-3">
+                              <SafeImage src={eduNews[0].image_url} alt={getNewsTitle(eduNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
+                              <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{getNewsTitle(eduNews[0])}</h3>
                            </a>
                         )}
                         {eduNews.slice(1, 4).map(news => (
-                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block">
-                              <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#104f96] leading-snug">■ {news.title}</h3>
+                           <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group block">
+                              <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#104f96] leading-snug">■ {getNewsTitle(news)}</h3>
                            </a>
                         ))}
                      </div>
@@ -798,14 +1272,14 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                   {jobsNews.length === 0 ? <div className="text-gray-400 py-4">খবর আপডেট হচ্ছে...</div> : (
                      <div className="flex flex-col gap-3">
                         {jobsNews[0] && (
-                           <a href={`/news/${jobsNews[0].id}`} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
-                              <SafeImage src={jobsNews[0].image_url} alt={jobsNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
-                              <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{jobsNews[0].title}</h3>
+                           <a href={getNewsHref(jobsNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-2 border-b border-gray-200 pb-3">
+                              <SafeImage src={jobsNews[0].image_url} alt={getNewsTitle(jobsNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
+                              <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{getNewsTitle(jobsNews[0])}</h3>
                            </a>
                         )}
                         {jobsNews.slice(1, 4).map(news => (
-                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block">
-                              <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#104f96] leading-snug">■ {news.title}</h3>
+                           <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group block">
+                              <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#104f96] leading-snug">■ {getNewsTitle(news)}</h3>
                            </a>
                         ))}
                      </div>
@@ -820,14 +1294,14 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                   {techNews.length === 0 ? <div className="text-gray-400 py-4">খবর আপডেট হচ্ছে...</div> : (
                      <div className="flex flex-col gap-3">
                         {techNews[0] && (
-                           <a href={`/news/${techNews[0].id}`} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
-                              <SafeImage src={techNews[0].image_url} alt={techNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
-                              <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{techNews[0].title}</h3>
+                           <a href={getNewsHref(techNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-2 border-b border-gray-200 pb-3">
+                              <SafeImage src={techNews[0].image_url} alt={getNewsTitle(techNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
+                              <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{getNewsTitle(techNews[0])}</h3>
                            </a>
                         )}
                         {techNews.slice(1, 4).map(news => (
-                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block">
-                              <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#104f96] leading-snug">■ {news.title}</h3>
+                           <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group block">
+                              <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#104f96] leading-snug">■ {getNewsTitle(news)}</h3>
                            </a>
                         ))}
                      </div>
@@ -842,14 +1316,14 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                   {businessNews.length === 0 ? <div className="text-gray-400 py-4">খবর আপডেট হচ্ছে...</div> : (
                      <div className="flex flex-col gap-3">
                         {businessNews[0] && (
-                           <a href={`/news/${businessNews[0].id}`} target="_blank" className="group block mb-2 border-b border-gray-200 pb-3">
-                              <SafeImage src={businessNews[0].image_url} alt={businessNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
-                              <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{businessNews[0].title}</h3>
+                           <a href={getNewsHref(businessNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-2 border-b border-gray-200 pb-3">
+                              <SafeImage src={businessNews[0].image_url} alt={getNewsTitle(businessNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm border border-gray-100" />
+                              <h3 className="text-[17px] lg:text-[18px] font-bold group-hover:text-[#104f96] leading-snug">{getNewsTitle(businessNews[0])}</h3>
                            </a>
                         )}
                         {businessNews.slice(1, 4).map(news => (
-                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group block">
-                              <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#104f96] leading-snug">■ {news.title}</h3>
+                           <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group block">
+                              <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#104f96] leading-snug">■ {getNewsTitle(news)}</h3>
                            </a>
                         ))}
                      </div>
@@ -869,26 +1343,26 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                      <div className="flex flex-col gap-5 lg:col-span-1">
                         {sportsNews.slice(1, 3).map((news) => (
-                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex flex-col bg-white p-3 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition">
-                              <SafeImage src={news.image_url} alt={news.title} className="w-full aspect-video object-cover mb-2 rounded-sm" />
-                              <h3 className="text-[16px] lg:text-[17px] font-bold group-hover:text-red-600 leading-snug">{news.title}</h3>
+                           <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group flex flex-col bg-white p-3 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition">
+                              <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-2 rounded-sm" />
+                              <h3 className="text-[16px] lg:text-[17px] font-bold group-hover:text-red-600 leading-snug">{getNewsTitle(news)}</h3>
                            </a>
                         ))}
                      </div>
                      <div className="lg:col-span-2">
                         {sportsNews[0] && (
-                           <a href={`/news/${sportsNews[0].id}`} target="_blank" className="group block h-full bg-white p-4 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition relative">
-                              <SafeImage src={sportsNews[0].image_url} alt={sportsNews[0].title} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
-                              <h3 className="text-[20px] md:text-[24px] font-bold text-gray-900 group-hover:text-red-600 leading-[1.3]">{sportsNews[0].title}</h3>
-                              <p className="text-[13px] md:text-[14px] text-gray-600 mt-2">{formatDateTime(sportsNews[0].created_at)}</p>
+                           <a href={getNewsHref(sportsNews[0])} target="_blank" rel="noopener noreferrer" className="group block h-full bg-white p-4 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition relative">
+                              <SafeImage src={sportsNews[0].image_url} alt={getNewsTitle(sportsNews[0])} className="w-full aspect-video object-cover mb-4 rounded-sm border border-gray-100" />
+                              <h3 className="text-[20px] md:text-[24px] font-bold text-gray-900 group-hover:text-red-600 leading-[1.3]">{getNewsTitle(sportsNews[0])}</h3>
+                              <p className="text-[13px] md:text-[14px] text-gray-600 mt-2">{formatNewsMeta(sportsNews[0])}</p>
                            </a>
                         )}
                      </div>
                      <div className="flex flex-col gap-5 lg:col-span-1">
                         {sportsNews.slice(3, 5).map((news) => (
-                           <a href={`/news/${news.id}`} target="_blank" key={news.id} className="group flex flex-col bg-white p-3 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition">
-                              <SafeImage src={news.image_url} alt={news.title} className="w-full aspect-video object-cover mb-2 rounded-sm" />
-                              <h3 className="text-[16px] lg:text-[17px] font-bold group-hover:text-red-600 leading-snug">{news.title}</h3>
+                           <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="group flex flex-col bg-white p-3 rounded shadow-sm border border-[#fca5a5] hover:border-red-500 transition">
+                              <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover mb-2 rounded-sm" />
+                              <h3 className="text-[16px] lg:text-[17px] font-bold group-hover:text-red-600 leading-snug">{getNewsTitle(news)}</h3>
                            </a>
                         ))}
                      </div>
@@ -909,20 +1383,20 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                      <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="sm:border-r border-[#c1dff0] sm:pr-6">
                            {hasyroshNews[0] && (
-                              <a href={`/news/${hasyroshNews[0].id}`} target="_blank" className="group block">
-                                 <SafeImage src={hasyroshNews[0].image_url} alt={hasyroshNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm shadow-sm" />
-                                 <h3 className="text-[18px] md:text-[20px] font-bold text-gray-800 group-hover:text-[#006699] leading-snug">{hasyroshNews[0].title}</h3>
-                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(hasyroshNews[0].created_at)}</p>
+                              <a href={getNewsHref(hasyroshNews[0])} target="_blank" rel="noopener noreferrer" className="group block">
+                                 <SafeImage src={hasyroshNews[0].image_url} alt={getNewsTitle(hasyroshNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm shadow-sm" />
+                                 <h3 className="text-[18px] md:text-[20px] font-bold text-gray-800 group-hover:text-[#006699] leading-snug">{getNewsTitle(hasyroshNews[0])}</h3>
+                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(hasyroshNews[0])}</p>
                               </a>
                            )}
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#c1dff0] justify-center">
                            {hasyroshNews.slice(1, 4).map((news, idx) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex items-center justify-between gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className={`group flex items-center justify-between gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1 pr-2">
-                                    <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#006699] leading-snug">{news.title}</h3>
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#006699] leading-snug">{getNewsTitle(news)}</h3>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={news.title} className="w-[70px] aspect-video object-cover rounded-sm shadow-sm shrink-0" />
+                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shadow-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -941,21 +1415,21 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                      <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="sm:border-r border-[#e8dfce] sm:pr-6">
                            {featureNews[0] && (
-                              <a href={`/news/${featureNews[0].id}`} target="_blank" className="group block">
-                                 <SafeImage src={featureNews[0].image_url} alt={featureNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm shadow-sm" />
-                                 <h3 className="text-[18px] md:text-[20px] font-bold text-gray-900 group-hover:text-[#966b22] leading-snug">{featureNews[0].title}</h3>
+                              <a href={getNewsHref(featureNews[0])} target="_blank" rel="noopener noreferrer" className="group block">
+                                 <SafeImage src={featureNews[0].image_url} alt={getNewsTitle(featureNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm shadow-sm" />
+                                 <h3 className="text-[18px] md:text-[20px] font-bold text-gray-900 group-hover:text-[#966b22] leading-snug">{getNewsTitle(featureNews[0])}</h3>
                                  <p className="text-[13px] text-gray-500 mt-2 line-clamp-2">ফিচারের বিশেষ আয়োজন সম্পর্কে বিস্তারিত পড়তে ক্লিক করুন।</p>
                               </a>
                            )}
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#e8dfce] justify-center">
                            {featureNews.slice(1, 4).map((news, idx) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
-                                    <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#966b22] leading-snug">{news.title}</h3>
-                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatDateTime(news.created_at)}</p>
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#966b22] leading-snug">{getNewsTitle(news)}</h3>
+                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={news.title} className="w-[70px] aspect-video object-cover rounded-sm shadow-sm shrink-0" />
+                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shadow-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -976,11 +1450,11 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                ) : (
                   <div className="flex overflow-x-auto gap-5 pb-4 snap-x snap-mandatory scrollbar-hide" style={{ scrollBehavior: 'smooth' }}>
                      {religionNews.map((news) => (
-                        <a href={`/news/${news.id}`} target="_blank" key={news.id} className="min-w-[220px] md:min-w-[260px] w-[220px] md:w-[260px] snap-start group shrink-0 block">
+                        <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className="min-w-[220px] md:min-w-[260px] w-[220px] md:w-[260px] snap-start group shrink-0 block">
                            <div className="overflow-hidden rounded-sm mb-3">
-                              <SafeImage src={news.image_url} alt={news.title} className="w-full aspect-video object-cover transform group-hover:scale-105 transition duration-500 ease-in-out border border-gray-100" />
+                              <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-full aspect-video object-cover transform group-hover:scale-105 transition duration-500 ease-in-out border border-gray-100" />
                            </div>
-                           <h3 className="text-[16px] md:text-[17px] lg:text-[18px] font-bold text-[#1a1a1a] group-hover:text-red-600 leading-snug">{news.title}</h3>
+                           <h3 className="text-[16px] md:text-[17px] lg:text-[18px] font-bold text-[#1a1a1a] group-hover:text-red-600 leading-snug">{getNewsTitle(news)}</h3>
                         </a>
                      ))}
                   </div>
@@ -1000,24 +1474,24 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#c8d4e6] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {lawAndAdviceNews[0] && (
-                              <a href={`/news/${lawAndAdviceNews[0].id}`} target="_blank" className="group block mb-4">
-                                 <SafeImage src={lawAndAdviceNews[0].image_url} alt={lawAndAdviceNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm" />
-                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#355580] leading-snug">{lawAndAdviceNews[0].title}</h3>
-                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(lawAndAdviceNews[0].created_at)}</p>
+                              <a href={getNewsHref(lawAndAdviceNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
+                                 <SafeImage src={lawAndAdviceNews[0].image_url} alt={getNewsTitle(lawAndAdviceNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#355580] leading-snug">{getNewsTitle(lawAndAdviceNews[0])}</h3>
+                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(lawAndAdviceNews[0])}</p>
                               </a>
                            )}
                            <div className="mt-auto space-y-4 pt-3 border-t border-[#c8d4e6]">
                               {lawAndAdviceNews[1] && (
-                                 <a href={`/news/${lawAndAdviceNews[1].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(lawAndAdviceNews[1])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#355580] leading-snug">
-                                       <span className="text-[#4c71a3] mr-1">■</span> {lawAndAdviceNews[1].title}
+                                       <span className="text-[#4c71a3] mr-1">■</span> {getNewsTitle(lawAndAdviceNews[1])}
                                     </h3>
                                  </a>
                               )}
                               {lawAndAdviceNews[2] && (
-                                 <a href={`/news/${lawAndAdviceNews[2].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(lawAndAdviceNews[2])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#355580] leading-snug">
-                                       <span className="text-[#4c71a3] mr-1">■</span> {lawAndAdviceNews[2].title}
+                                       <span className="text-[#4c71a3] mr-1">■</span> {getNewsTitle(lawAndAdviceNews[2])}
                                     </h3>
                                  </a>
                               )}
@@ -1025,12 +1499,12 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#c8d4e6]">
                            {lawAndAdviceNews.slice(3, 7).map((news, idx) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
-                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#355580] leading-snug">{news.title}</h3>
-                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatDateTime(news.created_at)}</p>
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#355580] leading-snug">{getNewsTitle(news)}</h3>
+                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={news.title} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
@@ -1049,24 +1523,24 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
                         <div className="col-span-1 border-b sm:border-b-0 sm:border-r border-[#bce8db] pb-5 sm:pb-0 sm:pr-4 flex flex-col">
                            {literatureNews[0] && (
-                              <a href={`/news/${literatureNews[0].id}`} target="_blank" className="group block mb-4">
-                                 <SafeImage src={literatureNews[0].image_url} alt={literatureNews[0].title} className="w-full aspect-video object-cover mb-3 rounded-sm" />
-                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#258c73] leading-snug">{literatureNews[0].title}</h3>
-                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatDateTime(literatureNews[0].created_at)}</p>
+                              <a href={getNewsHref(literatureNews[0])} target="_blank" rel="noopener noreferrer" className="group block mb-4">
+                                 <SafeImage src={literatureNews[0].image_url} alt={getNewsTitle(literatureNews[0])} className="w-full aspect-video object-cover mb-3 rounded-sm" />
+                                 <h3 className="text-[18px] lg:text-[20px] font-bold group-hover:text-[#258c73] leading-snug">{getNewsTitle(literatureNews[0])}</h3>
+                                 <p className="text-[12px] md:text-[13px] text-gray-500 mt-2">{formatNewsMeta(literatureNews[0])}</p>
                               </a>
                            )}
                            <div className="mt-auto space-y-4 pt-3 border-t border-[#bce8db]">
                               {literatureNews[1] && (
-                                 <a href={`/news/${literatureNews[1].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(literatureNews[1])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#258c73] leading-snug">
-                                       <span className="text-[#3cb395] mr-1">■</span> {literatureNews[1].title}
+                                       <span className="text-[#3cb395] mr-1">■</span> {getNewsTitle(literatureNews[1])}
                                     </h3>
                                  </a>
                               )}
                               {literatureNews[2] && (
-                                 <a href={`/news/${literatureNews[2].id}`} target="_blank" className="group block">
+                                 <a href={getNewsHref(literatureNews[2])} target="_blank" rel="noopener noreferrer" className="group block">
                                     <h3 className="text-[15px] lg:text-[16px] font-bold text-gray-800 group-hover:text-[#258c73] leading-snug">
-                                       <span className="text-[#3cb395] mr-1">■</span> {literatureNews[2].title}
+                                       <span className="text-[#3cb395] mr-1">■</span> {getNewsTitle(literatureNews[2])}
                                     </h3>
                                  </a>
                               )}
@@ -1074,12 +1548,12 @@ const fetchDirectCategory = async (catName: string, amt: number) => {
                         </div>
                         <div className="flex flex-col gap-4 divide-y divide-[#bce8db]">
                            {literatureNews.slice(3, 7).map((news, idx) => (
-                              <a href={`/news/${news.id}`} target="_blank" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
+                              <a href={getNewsHref(news)} target="_blank" rel="noopener noreferrer" key={news.id} className={`group flex gap-3 ${idx !== 0 ? 'pt-4' : ''}`}>
                                  <div className="flex-1">
-                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#258c73] leading-snug">{news.title}</h3>
-                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatDateTime(news.created_at)}</p>
+                                    <h3 className="text-[15px] lg:text-[16px] font-bold group-hover:text-[#258c73] leading-snug">{getNewsTitle(news)}</h3>
+                                    <p className="text-[12px] md:text-[13px] text-gray-500 mt-1.5">{formatNewsMeta(news)}</p>
                                  </div>
-                                 <SafeImage src={news.image_url} alt={news.title} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
+                                 <SafeImage src={news.image_url} alt={getNewsTitle(news)} className="w-[70px] aspect-video object-cover rounded-sm shrink-0" />
                               </a>
                            ))}
                         </div>
