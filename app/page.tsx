@@ -1,7 +1,5 @@
 import React from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import ClientTabs from './components/ClientTabs';
 import SafeImage from './components/SafeImage';
 import LocationFilter from './components/LocationFilter';
@@ -37,9 +35,6 @@ type NewsItem = {
   click_count?: number | null;
   [key: string]: any;
 };
-
-const BRAND_RED = '#b42318';
-const BRAND_DARK = '#171717';
 
 function formatDateTime(dateString?: string | null) {
   if (!dateString) return '';
@@ -270,93 +265,194 @@ function buildPopularNews(newsList: NewsItem[], limit = 6) {
     .slice(0, limit);
 }
 
-function normalizeOptionalUrl(value: FormDataEntryValue | null) {
-  const text = String(value || '').trim();
-  if (!text) return '';
-  if (/^https?:\/\//i.test(text)) return text;
-  return `https://${text}`;
+
+const CATEGORY_RULES: Record<string, { native: string[]; keywords: string[]; fallback?: string[] }> = {
+  'বাংলাদেশ': {
+    native: ['বাংলাদেশ'],
+    keywords: ['ঢাকা', 'চট্টগ্রাম', 'রাজশাহী', 'খুলনা', 'সিলেট', 'বরিশাল', 'রংপুর', 'ময়মনসিংহ', 'জেলা', 'উপজেলা'],
+  },
+  'রাজনীতি': {
+    native: ['রাজনীতি'],
+    keywords: ['বিএনপি', 'আওয়ামী লীগ', 'জামায়াত', 'নির্বাচন', 'ভোট', 'সংসদ', 'রাজনৈতিক', 'দলীয়'],
+  },
+  'আন্তর্জাতিক': {
+    native: ['আন্তর্জাতিক'],
+    keywords: ['যুক্তরাষ্ট্র', 'ভারত', 'চীন', 'রাশিয়া', 'ইউক্রেন', 'গাজা', 'ইসরায়েল', 'জাতিসংঘ', 'পাকিস্তান', 'বিশ্ব'],
+  },
+  'অর্থনীতি': {
+    native: ['বাণিজ্য', 'অর্থনীতি'],
+    keywords: ['ব্যাংক', 'ডলার', 'অর্থনীতি', 'বাজার', 'বাণিজ্য', 'শেয়ারবাজার', 'পুঁজিবাজার', 'বাজেট', 'রপ্তানি', 'আমদানি', 'মূল্যস্ফীতি', 'ঋণ'],
+  },
+  'খেলাধুলা': {
+    native: ['খেলাধুলা'],
+    keywords: ['ক্রিকেট', 'ফুটবল', 'ম্যাচ', 'খেলা', 'বিশ্বকাপ', 'ফিফা', 'বিসিবি', 'টেস্ট', 'ওয়ানডে', 'টি-টোয়েন্টি'],
+  },
+  'বিনোদন': {
+    native: ['বিনোদন'],
+    keywords: ['সিনেমা', 'চলচ্চিত্র', 'অভিনেতা', 'অভিনেত্রী', 'নাটক', 'গায়ক', 'গায়িকা', 'বলিউড', 'হলিউড'],
+  },
+  'আইন-আদালত': {
+    native: ['আইন-আদালত'],
+    keywords: ['আদালত', 'হাইকোর্ট', 'সুপ্রিম কোর্ট', 'মামলা', 'জামিন', 'রিমান্ড', 'রায়', 'আইনজীবী', 'ট্রাইব্যুনাল'],
+  },
+  'শিক্ষা': {
+    native: ['শিক্ষা'],
+    keywords: ['বিশ্ববিদ্যালয়', 'কলেজ', 'স্কুল', 'শিক্ষার্থী', 'পরীক্ষা', 'ভর্তি', 'শিক্ষক', 'এইচএসসি', 'এসএসসি'],
+  },
+  'প্রযুক্তি': {
+    native: ['প্রযুক্তি'],
+    keywords: ['প্রযুক্তি', 'কৃত্রিম বুদ্ধিমত্তা', 'এআই', 'ইন্টারনেট', 'গুগল', 'মাইক্রোসফট', 'স্মার্টফোন', 'সাইবার', 'অ্যাপ'],
+  },
+  'স্বাস্থ্য': {
+    native: ['স্বাস্থ্য'],
+    keywords: ['স্বাস্থ্য', 'চিকিৎসা', 'হাসপাতাল', 'চিকিৎসক', 'ডাক্তার', 'রোগ', 'ডেঙ্গু', 'ক্যানসার', 'ওষুধ', 'ভ্যাকসিন', 'সংক্রমণ'],
+    fallback: ['জীবনযাপন'],
+  },
+  'জীবনযাপন': {
+    native: ['জীবনযাপন'],
+    keywords: ['জীবনযাপন', 'লাইফস্টাইল', 'খাদ্য', 'রেসিপি', 'ফ্যাশন', 'সম্পর্ক', 'পরিবার', 'ভ্রমণ'],
+  },
+  'চাকরি': {
+    native: ['চাকরি'],
+    keywords: ['চাকরি', 'নিয়োগ', 'ক্যারিয়ার', 'বেতন', 'আবেদন', 'পদসংখ্যা'],
+  },
+  'প্রবাস': {
+    native: ['প্রবাস'],
+    keywords: ['প্রবাস', 'প্রবাসী', 'অভিবাসী', 'অভিবাসন', 'রেমিট্যান্স', 'ভিসা', 'বিদেশে বাংলাদেশি'],
+    fallback: ['আন্তর্জাতিক'],
+  },
+  'পরিবেশ': {
+    native: ['পরিবেশ'],
+    keywords: ['পরিবেশ', 'জলবায়ু', 'দূষণ', 'বায়ুদূষণ', 'নদী', 'বন্যা', 'ঘূর্ণিঝড়', 'তাপপ্রবাহ', 'বন', 'বন্যপ্রাণী'],
+    fallback: ['বাংলাদেশ'],
+  },
+  'কৃষি': {
+    native: ['কৃষি'],
+    keywords: ['কৃষি', 'কৃষক', 'ফসল', 'ধান', 'চাল', 'গম', 'সবজি', 'মৎস্য', 'পোলট্রি', 'খামার'],
+    fallback: ['বাংলাদেশ'],
+  },
+  'বিজ্ঞান': {
+    native: ['বিজ্ঞান'],
+    keywords: ['বিজ্ঞান', 'গবেষণা', 'মহাকাশ', 'নাসা', 'উপগ্রহ', 'জ্যোতির্বিজ্ঞান', 'আবিষ্কার'],
+    fallback: ['প্রযুক্তি'],
+  },
+  'সংস্কৃতি': {
+    native: ['সংস্কৃতি'],
+    keywords: ['সংস্কৃতি', 'শিল্পকলা', 'নাট্য', 'চিত্রকলা', 'সংগীত', 'উৎসব', 'ঐতিহ্য'],
+    fallback: ['সাহিত্য', 'বিনোদন'],
+  },
+  'মতামত': {
+    native: ['মতামত'],
+    keywords: ['মতামত', 'বিশ্লেষণ', 'কলাম', 'সম্পাদকীয়'],
+  },
+  'ফিচার': {
+    native: ['ফিচার'],
+    keywords: ['ফিচার', 'বিশেষ প্রতিবেদন', 'বিশেষ আয়োজন'],
+    fallback: ['জীবনযাপন'],
+  },
+  'ধর্ম': {
+    native: ['ধর্ম'],
+    keywords: ['ধর্ম', 'ইসলাম', 'হজ', 'ওমরাহ', 'মসজিদ', 'কোরআন', 'পূজা', 'মন্দির', 'রমজান'],
+  },
+  'সাহিত্য': {
+    native: ['সাহিত্য'],
+    keywords: ['সাহিত্য', 'কবিতা', 'গল্প', 'উপন্যাস', 'লেখক', 'বই'],
+    fallback: ['ফিচার'],
+  },
+  'হাস্যরস': {
+    native: ['হাস্যরস'],
+    keywords: ['হাস্যরস', 'রসিকতা', 'ব্যঙ্গ'],
+    fallback: ['বিনোদন'],
+  },
+  'আইন ও পরামর্শ': {
+    native: ['আইন ও পরামর্শ'],
+    keywords: ['আইনি পরামর্শ', 'আইন ও পরামর্শ', 'আইনজীবীর পরামর্শ', 'আইনি সহায়তা'],
+    fallback: ['আইন-আদালত'],
+  },
+};
+
+const PRIMARY_MENU_CATEGORIES = [
+  'সর্বশেষ',
+  'বাংলাদেশ',
+  'রাজনীতি',
+  'আন্তর্জাতিক',
+  'অর্থনীতি',
+  'খেলাধুলা',
+  'বিনোদন',
+  'আইন-আদালত',
+  'শিক্ষা',
+  'প্রযুক্তি',
+];
+
+const SECONDARY_MENU_CATEGORIES = [
+  'মতামত',
+  'স্বাস্থ্য',
+  'জীবনযাপন',
+  'চাকরি',
+  'প্রবাস',
+  'পরিবেশ',
+  'কৃষি',
+  'বিজ্ঞান',
+  'সংস্কৃতি',
+  'ধর্ম',
+  'ফিচার',
+  'সাহিত্য',
+  'হাস্যরস',
+  'আইন ও পরামর্শ',
+];
+
+function newsIdentity(news: NewsItem) {
+  return String(news.source_url || news.original_url || news.article_url || news.url || news.link || news.id);
 }
 
-function isMissingColumnError(error: any, column: string) {
-  const message = String(error?.message || '').toLowerCase();
-  const target = column.toLowerCase();
-  return message.includes(target) && (message.includes('column') || message.includes('schema cache'));
-}
-
-async function publishCustomNews(formData: FormData) {
-  'use server';
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    redirect('/?upload=1&upload_status=config_error');
-  }
-
-  const title = String(formData.get('title') || '').trim();
-  const category = String(formData.get('category') || 'বাংলাদেশ').trim();
-  const snippet = String(formData.get('snippet') || '').trim();
-  const sourceName = String(formData.get('source_name') || 'বঙ্গীয় টাইমস').trim();
-  const imageUrl = normalizeOptionalUrl(formData.get('image_url'));
-  const sourceUrl = normalizeOptionalUrl(formData.get('source_url'));
-
-  if (!title) {
-    redirect('/?upload=1&upload_status=missing_title');
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
+function dedupeNews(items: NewsItem[]) {
+  const seen = new Set<string>();
+  return items.filter((news) => {
+    const key = newsIdentity(news);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
+}
 
-  const basePayload: Record<string, any> = {
-    title,
-    category,
-    snippet: snippet || null,
-    source_name: sourceName || 'বঙ্গীয় টাইমস',
-    image_url: imageUrl || null,
-    is_published: true,
-    created_at: new Date().toISOString(),
+function newsMatchesCategory(news: NewsItem, category: string) {
+  const rule = CATEGORY_RULES[category];
+  if (!rule) return String(news.category || '').includes(category);
+
+  const nativeCategory = String(news.category || '').toLowerCase();
+  if (rule.native.some((name) => nativeCategory.includes(name.toLowerCase()))) return true;
+
+  const text = cleanDisplayText(`${getNewsTitle(news)} ${getNewsSnippet(news)} ${news.category || ''}`).toLowerCase();
+  return rule.keywords.some((keyword) => text.includes(keyword.toLowerCase()));
+}
+
+function getCategoryItems(pool: NewsItem[], category: string, limit = 8) {
+  const result: NewsItem[] = [];
+  const seen = new Set<string>();
+
+  const addMatches = (targetCategory: string) => {
+    for (const news of pool) {
+      if (result.length >= limit) break;
+      if (!newsMatchesCategory(news, targetCategory)) continue;
+      const key = newsIdentity(news);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      result.push(news);
+    }
   };
 
-  let error: any = null;
+  addMatches(category);
 
-  if (sourceUrl) {
-    const urlColumns = ['source_url', 'url', 'original_url'];
-    let inserted = false;
-
-    for (const column of urlColumns) {
-      const result = await supabase.from('news').insert({ ...basePayload, [column]: sourceUrl });
-      if (!result.error) {
-        inserted = true;
-        error = null;
-        break;
-      }
-
-      if (isMissingColumnError(result.error, column)) {
-        error = result.error;
-        continue;
-      }
-
-      error = result.error;
-      break;
+  if (result.length === 0) {
+    const fallbacks = CATEGORY_RULES[category]?.fallback || [];
+    for (const fallback of fallbacks) {
+      if (result.length >= limit) break;
+      addMatches(fallback);
+      if (result.length > 0) break;
     }
-
-    if (!inserted && error && urlColumns.some((column) => isMissingColumnError(error, column))) {
-      const fallback = await supabase.from('news').insert(basePayload);
-      error = fallback.error;
-    }
-  } else {
-    const result = await supabase.from('news').insert(basePayload);
-    error = result.error;
   }
 
-  if (error) {
-    const message = encodeURIComponent(String(error.message || 'Unknown upload error').slice(0, 220));
-    redirect(`/?upload=1&upload_status=error&upload_error=${message}`);
-  }
-
-  revalidatePath('/');
-  redirect('/?upload=1&upload_status=success');
+  return result.slice(0, limit);
 }
 
 function MetaLine({ news, className = '' }: { news: NewsItem; className?: string }) {
@@ -443,6 +539,37 @@ function CategoryPanel({ title, items }: { title: string; items: NewsItem[] }) {
   );
 }
 
+
+function MiniCategoryPanel({ title, items }: { title: string; items: NewsItem[] }) {
+  const lead = items[0];
+  const rest = items.slice(1, 3);
+
+  return (
+    <section className="min-w-0 border-t border-[#d8d3cb] pt-4">
+      <div className="mb-3 flex items-center justify-between">
+        <a href={`/?category=${encodeURIComponent(title)}`} className="text-[18px] font-black text-[#1d1b18] transition hover:text-[#b42318]">{title}</a>
+        <a href={`/?category=${encodeURIComponent(title)}`} className="text-[11px] font-bold text-[#8a847c] hover:text-[#b42318]">আরও →</a>
+      </div>
+      {lead ? (
+        <>
+          <NewsLink news={lead} className="group grid grid-cols-[112px_1fr] gap-3 border-b border-[#e7e2da] pb-3">
+            <NewsImage news={lead} className="h-[78px] w-[112px] rounded-[2px] object-cover" />
+            <div className="min-w-0 self-center">
+              <h3 className="line-clamp-2 text-[15.5px] font-black leading-[1.42] text-[#25221f] transition group-hover:text-[#b42318]">{getNewsTitle(lead)}</h3>
+              <MetaLine news={lead} className="mt-1" />
+            </div>
+          </NewsLink>
+          <div className="mt-2">
+            {rest.map((news) => <CompactStoryRow key={news.id} news={news} showImage={false} />)}
+          </div>
+        </>
+      ) : (
+        <div className="py-5 text-[12px] text-[#9b958d]">এই বিভাগের সংবাদ সংগ্রহ হচ্ছে...</div>
+      )}
+    </section>
+  );
+}
+
 function AdBox({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`flex w-full items-center justify-center border border-[#ece8e1] bg-[#faf9f7] text-[11px] font-bold tracking-[0.12em] text-[#b1aca4] ${compact ? 'min-h-[110px]' : 'min-h-[170px]'}`}>
@@ -493,9 +620,6 @@ export default async function Home({
     tab?: string;
     page?: string;
     q?: string;
-    upload?: string;
-    upload_status?: string;
-    upload_error?: string;
   };
 }) {
   const supabase = createClient(
@@ -506,12 +630,10 @@ export default async function Home({
   const activeCategory = searchParams.category ? searchParams.category.trim() : '';
   const searchQuery = searchParams.q ? searchParams.q.trim() : '';
   const currentPage = Math.max(1, parseInt(searchParams.page || '1') || 1);
-  const showUpload = searchParams.upload === '1';
-  const uploadStatus = searchParams.upload_status || '';
-  const uploadError = searchParams.upload_error || '';
   const limitPerPage = 20;
   const startRow = (currentPage - 1) * limitPerPage;
   const endRow = startRow + limitPerPage - 1;
+  const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || '/admin';
 
   let query = supabase
     .from('news')
@@ -521,20 +643,34 @@ export default async function Home({
 
   if (searchQuery) {
     query = query.ilike('title', `%${searchQuery}%`).range(startRow, endRow);
-  } else if (activeCategory) {
-    query = query.ilike('category', `%${activeCategory}%`).range(startRow, endRow);
   } else {
-    query = query.limit(160);
+    // Category pages are filtered intelligently in memory so virtual national
+    // sections such as স্বাস্থ্য/প্রবাস/পরিবেশ also work without schema changes.
+    query = query.limit(activeCategory ? 320 : 180);
   }
 
-  const { data: newsItems, count } = await query;
+  const { data: newsItems, count: rawCount } = await query;
   const dbNews = (newsItems || []) as NewsItem[];
-  const allNews = (activeCategory || searchQuery) ? dbNews.slice(0, limitPerPage) : dbNews.slice(0, 160);
-  const totalPages = count ? Math.max(1, Math.ceil(count / limitPerPage)) : 1;
+
+  let allNews: NewsItem[] = [];
+  let effectiveCount = rawCount || 0;
+
+  if (searchQuery) {
+    allNews = dbNews.slice(0, limitPerPage);
+  } else if (activeCategory) {
+    const categoryMatches = getCategoryItems(dbNews, activeCategory, 320);
+    effectiveCount = categoryMatches.length;
+    allNews = categoryMatches.slice(startRow, endRow + 1);
+  } else {
+    allNews = dbNews.slice(0, 180);
+    effectiveCount = allNews.length;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(effectiveCount / limitPerPage));
   const latestNews = allNews.slice(0, 6);
   const popularNews = buildPopularNews(allNews, 6);
 
-  const frontPool = [...allNews].slice(0, 34);
+  const frontPool = [...(activeCategory || searchQuery ? dbNews : allNews)].slice(0, 40);
   const leadAllowedCategories = ['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক'];
   const leadIndex = frontPool.findIndex((news) =>
     leadAllowedCategories.some((category) => news.category?.includes(category) ?? false)
@@ -543,10 +679,11 @@ export default async function Home({
   const otherFront = frontPool.filter((news) => !leadNews || String(news.id) !== String(leadNews.id));
 
   const headerNews = otherFront.slice(0, 3);
-  const tickerNews = frontPool.slice(0, 9);
+  const tickerNews = frontPool.slice(0, 12);
   const centerLead = otherFront[3] || null;
   const centerList = otherFront.slice(4, 7);
   const selectedNews = otherFront.slice(7, 11);
+  const leadSupportNews = otherFront.slice(11, 13);
 
   const fetchDirectCategory = async (catName: string, amt: number) => {
     const { data } = await supabase
@@ -598,25 +735,35 @@ export default async function Home({
     fetchDirectCategory('সাহিত্য', 6),
   ]);
 
-  const menuCategories = [
-    'সর্বশেষ',
-    'বাংলাদেশ',
-    'রাজনীতি',
-    'আন্তর্জাতিক',
-    'মতামত',
-    'খেলাধুলা',
-    'বাণিজ্য',
-    'বিনোদন',
-    'আইন-আদালত',
-    'জীবনযাপন',
-    'শিক্ষা',
-    'চাকরি',
-    'প্রযুক্তি',
-    'ফিচার',
-    'হাস্যরস',
-    'আইন ও পরামর্শ',
-    'সাহিত্য',
-  ];
+  const categoryPool = dedupeNews([
+    ...dbNews,
+    ...bdNews,
+    ...intlNews,
+    ...politicsNews,
+    ...opinionNews,
+    ...sportsNews,
+    ...businessNews,
+    ...entertainmentNews,
+    ...lawNews,
+    ...lifestyleNews,
+    ...eduNews,
+    ...jobsNews,
+    ...techNews,
+    ...featureNews,
+    ...hasyroshNews,
+    ...religionNews,
+    ...lawAndAdviceNews,
+    ...literatureNews,
+  ]);
+
+  const economyNews = businessNews.length ? businessNews : getCategoryItems(categoryPool, 'অর্থনীতি', 8);
+  const healthNews = getCategoryItems(categoryPool, 'স্বাস্থ্য', 6);
+  const diasporaNews = getCategoryItems(categoryPool, 'প্রবাস', 6);
+  const environmentNews = getCategoryItems(categoryPool, 'পরিবেশ', 6);
+  const agricultureNews = getCategoryItems(categoryPool, 'কৃষি', 6);
+  const scienceNews = getCategoryItems(categoryPool, 'বিজ্ঞান', 6);
+  const cultureNews = getCategoryItems(categoryPool, 'সংস্কৃতি', 6);
+
 
   const todayFull = new Intl.DateTimeFormat('bn-BD', {
     timeZone: 'Asia/Dhaka',
@@ -628,6 +775,22 @@ export default async function Home({
 
   return (
     <div className="min-h-screen bg-white text-[#20201e] antialiased">
+      <style>{`
+        @keyframes btTickerScroll {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        .bt-ticker-track {
+          animation: btTickerScroll 56s linear infinite;
+          will-change: transform;
+        }
+        .bt-ticker:hover .bt-ticker-track {
+          animation-play-state: paused;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .bt-ticker-track { animation: none; }
+        }
+      `}</style>
       <header className="bg-white">
         <div className="border-b border-[#ebe7e0]">
           <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-6 px-4 py-3 md:py-4">
@@ -659,19 +822,19 @@ export default async function Home({
               ))}
             </div>
 
-            <a href="/?upload=1" className="hidden shrink-0 border border-[#b42318] px-3 py-2 text-[12px] font-bold text-[#b42318] transition hover:bg-[#b42318] hover:text-white sm:block">নিজস্ব সংবাদ +</a>
+            <a href={adminUrl} className="hidden shrink-0 border border-[#b42318] px-3 py-2 text-[12px] font-bold text-[#b42318] transition hover:bg-[#b42318] hover:text-white sm:block">এডমিন প্যানেল</a>
           </div>
         </div>
 
         <div className="sticky top-0 z-50 border-b border-[#dcd7d0] bg-white/95 backdrop-blur">
-          <div className="mx-auto flex h-[48px] max-w-[1240px] items-center gap-4 px-4">
-            <nav className="flex min-w-0 flex-1 items-center gap-5 overflow-x-auto whitespace-nowrap text-[15px] font-bold text-[#272521] md:gap-6 md:text-[16px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <a href="/" className={`flex h-[48px] items-center border-b-[3px] transition hover:text-[#b42318] ${!activeCategory && !searchQuery ? 'border-[#b42318] text-[#b42318]' : 'border-transparent'}`}>প্রচ্ছদ</a>
-              {menuCategories.map((cat) => (
+          <div className="mx-auto flex h-[47px] max-w-[1240px] items-center gap-4 px-4">
+            <nav className="flex min-w-0 flex-1 items-center gap-5 overflow-x-auto whitespace-nowrap text-[14.5px] font-bold text-[#272521] md:gap-6 md:text-[15.5px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <a href="/" className={`flex h-[47px] items-center border-b-[3px] transition hover:text-[#b42318] ${!activeCategory && !searchQuery ? 'border-[#b42318] text-[#b42318]' : 'border-transparent'}`}>প্রচ্ছদ</a>
+              {PRIMARY_MENU_CATEGORIES.map((cat) => (
                 <a
                   key={cat}
                   href={cat === 'সর্বশেষ' ? '/' : `/?category=${encodeURIComponent(cat)}`}
-                  className={`flex h-[48px] items-center border-b-[3px] transition hover:text-[#b42318] ${activeCategory === cat ? 'border-[#b42318] text-[#b42318]' : 'border-transparent'}`}
+                  className={`flex h-[47px] items-center border-b-[3px] transition hover:text-[#b42318] ${activeCategory === cat ? 'border-[#b42318] text-[#b42318]' : 'border-transparent'}`}
                 >
                   {cat}
                 </a>
@@ -685,7 +848,7 @@ export default async function Home({
                   name="q"
                   defaultValue={searchQuery}
                   placeholder="খবর খুঁজুন..."
-                  className="h-9 w-[210px] border border-[#ded9d1] bg-[#faf9f7] pl-3 pr-9 text-[13px] outline-none transition focus:border-[#9a958d] focus:bg-white lg:w-[250px]"
+                  className="h-9 w-[190px] border border-[#ded9d1] bg-[#faf9f7] pl-3 pr-9 text-[13px] outline-none transition focus:border-[#9a958d] focus:bg-white lg:w-[225px]"
                 />
                 <button type="submit" className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-[#6f6a63]" aria-label="খবর খুঁজুন">
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -693,81 +856,38 @@ export default async function Home({
               </div>
             </form>
           </div>
+
+          <div className="border-t border-[#eee9e2] bg-[#fbfaf8]">
+            <nav className="mx-auto flex min-h-[34px] max-w-[1240px] items-center gap-x-5 overflow-x-auto whitespace-nowrap px-4 text-[12.5px] font-bold text-[#5b5650] md:flex-wrap md:justify-start md:gap-y-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {SECONDARY_MENU_CATEGORIES.map((cat) => (
+                <a
+                  key={cat}
+                  href={`/?category=${encodeURIComponent(cat)}`}
+                  className={`flex h-[34px] items-center border-b-2 transition hover:text-[#b42318] ${activeCategory === cat ? 'border-[#b42318] text-[#b42318]' : 'border-transparent'}`}
+                >
+                  {cat}
+                </a>
+              ))}
+            </nav>
+          </div>
         </div>
 
-        <div className="border-b border-[#e7e2da] bg-[#faf9f7]">
+        <div className="bt-ticker border-b border-[#e7e2da] bg-[#faf9f7]">
           <div className="mx-auto flex h-[39px] max-w-[1240px] items-center gap-3 overflow-hidden px-4">
-            <span className="shrink-0 border-r border-[#d6d1c9] pr-3 text-[12px] font-black text-[#b42318]">শিরোনাম</span>
-            <div className="flex min-w-0 items-center gap-5 overflow-x-auto whitespace-nowrap text-[12.5px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {tickerNews.map((news) => (
-                <NewsLink key={news.id} news={news} className="group flex items-center gap-2 text-[#3f3b36] transition hover:text-[#b42318]">
-                  <span className="h-1.5 w-1.5 shrink-0 bg-[#b42318]" />
-                  <span className="max-w-[360px] overflow-hidden text-ellipsis">{getNewsTitle(news)}</span>
-                </NewsLink>
-              ))}
+            <span className="z-10 shrink-0 border-r border-[#d6d1c9] bg-[#faf9f7] pr-3 text-[12px] font-black text-[#b42318]">সর্বশেষ শিরোনাম</span>
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <div className="bt-ticker-track flex w-max items-center whitespace-nowrap text-[12.5px]">
+                {[...tickerNews, ...tickerNews].map((news, index) => (
+                  <NewsLink key={`${news.id}-${index}`} news={news} className="group mr-7 flex items-center gap-2 text-[#3f3b36] transition hover:text-[#b42318]">
+                    <span className="h-1.5 w-1.5 shrink-0 bg-[#b42318]" />
+                    <span className="max-w-[420px] overflow-hidden text-ellipsis">{getNewsTitle(news)}</span>
+                  </NewsLink>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </header>
-
-      {showUpload ? (
-        <section className="border-b border-[#e5e0d8] bg-[#fbfaf8]">
-          <div className="mx-auto max-w-[1240px] px-4 py-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-[21px] font-black text-[#171717]">নিজস্ব সংবাদ প্রকাশ</h2>
-                <p className="mt-1 text-[12.5px] text-[#777169]">নিজস্ব প্রতিবেদন বা অনুমোদিত উৎসের সংবাদ যোগ করুন।</p>
-              </div>
-              <a href="/" className="text-[13px] font-bold text-[#6f6a63] hover:text-[#b42318]">বন্ধ করুন ×</a>
-            </div>
-
-            {uploadStatus === 'success' ? (
-              <div className="mb-4 border border-[#b9dfc6] bg-[#f2fbf5] px-4 py-3 text-[13px] font-bold text-[#23663a]">সংবাদ সফলভাবে প্রকাশ হয়েছে।</div>
-            ) : null}
-            {uploadStatus === 'missing_title' ? (
-              <div className="mb-4 border border-[#f0c6c2] bg-[#fff5f4] px-4 py-3 text-[13px] font-bold text-[#a52a20]">শিরোনাম অবশ্যই দিতে হবে।</div>
-            ) : null}
-            {uploadStatus === 'config_error' ? (
-              <div className="mb-4 border border-[#f0c6c2] bg-[#fff5f4] px-4 py-3 text-[13px] font-bold text-[#a52a20]">Supabase configuration পাওয়া যায়নি।</div>
-            ) : null}
-            {uploadStatus === 'error' ? (
-              <div className="mb-4 border border-[#f0c6c2] bg-[#fff5f4] px-4 py-3 text-[13px] text-[#a52a20]">প্রকাশ করা যায়নি। {uploadError ? decodeURIComponent(uploadError) : ''}</div>
-            ) : null}
-
-            <form action={publishCustomNews} className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <div className="lg:col-span-2">
-                <label htmlFor="title" className="mb-1.5 block text-[12px] font-bold text-[#4a4641]">শিরোনাম *</label>
-                <input id="title" name="title" required maxLength={220} className="h-10 w-full border border-[#d9d4cc] bg-white px-3 text-[14px] outline-none focus:border-[#9a958d]" />
-              </div>
-              <div>
-                <label htmlFor="category" className="mb-1.5 block text-[12px] font-bold text-[#4a4641]">বিভাগ</label>
-                <select id="category" name="category" defaultValue="বাংলাদেশ" className="h-10 w-full border border-[#d9d4cc] bg-white px-3 text-[14px] outline-none focus:border-[#9a958d]">
-                  {menuCategories.filter((cat) => cat !== 'সর্বশেষ').map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="source_name" className="mb-1.5 block text-[12px] font-bold text-[#4a4641]">উৎস/লেখক</label>
-                <input id="source_name" name="source_name" defaultValue="বঙ্গীয় টাইমস" maxLength={120} className="h-10 w-full border border-[#d9d4cc] bg-white px-3 text-[14px] outline-none focus:border-[#9a958d]" />
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="image_url" className="mb-1.5 block text-[12px] font-bold text-[#4a4641]">ছবির URL</label>
-                <input id="image_url" name="image_url" type="text" placeholder="https://..." className="h-10 w-full border border-[#d9d4cc] bg-white px-3 text-[13px] outline-none focus:border-[#9a958d]" />
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="source_url" className="mb-1.5 block text-[12px] font-bold text-[#4a4641]">মূল সংবাদ/উৎসের URL</label>
-                <input id="source_url" name="source_url" type="text" placeholder="https://..." className="h-10 w-full border border-[#d9d4cc] bg-white px-3 text-[13px] outline-none focus:border-[#9a958d]" />
-              </div>
-              <div className="md:col-span-2 lg:col-span-3">
-                <label htmlFor="snippet" className="mb-1.5 block text-[12px] font-bold text-[#4a4641]">সংক্ষিপ্তসার</label>
-                <textarea id="snippet" name="snippet" rows={3} maxLength={1200} className="w-full border border-[#d9d4cc] bg-white px-3 py-2.5 text-[14px] leading-6 outline-none focus:border-[#9a958d]" />
-              </div>
-              <div className="flex items-end">
-                <button type="submit" className="h-[68px] w-full bg-[#171717] px-5 text-[14px] font-bold text-white transition hover:bg-[#b42318]">প্রকাশ করুন</button>
-              </div>
-            </form>
-          </div>
-        </section>
-      ) : null}
 
       <main>
         {(activeCategory || searchQuery) ? (
@@ -791,7 +911,7 @@ export default async function Home({
                       {searchQuery ? `“${searchQuery}” এর ফলাফল` : activeCategory}
                     </h1>
                   </div>
-                  <span className="text-[12px] text-[#8a847c]">{count || allNews.length}টি সংবাদ</span>
+                  <span className="text-[12px] text-[#8a847c]">{effectiveCount || allNews.length}টি সংবাদ</span>
                 </div>
 
                 {allNews.length === 0 ? (
@@ -837,11 +957,26 @@ export default async function Home({
                           {getNewsTitle(leadNews)}
                         </h1>
                         {getNewsSnippet(leadNews) ? (
-                          <p className="mt-3 line-clamp-4 max-w-[95%] text-[14.5px] leading-[1.72] text-[#625d57] md:text-[15px]">{getNewsSnippet(leadNews)}</p>
+                          <p className="mt-3 line-clamp-5 max-w-[95%] text-[14.5px] leading-[1.72] text-[#625d57] md:text-[15px]">{getNewsSnippet(leadNews)}</p>
                         ) : null}
                         <MetaLine news={leadNews} className="mt-3" />
                       </div>
                     </NewsLink>
+                  ) : null}
+
+                  {leadSupportNews.length ? (
+                    <div className="mt-4 grid grid-cols-1 gap-3 border-t border-[#e5e0d8] pt-4 sm:grid-cols-2 lg:grid-cols-1">
+                      {leadSupportNews.map((news) => (
+                        <NewsLink key={news.id} news={news} className="group grid grid-cols-[104px_1fr] gap-3 rounded-[2px] bg-[#fbfaf8] p-2.5 transition hover:bg-[#f7f4ef]">
+                          <NewsImage news={news} className="h-[74px] w-[104px] rounded-[2px] object-cover" />
+                          <div className="min-w-0 self-center">
+                            <h3 className="line-clamp-2 text-[14.5px] font-black leading-[1.42] text-[#27241f] transition group-hover:text-[#b42318]">{getNewsTitle(news)}</h3>
+                            {getNewsSnippet(news) ? <p className="mt-1 line-clamp-2 text-[11.5px] leading-[1.5] text-[#777169]">{getNewsSnippet(news)}</p> : null}
+                            <MetaLine news={news} className="mt-1" />
+                          </div>
+                        </NewsLink>
+                      ))}
+                    </div>
                   ) : null}
                 </div>
 
@@ -947,7 +1082,7 @@ export default async function Home({
             <div className="mx-auto max-w-[1240px] px-4 pb-6">
               <div className="grid grid-cols-1 gap-7 border-t border-[#d8d3cb] pt-5 lg:grid-cols-2 lg:gap-8">
                 <CategoryPanel title="আইন-আদালত" items={lawNews} />
-                <CategoryPanel title="বাণিজ্য" items={businessNews} />
+                <CategoryPanel title="অর্থনীতি" items={economyNews} />
               </div>
             </div>
 
@@ -964,6 +1099,23 @@ export default async function Home({
                 <CategoryPanel title="শিক্ষা" items={eduNews} />
               </div>
             </div>
+
+            <section className="mx-auto max-w-[1240px] px-4 pb-6">
+              <div className="mb-1 flex items-center justify-between border-t border-[#d8d3cb] pt-5">
+                <div>
+                  <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#b42318]">আরও বিভাগ</p>
+                  <h2 className="mt-1 text-[22px] font-black text-[#1c1a17]">স্বাস্থ্য, প্রবাস, পরিবেশ, কৃষি, বিজ্ঞান ও সংস্কৃতি</h2>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-x-7 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+                <MiniCategoryPanel title="স্বাস্থ্য" items={healthNews} />
+                <MiniCategoryPanel title="প্রবাস" items={diasporaNews} />
+                <MiniCategoryPanel title="পরিবেশ" items={environmentNews} />
+                <MiniCategoryPanel title="কৃষি" items={agricultureNews} />
+                <MiniCategoryPanel title="বিজ্ঞান" items={scienceNews} />
+                <MiniCategoryPanel title="সংস্কৃতি" items={cultureNews} />
+              </div>
+            </section>
 
             <section className="border-y border-[#ded9d1] bg-[#faf9f7]">
               <div className="mx-auto grid max-w-[1240px] grid-cols-1 gap-6 px-4 py-5 lg:grid-cols-3">
@@ -1061,7 +1213,7 @@ export default async function Home({
             <div>
               <h3 className="mb-2 text-[12px] font-black uppercase tracking-[0.12em] text-[#38342f]">বিভাগ</h3>
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12.5px] text-[#66615a]">
-                {['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'খেলাধুলা', 'বাণিজ্য', 'আইন-আদালত'].map((cat) => (
+                {['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'অর্থনীতি', 'খেলাধুলা', 'আইন-আদালত'].map((cat) => (
                   <a key={cat} href={`/?category=${encodeURIComponent(cat)}`} className="hover:text-[#b42318]">{cat}</a>
                 ))}
               </div>
@@ -1069,7 +1221,7 @@ export default async function Home({
             <div>
               <h3 className="mb-2 text-[12px] font-black uppercase tracking-[0.12em] text-[#38342f]">আরও</h3>
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12.5px] text-[#66615a]">
-                <a href="/?upload=1" className="hover:text-[#b42318]">নিজস্ব সংবাদ</a>
+                <a href={adminUrl} className="hover:text-[#b42318]">এডমিন প্যানেল</a>
                 <a href="/?category=মতামত" className="hover:text-[#b42318]">মতামত</a>
                 <a href="/?category=ফিচার" className="hover:text-[#b42318]">ফিচার</a>
                 <a href="/?category=সাহিত্য" className="hover:text-[#b42318]">সাহিত্য</a>
