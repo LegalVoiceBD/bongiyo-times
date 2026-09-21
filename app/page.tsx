@@ -237,16 +237,54 @@ function getVisualVariant(news: NewsItem | null | undefined) {
   return total % 4;
 }
 
-function CodeNewsVisual({ news, className }: { news: NewsItem | null | undefined; className: string }) {
+function getVisualDensity(className: string) {
+  const compactTokens = ['w-[68px]', 'w-[74px]', 'w-[78px]', 'w-[92px]', 'h-[52px]', 'h-[62px]'];
+  const smallTokens = ['w-[102px]', 'w-[104px]', 'w-[112px]', 'w-[116px]', 'w-[128px]', 'h-[74px]', 'h-[78px]', 'h-[92px]'];
+
+  if (compactTokens.some((token) => className.includes(token))) return 'tiny';
+  if (smallTokens.some((token) => className.includes(token))) return 'small';
+  return 'regular';
+}
+
+function CodeNewsVisual({
+  news,
+  className,
+  density = 'regular',
+}: {
+  news: NewsItem | null | undefined;
+  className: string;
+  density?: 'regular' | 'small' | 'tiny';
+}) {
   const theme = getCodeVisualTheme(news);
   const variant = getVisualVariant(news);
   const category = String(news?.category || 'সর্বশেষ').trim();
   const source = getNewsSource(news);
+  const isTiny = density === 'tiny';
+  const isSmall = density === 'small';
 
   const backgroundImage = [
     `linear-gradient(135deg, ${theme.bg} 0%, ${theme.soft} 100%)`,
-    `linear-gradient(90deg, transparent 0 48%, ${theme.accent}14 48% 52%, transparent 52% 100%)`,
+    `repeating-linear-gradient(135deg, transparent 0 14px, ${theme.accent}08 14px 15px)`,
+    `linear-gradient(90deg, transparent 0 49.2%, ${theme.accent}12 49.2% 50.8%, transparent 50.8% 100%)`,
   ].join(',');
+
+  const shellClass = isTiny
+    ? 'p-[6px]'
+    : isSmall
+      ? 'p-[8px]'
+      : 'p-[clamp(12px,2.15vw,24px)]';
+
+  const categoryClass = isTiny
+    ? 'text-[10.5px] leading-[1.02] tracking-[-0.025em]'
+    : isSmall
+      ? 'text-[15px] leading-[1.05] tracking-[-0.03em]'
+      : 'text-[clamp(18px,3vw,33px)] leading-none tracking-[-0.035em]';
+
+  const sourceClass = isTiny
+    ? 'mt-0.5 text-[7px] leading-[1.25]'
+    : isSmall
+      ? 'mt-1 text-[8.5px] leading-[1.35]'
+      : 'mt-2 text-[clamp(10px,1.2vw,12.5px)] leading-[1.5]';
 
   return (
     <div
@@ -255,42 +293,44 @@ function CodeNewsVisual({ news, className }: { news: NewsItem | null | undefined
       aria-label={`${source} — ${category} সংবাদ`}
     >
       <div
-        className={`absolute rounded-full border ${variant % 2 === 0 ? '-right-[9%] -top-[18%] h-[58%] w-[58%]' : '-left-[12%] -bottom-[22%] h-[62%] w-[62%]'}`}
-        style={{ borderColor: `${theme.accent}38`, backgroundColor: `${theme.accent}0d` }}
+        className={`absolute rounded-full border ${isTiny ? '-right-[22%] -top-[30%] h-[70%] w-[70%]' : isSmall ? '-right-[13%] -top-[24%] h-[62%] w-[62%]' : variant % 2 === 0 ? '-right-[9%] -top-[18%] h-[58%] w-[58%]' : '-left-[12%] -bottom-[22%] h-[62%] w-[62%]'}`}
+        style={{ borderColor: `${theme.accent}2e`, backgroundColor: `${theme.accent}09` }}
       />
       <div
-        className={`absolute ${variant < 2 ? 'right-[7%] top-[12%] h-[2px] w-[36%]' : 'left-[7%] bottom-[14%] h-[2px] w-[40%]'}`}
-        style={{ backgroundColor: `${theme.accent}85` }}
+        className={`absolute ${isTiny ? 'left-[8%] top-[10%] h-[1.5px] w-[28%]' : variant < 2 ? 'right-[7%] top-[12%] h-[2px] w-[36%]' : 'left-[7%] bottom-[14%] h-[2px] w-[40%]'}`}
+        style={{ backgroundColor: `${theme.accent}80` }}
       />
-      <div
-        className={`absolute ${variant === 1 || variant === 3 ? 'right-[10%] bottom-[12%]' : 'left-[8%] top-[12%]'} text-[clamp(38px,8vw,92px)] font-black leading-none opacity-[0.055]`}
-        style={{ color: theme.ink }}
-      >
-        {category.slice(0, 2)}
-      </div>
+      {!isTiny ? (
+        <div
+          className={`absolute ${isSmall ? 'right-[8%] bottom-[10%] text-[54px]' : variant === 1 || variant === 3 ? 'right-[10%] bottom-[12%] text-[clamp(38px,8vw,92px)]' : 'left-[8%] top-[12%] text-[clamp(38px,8vw,92px)]'} font-black leading-none opacity-[0.05]`}
+          style={{ color: theme.ink }}
+        >
+          {category.slice(0, 2)}
+        </div>
+      ) : null}
 
-      <div className="relative z-10 flex h-full w-full flex-col justify-between p-[clamp(12px,2.2vw,26px)]">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: theme.accent }} />
-          <span className="text-[9.5px] font-black uppercase tracking-[0.16em]" style={{ color: theme.accent }}>
-            সংবাদসংগ্রহ
+      <div className={`relative z-10 flex h-full w-full flex-col justify-between ${shellClass}`}>
+        <div className="flex items-center gap-1.5">
+          <span className={`${isTiny ? 'h-1.5 w-1.5' : 'h-2 w-2'} rounded-full`} style={{ backgroundColor: theme.accent }} />
+          <span className={`${isTiny ? 'text-[6.3px] tracking-[0.08em]' : isSmall ? 'text-[7px] tracking-[0.1em]' : 'text-[9px] tracking-[0.15em]'} font-black uppercase`} style={{ color: theme.accent }}>
+            {isTiny ? 'সংবাদ' : 'সংবাদসংগ্রহ'}
           </span>
         </div>
 
-        <div>
-          <div className="text-[clamp(18px,3vw,34px)] font-black leading-none tracking-[-0.035em]" style={{ color: theme.ink }}>
-            {category}
+        <div className="min-w-0">
+          <div className={`${categoryClass} font-black`} style={{ color: theme.ink }}>
+            {isTiny && category.length > 9 ? `${category.slice(0, 8)}…` : category}
           </div>
-          <div className="mt-2 max-w-[92%] line-clamp-2 text-[clamp(10px,1.25vw,13px)] font-semibold leading-[1.5]" style={{ color: `${theme.ink}b8` }}>
-            {source}
+          <div className={`max-w-[96%] ${isTiny ? 'line-clamp-1' : 'line-clamp-2'} font-semibold ${sourceClass}`} style={{ color: `${theme.ink}b0` }}>
+            {isTiny ? source : source}
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[9px] font-semibold tracking-[0.04em]" style={{ color: `${theme.ink}8c` }}>
-            মূল প্রতিবেদনে বিস্তারিত
+        <div className="flex items-center justify-between gap-2">
+          <span className={`${isTiny ? 'text-[6.2px]' : isSmall ? 'text-[7px]' : 'text-[8.7px]'} font-semibold tracking-[0.035em]`} style={{ color: `${theme.ink}82` }}>
+            {isTiny ? 'মূল উৎস' : 'মূল প্রতিবেদনে বিস্তারিত'}
           </span>
-          <span className="text-[15px] font-black" style={{ color: theme.accent }}>↗</span>
+          <span className={`${isTiny ? 'text-[9px]' : isSmall ? 'text-[11px]' : 'text-[15px]'} font-black`} style={{ color: theme.accent }}>↗</span>
         </div>
       </div>
     </div>
@@ -303,7 +343,7 @@ function NewsImage({ news, className }: { news: NewsItem | null | undefined; cla
     return <SafeImage src={src} alt={getNewsTitle(news)} className={className} />;
   }
 
-  return <CodeNewsVisual news={news} className={className} />;
+  return <CodeNewsVisual news={news} className={className} density={getVisualDensity(className)} />;
 }
 
 function getNewsHref(news: NewsItem | null | undefined) {
@@ -593,12 +633,13 @@ function MetaLine({ news, className = '' }: { news: NewsItem; className?: string
 
 function SectionHeading({ title, href }: { title: string; href: string }) {
   return (
-    <div className="mb-4 flex items-end justify-between border-b border-[#d9d4cc] pb-2">
-      <div className="flex items-center gap-3">
-        <span className="h-5 w-[4px] rounded-full bg-[#b42318]" />
-        <h2 className="text-[21px] font-black leading-none tracking-[-0.02em] text-[#171717] md:text-[23px]">{title}</h2>
+    <div className="relative mb-4 flex items-end justify-between border-b border-[#d9d4cc] pb-2.5">
+      <div className="flex items-center gap-2.5">
+        <span className="h-[18px] w-[3px] rounded-full bg-[#b42318]" />
+        <h2 className="text-[20px] font-black leading-none tracking-[-0.02em] text-[#171717] md:text-[22px]">{title}</h2>
       </div>
-      <a href={href} className="text-[12.5px] font-bold text-[#6f6a63] transition hover:text-[#b42318]">আরও খবর →</a>
+      <a href={href} className="text-[11.8px] font-bold text-[#777169] transition hover:text-[#b42318]">আরও খবর →</a>
+      <span className="absolute bottom-[-1px] left-0 h-[2px] w-[56px] bg-[#b42318]" />
     </div>
   );
 }
@@ -923,6 +964,13 @@ export default async function Home({
         }
         .bt-ticker:hover .bt-ticker-track {
           animation-play-state: paused;
+        }
+        ::selection {
+          background: #b42318;
+          color: white;
+        }
+        .bt-soft-rule {
+          background: linear-gradient(90deg, #b42318 0 54px, #ded9d1 54px 100%);
         }
         @media (prefers-reduced-motion: reduce) {
           .bt-ticker-track { animation: none; }
@@ -1341,45 +1389,70 @@ export default async function Home({
         )}
       </main>
 
-      <footer className="mt-2 border-t-[3px] border-[#171717] bg-[#f8f6f2]">
-        <div className="mx-auto max-w-[1240px] px-4 py-7">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.25fr_1fr_1fr]">
+      <footer className="mt-4 border-t-[3px] border-[#171717] bg-[#f7f5f1]">
+        <div className="mx-auto max-w-[1240px] px-4 py-8">
+          <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1.35fr_.85fr_.85fr_1.05fr]">
             <div>
-              <div className="text-[28px] font-black tracking-[-0.04em] text-[#171717]">বঙ্গীয় টাইমস</div>
-              <p className="mt-2 max-w-[560px] text-[12.5px] leading-6 text-[#6d6861]">
-                বাংলাদেশ ও বিশ্বের গুরুত্বপূর্ণ সংবাদ এক জায়গায় খুঁজে পেতে সহায়তা করে বঙ্গীয় টাইমস। তৃতীয় পক্ষের সংবাদের ক্ষেত্রে মূল প্রকাশকের নাম ও লিংক দেখানো হয় এবং বিস্তারিত পড়ার জন্য পাঠককে মূল উৎসে পাঠানো হয়।
+              <div className="flex items-center gap-2.5">
+                <div className="text-[28px] font-black tracking-[-0.045em] text-[#171717]">বঙ্গীয় টাইমস</div>
+                <span className="h-1.5 w-1.5 rounded-full bg-[#b42318]" />
+              </div>
+              <p className="mt-2 max-w-[560px] text-[12.5px] leading-6 text-[#6b665f]">
+                বাংলাদেশ ও বিশ্বের গুরুত্বপূর্ণ সংবাদকে দ্রুত, সংক্ষিপ্ত ও উৎসভিত্তিকভাবে পাঠকের সামনে উপস্থাপন করে বঙ্গীয় টাইমস। তৃতীয় পক্ষের সংবাদে উৎসের পরিচয় ও মূল লিংক স্পষ্টভাবে দেখানো হয়।
               </p>
+
+              <div className="mt-4 border-l-[3px] border-[#b42318] bg-white px-4 py-3.5 shadow-[0_1px_0_rgba(0,0,0,0.03)]">
+                <p className="text-[10.5px] font-black uppercase tracking-[0.15em] text-[#8a847c]">সম্পাদক</p>
+                <p className="mt-1 text-[16.5px] font-black tracking-[-0.02em] text-[#171717]">এডভোকেট মোঃ আজাদুর রহমান</p>
+              </div>
             </div>
+
             <div>
-              <h3 className="mb-2 text-[12px] font-black uppercase tracking-[0.12em] text-[#38342f]">বিভাগ</h3>
-              <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12.5px] text-[#66615a]">
+              <h3 className="mb-3 border-b border-[#ded9d1] pb-2 text-[11.5px] font-black uppercase tracking-[0.12em] text-[#38342f]">প্রধান বিভাগ</h3>
+              <div className="grid grid-cols-1 gap-y-2 text-[12.3px] text-[#625d57]">
                 {['বাংলাদেশ', 'রাজনীতি', 'আন্তর্জাতিক', 'অর্থনীতি', 'খেলাধুলা', 'আইন-আদালত'].map((cat) => (
-                  <a key={cat} href={`/?category=${encodeURIComponent(cat)}`} className="hover:text-[#b42318]">{cat}</a>
+                  <a key={cat} href={`/?category=${encodeURIComponent(cat)}`} className="transition hover:translate-x-0.5 hover:text-[#b42318]">{cat}</a>
                 ))}
               </div>
             </div>
+
             <div>
-              <h3 className="mb-2 text-[12px] font-black uppercase tracking-[0.12em] text-[#38342f]">আরও</h3>
-              <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12.5px] text-[#66615a]">
-                <a href="/?category=মতামত" className="hover:text-[#b42318]">মতামত</a>
-                <a href="/?category=ফিচার" className="hover:text-[#b42318]">ফিচার</a>
-                <a href="/?category=সাহিত্য" className="hover:text-[#b42318]">সাহিত্য</a>
+              <h3 className="mb-3 border-b border-[#ded9d1] pb-2 text-[11.5px] font-black uppercase tracking-[0.12em] text-[#38342f]">আরও বিভাগ</h3>
+              <div className="grid grid-cols-1 gap-y-2 text-[12.3px] text-[#625d57]">
+                {['শিক্ষা', 'প্রযুক্তি', 'স্বাস্থ্য', 'কৃষি', 'প্রবাস', 'পরিবেশ'].map((cat) => (
+                  <a key={cat} href={`/?category=${encodeURIComponent(cat)}`} className="transition hover:translate-x-0.5 hover:text-[#b42318]">{cat}</a>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="mb-3 border-b border-[#ded9d1] pb-2 text-[11.5px] font-black uppercase tracking-[0.12em] text-[#38342f]">প্রকাশনা নীতি</h3>
+              <div className="space-y-2 text-[11.8px] leading-5.5 text-[#6d6861]">
+                <p>বঙ্গীয় টাইমস একটি সংবাদসংগ্রাহক ও লিংক-ডিসকভারি প্ল্যাটফর্ম।</p>
+                <p>তৃতীয় পক্ষের পূর্ণ প্রতিবেদন পুনঃপ্রকাশ না করে শিরোনাম, উৎস ও সীমিত পরিচিতি দেখানো হয়।</p>
+                <p>মূল প্রতিবেদন পড়তে সংশ্লিষ্ট প্রকাশকের লিংক নতুন ট্যাবে খোলে।</p>
               </div>
             </div>
           </div>
-          <div className="mt-6 rounded-[2px] border border-[#ded9d1] bg-white px-4 py-4">
-            <h3 className="text-[12px] font-black uppercase tracking-[0.11em] text-[#38342f]">সংবাদ উৎস ও স্বত্বনীতি</h3>
-            <p className="mt-2 text-[11.8px] leading-6 text-[#716b64]">
-              বঙ্গীয় টাইমস একটি সংবাদসংগ্রাহক ও লিংক-ডিসকভারি প্ল্যাটফর্ম। তৃতীয় পক্ষের সংবাদের পূর্ণ প্রতিবেদন আমরা পুনঃপ্রকাশ করি না। শিরোনাম, উৎসের নাম ও সংক্ষিপ্ত তথ্য সংবাদ আবিষ্কার এবং পাঠককে মূল প্রকাশকের প্রতিবেদনে পৌঁছে দেওয়ার উদ্দেশ্যে দেখানো হয়।
-            </p>
-            <p className="mt-1.5 text-[11.8px] leading-6 text-[#716b64]">
-              তৃতীয় পক্ষের লেখা, ছবি, লোগো, ট্রেডমার্ক ও অন্যান্য স্বত্ব সংশ্লিষ্ট প্রকাশক বা অধিকারধারীর। অনুমতি বা প্রযোজ্য লাইসেন্স ছাড়া তৃতীয় পক্ষের ছবি বঙ্গীয় টাইমসে পুনঃপ্রকাশ করা হয় না। কোনো অধিকারধারীর আপত্তি, সংশোধন বা অপসারণের অনুরোধ থাকলে আমাদের অফিসিয়াল যোগাযোগ মাধ্যমে জানানো যেতে পারে; অনুরোধ যথাযথভাবে পর্যালোচনা করা হবে।
-            </p>
+
+          <div className="mt-7 rounded-[2px] border border-[#ded9d1] bg-white px-4 py-4 md:px-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-8">
+              <div className="max-w-[820px]">
+                <h3 className="text-[11.5px] font-black uppercase tracking-[0.12em] text-[#38342f]">সংবাদ উৎস, স্বত্বনীতি ও সংশোধন</h3>
+                <p className="mt-2 text-[11.7px] leading-6 text-[#716b64]">
+                  তৃতীয় পক্ষের লেখা, ছবি, লোগো, ট্রেডমার্ক ও অন্যান্য স্বত্ব সংশ্লিষ্ট প্রকাশক বা অধিকারধারীর। অনুমতি বা প্রযোজ্য লাইসেন্স ছাড়া তৃতীয় পক্ষের ছবি বঙ্গীয় টাইমসে পুনঃপ্রকাশ করা হয় না। কোনো প্রকাশক বা অধিকারধারীর আপত্তি, সংশোধন অথবা অপসারণের অনুরোধ থাকলে অফিসিয়াল যোগাযোগ মাধ্যমে জানালে বিষয়টি যথাযথভাবে পর্যালোচনা করা হবে।
+                </p>
+              </div>
+              <div className="shrink-0 border-l-0 border-[#e2ddd5] md:border-l md:pl-6">
+                <p className="text-[10.5px] font-black uppercase tracking-[0.13em] text-[#8a847c]">পাঠ নীতি</p>
+                <p className="mt-1 max-w-[250px] text-[11.7px] leading-5.5 text-[#716b64]">তৃতীয় পক্ষের সংবাদে ক্লিক করলে মূল উৎস নতুন ট্যাবে খুলবে।</p>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-4 flex flex-col gap-2 border-t border-[#ded9d1] pt-4 text-[11.5px] text-[#8b857e] sm:flex-row sm:items-center sm:justify-between">
-            <p>© {new Date().getFullYear()} বঙ্গীয় টাইমস। বঙ্গীয় টাইমসের নিজস্ব কনটেন্টে সর্বস্বত্ব সংরক্ষিত।</p>
-            <p>তৃতীয় পক্ষের সংবাদে ক্লিক করলে মূল উৎস নতুন ট্যাবে খুলবে।</p>
+          <div className="mt-4 flex flex-col gap-2 border-t border-[#d9d4cc] pt-4 text-[11.2px] text-[#8a847c] sm:flex-row sm:items-center sm:justify-between">
+            <p>© {new Date().getFullYear()} বঙ্গীয় টাইমস। নিজস্ব কনটেন্টে সর্বস্বত্ব সংরক্ষিত।</p>
+            <p>স্বচ্ছ উৎস • সংক্ষিপ্ত উপস্থাপনা • মূল প্রতিবেদনে সরাসরি লিংক</p>
           </div>
         </div>
       </footer>
