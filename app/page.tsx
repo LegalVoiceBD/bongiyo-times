@@ -195,21 +195,115 @@ function getNewsImage(news: NewsItem | null | undefined): string {
   return /^https?:\/\//i.test(image) ? image : '';
 }
 
+const CODE_VISUAL_THEMES: Record<string, {
+  bg: string;
+  accent: string;
+  soft: string;
+  ink: string;
+}> = {
+  'বাংলাদেশ': { bg: '#f4f0e8', accent: '#b42318', soft: '#ead9cf', ink: '#2b2722' },
+  'রাজনীতি': { bg: '#f3eee8', accent: '#8f1d18', soft: '#e6d2ca', ink: '#2a2421' },
+  'আন্তর্জাতিক': { bg: '#edf2f5', accent: '#305b78', soft: '#d8e3ea', ink: '#20323f' },
+  'অর্থনীতি': { bg: '#eef3ef', accent: '#38634d', soft: '#d8e5dc', ink: '#23362a' },
+  'বাণিজ্য': { bg: '#eef3ef', accent: '#38634d', soft: '#d8e5dc', ink: '#23362a' },
+  'খেলাধুলা': { bg: '#eef3e9', accent: '#4d6b34', soft: '#dbe6d0', ink: '#2b3822' },
+  'বিনোদন': { bg: '#f5eff2', accent: '#8a405d', soft: '#e8d7df', ink: '#3b2831' },
+  'আইন-আদালত': { bg: '#f1eff5', accent: '#5b4c7c', soft: '#dfdaea', ink: '#312d3e' },
+  'শিক্ষা': { bg: '#eef3f7', accent: '#38658b', soft: '#d8e4ed', ink: '#253744' },
+  'প্রযুক্তি': { bg: '#edf4f4', accent: '#31706d', soft: '#d4e7e5', ink: '#223b3a' },
+  'স্বাস্থ্য': { bg: '#f3f0ed', accent: '#8a5244', soft: '#e6d9d3', ink: '#382b27' },
+  'জীবনযাপন': { bg: '#f3f1e9', accent: '#7b6a38', soft: '#e6e0cc', ink: '#39331f' },
+  'চাকরি': { bg: '#eef1f3', accent: '#4d6070', soft: '#dce3e8', ink: '#29333b' },
+  'প্রবাস': { bg: '#eef2f6', accent: '#466989', soft: '#dae4ed', ink: '#283947' },
+  'পরিবেশ': { bg: '#edf3ec', accent: '#4f7045', soft: '#d8e6d5', ink: '#2c3b28' },
+  'কৃষি': { bg: '#f0f3e8', accent: '#61773a', soft: '#dfe7ca', ink: '#303923' },
+  'বিজ্ঞান': { bg: '#eff1f7', accent: '#4f5f8d', soft: '#dce1ef', ink: '#2c3248' },
+  'সংস্কৃতি': { bg: '#f5f0e8', accent: '#9a6138', soft: '#eadbc9', ink: '#3d2e22' },
+  'ধর্ম': { bg: '#eef3ef', accent: '#4e6f59', soft: '#d9e6dd', ink: '#29372e' },
+  'ফিচার': { bg: '#f4f0eb', accent: '#86614a', soft: '#e6d9cf', ink: '#382e28' },
+  'সাহিত্য': { bg: '#f5f1ec', accent: '#7b5a49', soft: '#e8ddd4', ink: '#382e29' },
+  'হাস্যরস': { bg: '#f4f1e9', accent: '#88702f', soft: '#e9e1c8', ink: '#3d351f' },
+};
+
+function getCodeVisualTheme(news: NewsItem | null | undefined) {
+  const category = String(news?.category || 'বাংলাদেশ').trim();
+  return CODE_VISUAL_THEMES[category] || CODE_VISUAL_THEMES['বাংলাদেশ'];
+}
+
+function getVisualVariant(news: NewsItem | null | undefined) {
+  const text = `${news?.id || ''}-${getNewsTitle(news)}-${news?.category || ''}`;
+  let total = 0;
+  for (let i = 0; i < text.length; i += 1) total = (total + text.charCodeAt(i) * (i + 3)) % 997;
+  return total % 4;
+}
+
+function CodeNewsVisual({ news, className }: { news: NewsItem | null | undefined; className: string }) {
+  const theme = getCodeVisualTheme(news);
+  const variant = getVisualVariant(news);
+  const category = String(news?.category || 'সর্বশেষ').trim();
+  const source = getNewsSource(news);
+
+  const backgroundImage = [
+    `linear-gradient(135deg, ${theme.bg} 0%, ${theme.soft} 100%)`,
+    `linear-gradient(90deg, transparent 0 48%, ${theme.accent}14 48% 52%, transparent 52% 100%)`,
+  ].join(',');
+
+  return (
+    <div
+      className={`${className} relative isolate overflow-hidden border border-[#e2ddd5]`}
+      style={{ backgroundColor: theme.bg, backgroundImage }}
+      aria-label={`${source} — ${category} সংবাদ`}
+    >
+      <div
+        className={`absolute rounded-full border ${variant % 2 === 0 ? '-right-[9%] -top-[18%] h-[58%] w-[58%]' : '-left-[12%] -bottom-[22%] h-[62%] w-[62%]'}`}
+        style={{ borderColor: `${theme.accent}38`, backgroundColor: `${theme.accent}0d` }}
+      />
+      <div
+        className={`absolute ${variant < 2 ? 'right-[7%] top-[12%] h-[2px] w-[36%]' : 'left-[7%] bottom-[14%] h-[2px] w-[40%]'}`}
+        style={{ backgroundColor: `${theme.accent}85` }}
+      />
+      <div
+        className={`absolute ${variant === 1 || variant === 3 ? 'right-[10%] bottom-[12%]' : 'left-[8%] top-[12%]'} text-[clamp(38px,8vw,92px)] font-black leading-none opacity-[0.055]`}
+        style={{ color: theme.ink }}
+      >
+        {category.slice(0, 2)}
+      </div>
+
+      <div className="relative z-10 flex h-full w-full flex-col justify-between p-[clamp(12px,2.2vw,26px)]">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: theme.accent }} />
+          <span className="text-[9.5px] font-black uppercase tracking-[0.16em]" style={{ color: theme.accent }}>
+            সংবাদসংগ্রহ
+          </span>
+        </div>
+
+        <div>
+          <div className="text-[clamp(18px,3vw,34px)] font-black leading-none tracking-[-0.035em]" style={{ color: theme.ink }}>
+            {category}
+          </div>
+          <div className="mt-2 max-w-[92%] line-clamp-2 text-[clamp(10px,1.25vw,13px)] font-semibold leading-[1.5]" style={{ color: `${theme.ink}b8` }}>
+            {source}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[9px] font-semibold tracking-[0.04em]" style={{ color: `${theme.ink}8c` }}>
+            মূল প্রতিবেদনে বিস্তারিত
+          </span>
+          <span className="text-[15px] font-black" style={{ color: theme.accent }}>↗</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NewsImage({ news, className }: { news: NewsItem | null | undefined; className: string }) {
   const src = getNewsImage(news);
   if (src) {
     return <SafeImage src={src} alt={getNewsTitle(news)} className={className} />;
   }
 
-  return (
-    <div className={`${className} flex items-center justify-center overflow-hidden border border-[#e7e3dc] bg-[#f7f5f1]`}>
-      <div className="max-w-full px-3 text-center">
-        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#b42318]">মূল উৎস</div>
-        <div className="mt-1 line-clamp-2 text-[12px] font-bold leading-snug text-[#6d6963]">{getNewsSource(news)}</div>
-        <div className="mt-1 text-[9.5px] font-medium text-[#aaa49c]">ছবি পুনঃপ্রকাশ করা হয়নি</div>
-      </div>
-    </div>
-  );
+  return <CodeNewsVisual news={news} className={className} />;
 }
 
 function getNewsHref(news: NewsItem | null | undefined) {
