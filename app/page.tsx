@@ -328,8 +328,8 @@ const CATEGORY_RULES: Record<string, { native: string[]; keywords: string[]; fal
   },
   'কৃষি': {
     native: ['কৃষি'],
-    keywords: ['কৃষি', 'কৃষক', 'ফসল', 'ধান', 'চাল', 'গম', 'সবজি', 'মৎস্য', 'পোলট্রি', 'খামার'],
-    fallback: ['বাংলাদেশ'],
+    keywords: ['কৃষি', 'কৃষক', 'ফসল', 'ধান', 'চাল', 'গম', 'ভুট্টা', 'পাট', 'সবজি', 'ফল', 'বীজ', 'সার', 'সেচ', 'মৎস্য', 'পোলট্রি', 'খামার', 'কৃষি গবেষণা', 'কৃষি মন্ত্রণালয়'],
+    fallback: [],
   },
   'বিজ্ঞান': {
     native: ['বিজ্ঞান'],
@@ -633,7 +633,6 @@ export default async function Home({
   const limitPerPage = 20;
   const startRow = (currentPage - 1) * limitPerPage;
   const endRow = startRow + limitPerPage - 1;
-  const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || '/admin';
 
   let query = supabase
     .from('news')
@@ -765,13 +764,24 @@ export default async function Home({
   const cultureNews = getCategoryItems(categoryPool, 'সংস্কৃতি', 6);
 
 
+  const nowDhaka = new Date();
   const todayFull = new Intl.DateTimeFormat('bn-BD', {
     timeZone: 'Asia/Dhaka',
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  }).format(new Date());
+  }).format(nowDhaka);
+  const todayWeekday = new Intl.DateTimeFormat('bn-BD', {
+    timeZone: 'Asia/Dhaka',
+    weekday: 'long',
+  }).format(nowDhaka);
+  const todayDateShort = new Intl.DateTimeFormat('bn-BD', {
+    timeZone: 'Asia/Dhaka',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(nowDhaka);
 
   return (
     <div className="min-h-screen bg-white text-[#20201e] antialiased">
@@ -822,7 +832,10 @@ export default async function Home({
               ))}
             </div>
 
-            <a href={adminUrl} className="hidden shrink-0 border border-[#b42318] px-3 py-2 text-[12px] font-bold text-[#b42318] transition hover:bg-[#b42318] hover:text-white sm:block">এডমিন প্যানেল</a>
+            <div className="ml-auto shrink-0 text-right md:hidden">
+              <p className="text-[12px] font-black leading-tight text-[#27231f]">{todayWeekday}</p>
+              <p className="mt-1 text-[10.5px] font-medium leading-tight text-[#777169]">{todayDateShort}</p>
+            </div>
           </div>
         </div>
 
@@ -1221,7 +1234,6 @@ export default async function Home({
             <div>
               <h3 className="mb-2 text-[12px] font-black uppercase tracking-[0.12em] text-[#38342f]">আরও</h3>
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12.5px] text-[#66615a]">
-                <a href={adminUrl} className="hover:text-[#b42318]">এডমিন প্যানেল</a>
                 <a href="/?category=মতামত" className="hover:text-[#b42318]">মতামত</a>
                 <a href="/?category=ফিচার" className="hover:text-[#b42318]">ফিচার</a>
                 <a href="/?category=সাহিত্য" className="hover:text-[#b42318]">সাহিত্য</a>
