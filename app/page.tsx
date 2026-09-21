@@ -972,6 +972,33 @@ export default async function Home({
         .bt-soft-rule {
           background: linear-gradient(90deg, #b42318 0 54px, #ded9d1 54px 100%);
         }
+        .bt-masthead-wordmark {
+          font-family: "Noto Serif Bengali", "Nirmala UI", "Vrinda", serif;
+          font-weight: 900;
+          letter-spacing: -0.055em;
+          text-rendering: geometricPrecision;
+          font-feature-settings: "kern" 1;
+        }
+        .bt-masthead-wordmark .bt-times {
+          position: relative;
+          display: inline-block;
+          margin-left: 0.16em;
+          letter-spacing: -0.07em;
+        }
+        .bt-masthead-wordmark .bt-times::after {
+          content: "";
+          position: absolute;
+          left: 0.08em;
+          bottom: -0.14em;
+          width: 1.12em;
+          height: 0.075em;
+          min-height: 2px;
+          background: #b42318;
+          border-radius: 999px;
+        }
+        .bt-masthead-tagline {
+          letter-spacing: 0.065em;
+        }
         @media (prefers-reduced-motion: reduce) {
           .bt-ticker-track { animation: none; }
         }
@@ -980,13 +1007,20 @@ export default async function Home({
         <div className="border-b border-[#ebe7e0]">
           <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-6 px-4 py-3 md:py-4">
             <div className="flex min-w-0 items-center gap-4">
-              <a href="/" className="shrink-0" aria-label="বঙ্গীয় টাইমস প্রচ্ছদ">
-                <div className="flex items-center text-[34px] font-black leading-none tracking-[-0.055em] text-black md:text-[42px]">
-                  <span>বঙ্গীয়</span>
-                  <span className="mx-1 inline-flex h-[35px] w-[35px] items-center justify-center rounded-full border-[2.5px] border-[#c6251d] text-[22px] font-black tracking-normal text-black md:h-[42px] md:w-[42px] md:text-[27px]">টা</span>
-                  <span>ইমস</span>
+              <a href="/" className="group shrink-0" aria-label="বঙ্গীয় টাইমস প্রচ্ছদ">
+                <div className="bt-masthead-wordmark whitespace-nowrap text-[36px] leading-[0.92] text-[#11110f] md:text-[45px]">
+                  <span>বঙ্গীয়</span>
+                  <span className="bt-times">টাইমস</span>
                 </div>
-                <p className="mt-1 text-[11px] font-semibold tracking-[0.07em] text-[#6d6963] md:text-[12px]">সত্য ও সাহসের প্রতিচ্ছবি</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="h-[2px] w-[22px] shrink-0 bg-[#b42318] md:w-[26px]" />
+                  <p className="bt-masthead-tagline whitespace-nowrap text-[10.5px] font-semibold text-[#67615a] md:text-[11.5px]">
+                    সত্য ও সাহসের প্রতিচ্ছবি
+                  </p>
+                  <span className="hidden border-l border-[#d8d2ca] pl-2 text-[7.5px] font-bold uppercase tracking-[0.2em] text-[#9a948c] sm:inline md:text-[8px]">
+                    BONGIYO TIMES
+                  </span>
+                </div>
               </a>
 
               <div className="hidden border-l border-[#d8d2ca] pl-4 md:block">
