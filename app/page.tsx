@@ -15,6 +15,9 @@ type NewsItem = {
   category?: string | null;
   created_at?: string | null;
   image_url?: string | null;
+  image_license?: string | null;
+  image_rights?: string | null;
+  image_permission?: boolean | null;
   snippet?: string | null;
   description?: string | null;
   summary?: string | null;
@@ -151,14 +154,43 @@ function getNewsSource(news: NewsItem | null | undefined) {
   return resolveBanglaPublisherName(rawName, news.source_home_url, articleUrl);
 }
 
+function isOwnOrLicensedNews(news: NewsItem | null | undefined) {
+  if (!news) return false;
+  if (news.is_custom === true) return true;
+
+  const source = getNewsSource(news);
+  if (source === 'বঙ্গীয় টাইমস' || source === 'বঙ্গীয় টাইমস') return true;
+  if (news.image_permission === true) return true;
+
+  const rights = String(news.image_license || news.image_rights || '').toLowerCase();
+  return [
+    'licensed',
+    'permission',
+    'permitted',
+    'public domain',
+    'cc0',
+    'creative commons',
+    'নিজস্ব',
+    'অনুমোদিত',
+  ].some((token) => rights.includes(token));
+}
+
 function getNewsSnippet(news: NewsItem | null | undefined) {
   if (!news) return '';
-  const raw = String(news.snippet || news.description || news.summary || news.excerpt || '');
-  return cleanDisplayText(raw).slice(0, 360);
+
+  if (isOwnOrLicensedNews(news)) {
+    const raw = String(news.snippet || news.description || news.summary || news.excerpt || '');
+    return cleanDisplayText(raw).slice(0, 360);
+  }
+
+  const title = getNewsTitle(news);
+  const source = getNewsSource(news);
+  if (!title) return `${source}-এর মূল প্রতিবেদনে বিস্তারিত তথ্য পাওয়া যাবে।`;
+  return `${source}-এর প্রতিবেদনে “${title}” বিষয়ে তথ্য প্রকাশিত হয়েছে। বিস্তারিত পড়তে মূল উৎসে যান।`;
 }
 
 function getNewsImage(news: NewsItem | null | undefined): string {
-  if (!news) return '';
+  if (!news || !isOwnOrLicensedNews(news)) return '';
   const image = typeof news.image_url === 'string' ? news.image_url.trim() : '';
   return /^https?:\/\//i.test(image) ? image : '';
 }
@@ -172,8 +204,9 @@ function NewsImage({ news, className }: { news: NewsItem | null | undefined; cla
   return (
     <div className={`${className} flex items-center justify-center overflow-hidden border border-[#e7e3dc] bg-[#f7f5f1]`}>
       <div className="max-w-full px-3 text-center">
-        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#a7a29a]">সংবাদ</div>
+        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#b42318]">মূল উৎস</div>
         <div className="mt-1 line-clamp-2 text-[12px] font-bold leading-snug text-[#6d6963]">{getNewsSource(news)}</div>
+        <div className="mt-1 text-[9.5px] font-medium text-[#aaa49c]">ছবি পুনঃপ্রকাশ করা হয়নি</div>
       </div>
     </div>
   );
@@ -1219,8 +1252,8 @@ export default async function Home({
           <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.25fr_1fr_1fr]">
             <div>
               <div className="text-[28px] font-black tracking-[-0.04em] text-[#171717]">বঙ্গীয় টাইমস</div>
-              <p className="mt-2 max-w-[520px] text-[12.5px] leading-6 text-[#6d6861]">
-                বাংলাদেশ ও বিশ্বের গুরুত্বপূর্ণ সংবাদ, বিশ্লেষণ ও নির্বাচিত প্রতিবেদন—মূল উৎসের স্বচ্ছ ক্রেডিটসহ এক জায়গায়।
+              <p className="mt-2 max-w-[560px] text-[12.5px] leading-6 text-[#6d6861]">
+                বাংলাদেশ ও বিশ্বের গুরুত্বপূর্ণ সংবাদ এক জায়গায় খুঁজে পেতে সহায়তা করে বঙ্গীয় টাইমস। তৃতীয় পক্ষের সংবাদের ক্ষেত্রে মূল প্রকাশকের নাম ও লিংক দেখানো হয় এবং বিস্তারিত পড়ার জন্য পাঠককে মূল উৎসে পাঠানো হয়।
               </p>
             </div>
             <div>
@@ -1240,9 +1273,19 @@ export default async function Home({
               </div>
             </div>
           </div>
-          <div className="mt-6 flex flex-col gap-2 border-t border-[#ded9d1] pt-4 text-[11.5px] text-[#8b857e] sm:flex-row sm:items-center sm:justify-between">
-            <p>© {new Date().getFullYear()} বঙ্গীয় টাইমস। সর্বস্বত্ব সংরক্ষিত।</p>
-            <p>সংবাদে ক্লিক করলে মূল উৎস নতুন ট্যাবে খুলবে; নিজস্ব সংবাদ এই সাইটেই থাকবে।</p>
+          <div className="mt-6 rounded-[2px] border border-[#ded9d1] bg-white px-4 py-4">
+            <h3 className="text-[12px] font-black uppercase tracking-[0.11em] text-[#38342f]">সংবাদ উৎস ও স্বত্বনীতি</h3>
+            <p className="mt-2 text-[11.8px] leading-6 text-[#716b64]">
+              বঙ্গীয় টাইমস একটি সংবাদসংগ্রাহক ও লিংক-ডিসকভারি প্ল্যাটফর্ম। তৃতীয় পক্ষের সংবাদের পূর্ণ প্রতিবেদন আমরা পুনঃপ্রকাশ করি না। শিরোনাম, উৎসের নাম ও সংক্ষিপ্ত তথ্য সংবাদ আবিষ্কার এবং পাঠককে মূল প্রকাশকের প্রতিবেদনে পৌঁছে দেওয়ার উদ্দেশ্যে দেখানো হয়।
+            </p>
+            <p className="mt-1.5 text-[11.8px] leading-6 text-[#716b64]">
+              তৃতীয় পক্ষের লেখা, ছবি, লোগো, ট্রেডমার্ক ও অন্যান্য স্বত্ব সংশ্লিষ্ট প্রকাশক বা অধিকারধারীর। অনুমতি বা প্রযোজ্য লাইসেন্স ছাড়া তৃতীয় পক্ষের ছবি বঙ্গীয় টাইমসে পুনঃপ্রকাশ করা হয় না। কোনো অধিকারধারীর আপত্তি, সংশোধন বা অপসারণের অনুরোধ থাকলে আমাদের অফিসিয়াল যোগাযোগ মাধ্যমে জানানো যেতে পারে; অনুরোধ যথাযথভাবে পর্যালোচনা করা হবে।
+            </p>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2 border-t border-[#ded9d1] pt-4 text-[11.5px] text-[#8b857e] sm:flex-row sm:items-center sm:justify-between">
+            <p>© {new Date().getFullYear()} বঙ্গীয় টাইমস। বঙ্গীয় টাইমসের নিজস্ব কনটেন্টে সর্বস্বত্ব সংরক্ষিত।</p>
+            <p>তৃতীয় পক্ষের সংবাদে ক্লিক করলে মূল উৎস নতুন ট্যাবে খুলবে।</p>
           </div>
         </div>
       </footer>
