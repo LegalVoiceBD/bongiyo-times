@@ -104,6 +104,50 @@ function getImage(news: NewsItem) {
   return /^https?:\/\//i.test(value) ? value : '';
 }
 
+const MINI_VISUAL_THEMES: Record<string, { bg: string; accent: string; ink: string }> = {
+  'বাংলাদেশ': { bg: '#f4f0e8', accent: '#b42318', ink: '#2b2722' },
+  'রাজনীতি': { bg: '#f3eee8', accent: '#8f1d18', ink: '#2a2421' },
+  'আন্তর্জাতিক': { bg: '#edf2f5', accent: '#305b78', ink: '#20323f' },
+  'বাণিজ্য': { bg: '#eef3ef', accent: '#38634d', ink: '#23362a' },
+  'অর্থনীতি': { bg: '#eef3ef', accent: '#38634d', ink: '#23362a' },
+  'খেলাধুলা': { bg: '#eef3e9', accent: '#4d6b34', ink: '#2b3822' },
+  'বিনোদন': { bg: '#f5eff2', accent: '#8a405d', ink: '#3b2831' },
+  'আইন-আদালত': { bg: '#f1eff5', accent: '#5b4c7c', ink: '#312d3e' },
+  'শিক্ষা': { bg: '#eef3f7', accent: '#38658b', ink: '#253744' },
+  'প্রযুক্তি': { bg: '#edf4f4', accent: '#31706d', ink: '#223b3a' },
+  'কৃষি': { bg: '#f0f3e8', accent: '#61773a', ink: '#303923' },
+};
+
+function MiniCodeVisual({ news }: { news: NewsItem }) {
+  const category = String(news.category || 'সর্বশেষ').trim();
+  const theme = MINI_VISUAL_THEMES[category] || MINI_VISUAL_THEMES['বাংলাদেশ'];
+  const shortLabel = category.length > 8 ? `${category.slice(0, 7)}…` : category;
+
+  return (
+    <div
+      className="relative flex h-[58px] w-[86px] shrink-0 overflow-hidden rounded-[2px] border border-[#e7e2da] p-[5px]"
+      style={{
+        backgroundColor: theme.bg,
+        backgroundImage: `linear-gradient(135deg, ${theme.bg}, ${theme.accent}16)`,
+      }}
+    >
+      <div className="absolute -right-[15px] -top-[16px] h-[38px] w-[38px] rounded-full border" style={{ borderColor: `${theme.accent}35` }} />
+      <div className="absolute left-[6px] top-[8px] h-[1.5px] w-[20px]" style={{ backgroundColor: `${theme.accent}88` }} />
+      <div className="relative z-10 flex w-full flex-col justify-between">
+        <div className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: theme.accent }} />
+          <span className="text-[6.1px] font-black uppercase tracking-[0.08em]" style={{ color: theme.accent }}>সংবাদ</span>
+        </div>
+        <div>
+          <div className="line-clamp-1 text-[9.6px] font-black leading-none tracking-[-0.025em]" style={{ color: theme.ink }}>{shortLabel}</div>
+          <div className="mt-1 text-[6.2px] font-semibold leading-none" style={{ color: `${theme.ink}90` }}>মূল উৎস ↗</div>
+        </div>
+        <div className="text-[6.2px] font-semibold leading-none" style={{ color: `${theme.ink}70` }}>বিস্তারিত</div>
+      </div>
+    </div>
+  );
+}
+
 function formatDateTime(dateString?: string | null) {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -174,15 +218,13 @@ function StoryRow({
           alt=""
           loading="lazy"
           referrerPolicy="no-referrer"
-          className="h-[62px] w-[92px] shrink-0 rounded-[2px] border border-[#ece8e1] object-cover"
+          className="h-[58px] w-[86px] shrink-0 rounded-[2px] border border-[#ece8e1] object-cover"
           onError={(event) => {
             event.currentTarget.style.display = 'none';
           }}
         />
       ) : (
-        <div className="flex h-[62px] w-[92px] shrink-0 items-center justify-center rounded-[2px] border border-[#ece8e1] bg-[#faf9f7] px-2 text-center text-[10px] font-bold text-[#aaa49c]">
-          <span>মূল উৎস</span>
-        </div>
+        <MiniCodeVisual news={news} />
       )}
     </a>
   );
