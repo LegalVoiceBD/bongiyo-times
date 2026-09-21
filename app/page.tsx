@@ -28,6 +28,12 @@ type NewsItem = {
   link?: string | null;
   article_url?: string | null;
   is_published?: boolean | null;
+  is_custom?: boolean | null;
+  importance_score?: number | null;
+  editorial_score?: number | null;
+  breaking_news?: boolean | null;
+  view_count?: number | null;
+  click_count?: number | null;
   [key: string]: any;
 };
 
@@ -207,6 +213,36 @@ function formatNewsMeta(news: NewsItem | null | undefined) {
   return [source, time].filter(Boolean).join(' • ');
 }
 
+function getPopularityScore(news: NewsItem) {
+  const views = Number(news.view_count || 0);
+  const clicks = Number(news.click_count || 0);
+  const importance = Number(news.importance_score || 0);
+  const editorial = Number(news.editorial_score || 0);
+  const breakingBoost = news.breaking_news ? 80 : 0;
+
+  const createdAt = news.created_at ? new Date(news.created_at).getTime() : 0;
+  const ageHours = createdAt > 0 ? Math.max(0, (Date.now() - createdAt) / 3600000) : 72;
+  const freshnessBoost = Math.max(0, 72 - Math.min(ageHours, 72));
+
+  // Real audience signals dominate when the database has them.
+  // Editorial/freshness signals keep the widget useful before view tracking exists.
+  return (views * 100) + (clicks * 40) + (importance * 12) + editorial + breakingBoost + freshnessBoost;
+}
+
+function buildPopularNews(newsList: NewsItem[], limit = 5) {
+  const seen = new Set<string>();
+
+  return [...newsList]
+    .filter((news) => {
+      const key = String(news.source_url || news.original_url || news.article_url || news.url || news.link || news.id);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => getPopularityScore(b) - getPopularityScore(a))
+    .slice(0, limit);
+}
+
 function normalizeOptionalUrl(value: FormDataEntryValue | null) {
   const text = String(value || '').trim();
   if (!text) return '';
@@ -332,6 +368,8 @@ export default async function Home({ searchParams }: { searchParams: { category?
     : dbNews.slice(0, 150);
 
   const totalPages = count ? Math.max(1, Math.ceil(count / limitPerPage)) : 1;
+  const latestNews = allNews.slice(0, 5);
+  const popularNews = buildPopularNews(allNews, 5);
 
   // --- Hero Section Data (Updated Layout Allocations) ---
   let remainingNews = [...allNews];
@@ -413,7 +451,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
   const menuCategories = ["সর্বশেষ", "বাংলাদেশ", "রাজনীতি", "আন্তর্জাতিক", "মতামত", "খেলাধুলা", "বাণিজ্য", "বিনোদন", "আইন-আদালত", "জীবনযাপন", "শিক্ষা", "চাকরি", "প্রযুক্তি", "ফিচার", "হাস্যরস", "আইন ও পরামর্শ", "সাহিত্য"];
 
   return (
-    <div className="min-h-screen bg-white text-[#333] tracking-tight">
+    <div className="min-h-screen bg-white text-[#202124] tracking-[-0.01em] antialiased">
       
  {/* Header Section */}
  <header className="bg-white">
@@ -882,7 +920,7 @@ export default async function Home({ searchParams }: { searchParams: { category?
                    <div className="w-full min-h-[250px] bg-gray-50 border border-gray-200 flex flex-col justify-center items-center rounded-sm mb-6">
                       <span className="text-sm font-bold text-gray-400">বিজ্ঞাপন</span>
                    </div>
-                   <ClientTabs latestList={allNews.slice(0, 5)} popularList={allNews.slice(5, 10)} />
+                   <ClientTabs latestList={latestNews} popularList={popularNews} />
                 </div>
 
               </div>
