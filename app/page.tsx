@@ -1,10 +1,24 @@
 import React from 'react';
+import { Noto_Serif_Bengali, Noto_Sans_Bengali } from 'next/font/google';
 import { createClient } from '@supabase/supabase-js';
 import ClientTabs from './components/ClientTabs';
 import SafeImage from './components/SafeImage';
 import LocationFilter from './components/LocationFilter';
 
 export const revalidate = 60;
+
+const mastheadSerif = Noto_Serif_Bengali({
+  subsets: ['bengali'],
+  weight: ['600', '700'],
+  display: 'swap',
+});
+
+const mastheadSans = Noto_Sans_Bengali({
+  subsets: ['bengali'],
+  weight: ['400', '500', '600'],
+  display: 'swap',
+});
+
 
 type NewsItem = {
   id: string | number;
@@ -973,31 +987,31 @@ export default async function Home({
           background: linear-gradient(90deg, #b42318 0 54px, #ded9d1 54px 100%);
         }
         .bt-masthead-wordmark {
-          font-family: "Noto Serif Bengali", "Nirmala UI", "Vrinda", serif;
-          font-weight: 900;
-          letter-spacing: -0.055em;
-          text-rendering: geometricPrecision;
-          font-feature-settings: "kern" 1;
+          font-weight: 700;
+          letter-spacing: -0.012em;
+          text-rendering: optimizeLegibility;
+          font-feature-settings: "kern" 1, "liga" 1;
+          font-kerning: normal;
         }
         .bt-masthead-wordmark .bt-times {
           position: relative;
           display: inline-block;
-          margin-left: 0.16em;
-          letter-spacing: -0.07em;
+          margin-left: 0.12em;
         }
         .bt-masthead-wordmark .bt-times::after {
           content: "";
           position: absolute;
-          left: 0.08em;
-          bottom: -0.14em;
-          width: 1.12em;
-          height: 0.075em;
-          min-height: 2px;
-          background: #b42318;
+          right: -0.14em;
+          top: 0.12em;
+          width: 0.11em;
+          height: 0.11em;
+          min-width: 4px;
+          min-height: 4px;
           border-radius: 999px;
+          background: #b42318;
         }
         .bt-masthead-tagline {
-          letter-spacing: 0.065em;
+          letter-spacing: 0.01em;
         }
         @media (prefers-reduced-motion: reduce) {
           .bt-ticker-track { animation: none; }
@@ -1008,16 +1022,16 @@ export default async function Home({
           <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-6 px-4 py-3 md:py-4">
             <div className="flex min-w-0 items-center gap-4">
               <a href="/" className="group shrink-0" aria-label="বঙ্গীয় টাইমস প্রচ্ছদ">
-                <div className="bt-masthead-wordmark whitespace-nowrap text-[36px] leading-[0.92] text-[#11110f] md:text-[45px]">
+                <div className={`${mastheadSerif.className} bt-masthead-wordmark whitespace-nowrap text-[35px] leading-[0.98] text-[#11110f] md:text-[44px]`}>
                   <span>বঙ্গীয়</span>
                   <span className="bt-times">টাইমস</span>
                 </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="h-[2px] w-[22px] shrink-0 bg-[#b42318] md:w-[26px]" />
-                  <p className="bt-masthead-tagline whitespace-nowrap text-[10.5px] font-semibold text-[#67615a] md:text-[11.5px]">
+                <div className="mt-[7px] flex items-center gap-2">
+                  <span className="h-[2px] w-[24px] shrink-0 bg-[#b42318] md:w-[28px]" />
+                  <p className={`${mastheadSans.className} bt-masthead-tagline whitespace-nowrap text-[10.5px] font-medium text-[#67615a] md:text-[11px]`}>
                     সত্য ও সাহসের প্রতিচ্ছবি
                   </p>
-                  <span className="hidden border-l border-[#d8d2ca] pl-2 text-[7.5px] font-bold uppercase tracking-[0.2em] text-[#9a948c] sm:inline md:text-[8px]">
+                  <span className="hidden border-l border-[#d8d2ca] pl-2 text-[7.5px] font-semibold uppercase tracking-[0.22em] text-[#9a948c] sm:inline md:text-[8px]">
                     BONGIYO TIMES
                   </span>
                 </div>
