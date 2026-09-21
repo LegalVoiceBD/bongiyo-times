@@ -3,23 +3,30 @@ const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 
 // ================================================================
-// BONGIYO TIMES
-// Google News discovery -> original publisher metadata/image -> Supabase
-// Includes a dedicated Google News agriculture feed so the কৃষি section
-// is populated with agriculture stories instead of generic Bangladesh news.
+// BONGIYO TIMES — COPYRIGHT-RISK-REDUCED NEWS AGGREGATOR
+// Google News discovery -> original publisher URL -> metadata -> Supabase
+// Third-party article text/images are NOT republished.
 // ================================================================
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
 const SUPABASE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('❌ Supabase environment variables are missing.');
+  console.error(
+    '❌ Supabase environment variables are missing.'
+  );
+
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase =
+  createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 
 const USER_AGENT =
   process.env.SCRAPER_USER_AGENT ||
@@ -28,201 +35,481 @@ const USER_AGENT =
     'Chrome/153.0.0.0 Safari/537.36';
 
 const HEADERS = {
-  'User-Agent': USER_AGENT,
+  'User-Agent':
+    USER_AGENT,
+
   Accept:
-    'text/html,application/xhtml+xml,application/xml;q=0.9,' +
-    'image/avif,image/webp,*/*;q=0.8',
-  'Accept-Language': 'bn-BD,bn;q=0.9,en-US;q=0.8,en;q=0.7',
-  'Cache-Control': 'no-cache',
-  Pragma: 'no-cache',
+    'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+
+  'Accept-Language':
+    'bn-BD,bn;q=0.9,en-US;q=0.8,en;q=0.7',
+
+  'Cache-Control':
+    'no-cache',
+
+  Pragma:
+    'no-cache',
 };
 
-const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 18000);
-const MAX_ARTICLES_PER_RUN = Number(process.env.MAX_ARTICLES_PER_RUN || 28);
-const MAX_ITEMS_TO_INSPECT = Number(process.env.MAX_ITEMS_TO_INSPECT || 120);
-const MAX_ARTICLE_AGE_HOURS = Number(process.env.MAX_ARTICLE_AGE_HOURS || 48);
-const REQUIRE_IMAGE =
-  String(process.env.REQUIRE_NEWS_IMAGE || 'true').toLowerCase() !== 'false';
+const REQUEST_TIMEOUT_MS =
+  Number(
+    process.env.REQUEST_TIMEOUT_MS ||
+      18000
+  );
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const MAX_ARTICLES_PER_RUN =
+  Number(
+    process.env.MAX_ARTICLES_PER_RUN ||
+      32
+  );
+
+const MAX_ITEMS_TO_INSPECT =
+  Number(
+    process.env.MAX_ITEMS_TO_INSPECT ||
+      160
+  );
+
+const MAX_ARTICLE_AGE_HOURS =
+  Number(
+    process.env.MAX_ARTICLE_AGE_HOURS ||
+      72
+  );
+
+const delay =
+  (ms) =>
+    new Promise(
+      (resolve) =>
+        setTimeout(
+          resolve,
+          ms
+        )
+    );
+
 
 // ================================================================
-// APPROVED NATIONAL PUBLISHERS
+// APPROVED PUBLISHERS
 // ================================================================
 
 const PUBLISHERS = [
+
   {
-    bnName: 'প্রথম আলো',
-    domains: ['prothomalo.com'],
-    aliases: ['prothom alo', 'প্রথম আলো'],
-    home: 'https://www.prothomalo.com/',
+    bnName:
+      'প্রথম আলো',
+
+    domains: [
+      'prothomalo.com'
+    ],
+
+    aliases: [
+      'prothom alo',
+      'প্রথম আলো'
+    ],
+
+    home:
+      'https://www.prothomalo.com/',
   },
+
+
   {
-    bnName: 'কালের কণ্ঠ',
-    domains: ['kalerkantho.com'],
-    aliases: ['kaler kantho', 'kalerkantho', 'কালের কণ্ঠ'],
-    home: 'https://www.kalerkantho.com/',
+    bnName:
+      'কালের কণ্ঠ',
+
+    domains: [
+      'kalerkantho.com'
+    ],
+
+    aliases: [
+      'kaler kantho',
+      'kalerkantho',
+      'কালের কণ্ঠ'
+    ],
+
+    home:
+      'https://www.kalerkantho.com/',
   },
+
+
   {
-    bnName: 'যুগান্তর',
-    domains: ['jugantor.com'],
-    aliases: ['jugantor', 'যুগান্তর'],
-    home: 'https://www.jugantor.com/',
+    bnName:
+      'যুগান্তর',
+
+    domains: [
+      'jugantor.com'
+    ],
+
+    aliases: [
+      'jugantor',
+      'যুগান্তর'
+    ],
+
+    home:
+      'https://www.jugantor.com/',
   },
+
+
   {
-    bnName: 'দৈনিক ইত্তেফাক',
-    domains: ['ittefaq.com.bd'],
-    aliases: ['ittefaq', 'the daily ittefaq', 'ইত্তেফাক', 'দৈনিক ইত্তেফাক'],
-    home: 'https://www.ittefaq.com.bd/',
+    bnName:
+      'দৈনিক ইত্তেফাক',
+
+    domains: [
+      'ittefaq.com.bd'
+    ],
+
+    aliases: [
+      'ittefaq',
+      'the daily ittefaq',
+      'ইত্তেফাক',
+      'দৈনিক ইত্তেফাক'
+    ],
+
+    home:
+      'https://www.ittefaq.com.bd/',
   },
+
+
   {
-    bnName: 'সমকাল',
-    domains: ['samakal.com'],
-    aliases: ['samakal', 'সমকাল'],
-    home: 'https://samakal.com/',
+    bnName:
+      'সমকাল',
+
+    domains: [
+      'samakal.com'
+    ],
+
+    aliases: [
+      'samakal',
+      'সমকাল'
+    ],
+
+    home:
+      'https://samakal.com/',
   },
+
+
   {
-    bnName: 'বাংলাদেশ প্রতিদিন',
-    domains: ['bd-pratidin.com'],
-    aliases: ['bangladesh pratidin', 'bd-pratidin', 'বাংলাদেশ প্রতিদিন'],
-    home: 'https://www.bd-pratidin.com/',
+    bnName:
+      'বাংলাদেশ প্রতিদিন',
+
+    domains: [
+      'bd-pratidin.com'
+    ],
+
+    aliases: [
+      'bangladesh pratidin',
+      'bd-pratidin',
+      'বাংলাদেশ প্রতিদিন'
+    ],
+
+    home:
+      'https://www.bd-pratidin.com/',
   },
+
+
   {
-    bnName: 'ঢাকা পোস্ট',
-    domains: ['dhakapost.com'],
-    aliases: ['dhaka post', 'dhakapost', 'ঢাকা পোস্ট'],
-    home: 'https://www.dhakapost.com/',
+    bnName:
+      'ঢাকা পোস্ট',
+
+    domains: [
+      'dhakapost.com'
+    ],
+
+    aliases: [
+      'dhaka post',
+      'dhakapost',
+      'ঢাকা পোস্ট'
+    ],
+
+    home:
+      'https://www.dhakapost.com/',
   },
+
+
   {
-    bnName: 'জাগো নিউজ২৪',
-    domains: ['jagonews24.com'],
+    bnName:
+      'জাগো নিউজ২৪',
+
+    domains: [
+      'jagonews24.com'
+    ],
+
     aliases: [
       'jago news 24',
       'jagonews24',
       'jago news',
       'জাগো নিউজ',
-      'জাগো নিউজ২৪',
+      'জাগো নিউজ২৪'
     ],
-    home: 'https://www.jagonews24.com/',
+
+    home:
+      'https://www.jagonews24.com/',
   },
+
+
   {
-    bnName: 'বাংলা ট্রিবিউন',
-    domains: ['banglatribune.com'],
-    aliases: ['bangla tribune', 'বাংলা ট্রিবিউন'],
-    home: 'https://www.banglatribune.com/',
+    bnName:
+      'বাংলা ট্রিবিউন',
+
+    domains: [
+      'banglatribune.com'
+    ],
+
+    aliases: [
+      'bangla tribune',
+      'বাংলা ট্রিবিউন'
+    ],
+
+    home:
+      'https://www.banglatribune.com/',
   },
+
+
   {
-    bnName: 'বাংলানিউজ২৪ ডটকম',
-    domains: ['banglanews24.com'],
+    bnName:
+      'বাংলানিউজ২৪ ডটকম',
+
+    domains: [
+      'banglanews24.com'
+    ],
+
     aliases: [
       'banglanews24',
       'banglanews24.com',
       'বাংলানিউজ২৪',
-      'বাংলানিউজ',
+      'বাংলানিউজ'
     ],
-    home: 'https://www.banglanews24.com/',
+
+    home:
+      'https://www.banglanews24.com/',
   },
+
+
   {
-    bnName: 'বিডিনিউজ টোয়েন্টিফোর ডটকম',
-    domains: ['bdnews24.com'],
+    bnName:
+      'বিডিনিউজ টোয়েন্টিফোর ডটকম',
+
+    domains: [
+      'bdnews24.com'
+    ],
+
     aliases: [
       'bdnews24',
       'bdnews24.com',
       'বিডিনিউজ',
-      'বিডিনিউজ টোয়েন্টিফোর',
+      'বিডিনিউজ টোয়েন্টিফোর'
     ],
-    home: 'https://bangla.bdnews24.com/',
+
+    home:
+      'https://bangla.bdnews24.com/',
   },
+
+
   {
-    bnName: 'দৈনিক ইনকিলাব',
-    domains: ['dailyinqilab.com'],
-    aliases: ['daily inqilab', 'inqilab', 'ইনকিলাব', 'দৈনিক ইনকিলাব'],
-    home: 'https://dailyinqilab.com/',
+    bnName:
+      'দৈনিক ইনকিলাব',
+
+    domains: [
+      'dailyinqilab.com'
+    ],
+
+    aliases: [
+      'daily inqilab',
+      'inqilab',
+      'ইনকিলাব',
+      'দৈনিক ইনকিলাব'
+    ],
+
+    home:
+      'https://dailyinqilab.com/',
   },
+
+
   {
-    bnName: 'নয়া দিগন্ত',
-    domains: ['dailynayadiganta.com'],
+    bnName:
+      'নয়া দিগন্ত',
+
+    domains: [
+      'dailynayadiganta.com'
+    ],
+
     aliases: [
       'naya diganta',
       'nayadiganta',
       'daily naya diganta',
       'নয়া দিগন্ত',
-      'নয়াদিগন্ত',
+      'নয়াদিগন্ত'
     ],
-    home: 'https://www.dailynayadiganta.com/',
+
+    home:
+      'https://www.dailynayadiganta.com/',
   },
+
+
   {
-    bnName: 'দ্য ডেইলি স্টার',
-    domains: ['thedailystar.net'],
-    aliases: ['the daily star', 'daily star', 'দ্য ডেইলি স্টার'],
-    home: 'https://bangla.thedailystar.net/',
+    bnName:
+      'দ্য ডেইলি স্টার',
+
+    domains: [
+      'thedailystar.net'
+    ],
+
+    aliases: [
+      'the daily star',
+      'daily star',
+      'দ্য ডেইলি স্টার'
+    ],
+
+    home:
+      'https://bangla.thedailystar.net/',
   },
+
+
   {
-    bnName: 'দ্য বিজনেস স্ট্যান্ডার্ড',
-    domains: ['tbsnews.net'],
+    bnName:
+      'দ্য বিজনেস স্ট্যান্ডার্ড',
+
+    domains: [
+      'tbsnews.net'
+    ],
+
     aliases: [
       'the business standard',
       'tbs news',
       'tbsnews',
-      'দ্য বিজনেস স্ট্যান্ডার্ড',
+      'দ্য বিজনেস স্ট্যান্ডার্ড'
     ],
-    home: 'https://www.tbsnews.net/bangla',
+
+    home:
+      'https://www.tbsnews.net/bangla',
   },
+
+
   {
-    bnName: 'ঢাকা ট্রিবিউন',
-    domains: ['dhakatribune.com'],
-    aliases: ['dhaka tribune', 'ঢাকা ট্রিবিউন'],
-    home: 'https://www.dhakatribune.com/',
+    bnName:
+      'ঢাকা ট্রিবিউন',
+
+    domains: [
+      'dhakatribune.com'
+    ],
+
+    aliases: [
+      'dhaka tribune',
+      'ঢাকা ট্রিবিউন'
+    ],
+
+    home:
+      'https://www.dhakatribune.com/',
   },
+
+
   {
-    bnName: 'ইউএনবি',
-    domains: ['unb.com.bd'],
-    aliases: ['unb', 'united news of bangladesh', 'ইউএনবি'],
-    home: 'https://unb.com.bd/',
+    bnName:
+      'ইউএনবি',
+
+    domains: [
+      'unb.com.bd'
+    ],
+
+    aliases: [
+      'unb',
+      'united news of bangladesh',
+      'ইউএনবি'
+    ],
+
+    home:
+      'https://unb.com.bd/',
   },
+
 ];
 
+
 // ================================================================
-// BASIC HELPERS
+// HELPERS
 // ================================================================
 
-function clean(value = '') {
+function clean(
+  value = ''
+) {
+
   return String(value)
-    .replace(/\u00a0/g, ' ')
-    .replace(/[\t\r\n]+/g, ' ')
-    .replace(/\s{2,}/g, ' ')
+
+    .replace(
+      /\u00a0/g,
+      ' '
+    )
+
+    .replace(
+      /[\t\r\n]+/g,
+      ' '
+    )
+
+    .replace(
+      /\s{2,}/g,
+      ' '
+    )
+
     .trim();
+
 }
 
-function lower(value = '') {
-  return clean(value).toLowerCase();
+
+function lower(
+  value = ''
+) {
+
+  return clean(value)
+    .toLowerCase();
+
 }
 
-function stripHtml(value = '') {
-  if (!value) return '';
-  const $ = cheerio.load(`<div>${value}</div>`);
-  return clean($('div').text());
+
+function escapeRegExp(
+  value = ''
+) {
+
+  return String(value)
+    .replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\$&'
+    );
+
 }
 
-function escapeRegExp(value = '') {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
-function absoluteUrl(raw, base) {
-  if (!raw) return '';
+function absoluteUrl(
+  raw,
+  base
+) {
 
-  const value = clean(raw);
+  if (!raw)
+    return '';
+
+
+  const value =
+    clean(raw);
+
 
   if (
     !value ||
-    value.startsWith('data:') ||
-    value.startsWith('javascript:')
+    value.startsWith(
+      'data:'
+    ) ||
+    value.startsWith(
+      'javascript:'
+    )
   ) {
+
     return '';
+
   }
 
+
   try {
-    const url = new URL(value, base);
+
+    const url =
+      new URL(
+        value,
+        base
+      );
+
 
     [
       'utm_source',
@@ -232,323 +519,509 @@ function absoluteUrl(raw, base) {
       'utm_content',
       'fbclid',
       'gclid',
-    ].forEach((key) => url.searchParams.delete(key));
 
-    url.hash = '';
+    ].forEach(
+      (key) =>
+        url.searchParams.delete(
+          key
+        )
+    );
+
+
+    url.hash =
+      '';
+
 
     return url.toString();
-  } catch {
-    return '';
+
   }
+
+  catch {
+
+    return '';
+
+  }
+
 }
+
 
 // ================================================================
 // PUBLISHER DETECTION
 // ================================================================
 
-function findPublisherByName(name = '') {
-  const normalized = lower(name);
+function findPublisherByName(
+  name = ''
+) {
 
-  if (!normalized) return null;
+  const value =
+    lower(name);
+
+
+  if (!value)
+    return null;
+
 
   return (
-    PUBLISHERS.find((publisher) =>
-      publisher.aliases.some((alias) => {
-        const a = lower(alias);
 
-        return (
-          normalized === a ||
-          normalized.includes(a) ||
-          a.includes(normalized)
-        );
-      })
-    ) || null
+    PUBLISHERS.find(
+      (publisher) =>
+
+        publisher.aliases.some(
+          (alias) => {
+
+            const a =
+              lower(alias);
+
+
+            return (
+              value === a ||
+              value.includes(a) ||
+              a.includes(value)
+            );
+
+          }
+        )
+
+    ) ||
+
+    null
+
   );
+
 }
 
-function findPublisherByUrl(rawUrl = '') {
+
+function findPublisherByUrl(
+  rawUrl = ''
+) {
+
   try {
-    const hostname = new URL(rawUrl)
-      .hostname
-      .replace(/^www\./, '')
-      .toLowerCase();
+
+    const host =
+      new URL(rawUrl)
+        .hostname
+        .replace(
+          /^www\./,
+          ''
+        )
+        .toLowerCase();
+
 
     return (
-      PUBLISHERS.find((publisher) =>
-        publisher.domains.some(
-          (domain) =>
-            hostname === domain ||
-            hostname.endsWith(`.${domain}`)
-        )
-      ) || null
+
+      PUBLISHERS.find(
+        (publisher) =>
+
+          publisher.domains.some(
+            (domain) =>
+              host === domain ||
+              host.endsWith(
+                `.${domain}`
+              )
+          )
+
+      ) ||
+
+      null
+
     );
-  } catch {
+
+  }
+
+  catch {
+
     return null;
-  }
-}
 
-// ================================================================
-// RSS TITLE CLEANING
-// ================================================================
-
-function cleanRssTitle(title, sourceName) {
-  let finalTitle = clean(title);
-
-  if (sourceName) {
-    finalTitle = finalTitle.replace(
-      new RegExp(
-        `\\s[-–—|:]\\s*${escapeRegExp(sourceName)}\\s*$`,
-        'iu'
-      ),
-      ''
-    );
   }
 
-  return clean(finalTitle);
 }
 
+
 // ================================================================
-// EVENT HASH
+// TITLE HELPERS
 // ================================================================
 
-function normalizeTitleForHash(title) {
+function cleanRssTitle(
+  title,
+  sourceName
+) {
+
+  let value =
+    clean(title);
+
+
+  if (
+    sourceName
+  ) {
+
+    value =
+      value.replace(
+
+        new RegExp(
+          `\\s[-–—|:]\\s*${escapeRegExp(sourceName)}\\s*$`,
+          'iu'
+        ),
+
+        ''
+
+      );
+
+  }
+
+
+  return clean(value);
+
+}
+
+
+function normalizedTitle(
+  title
+) {
+
   return lower(title)
-    .replace(/[“”‘’'"`]/g, '')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
-function createEventHash(title, sourceName) {
-  return crypto
-    .createHash('sha256')
-    .update(
-      `${lower(sourceName)}|${normalizeTitleForHash(title)}`
+    .replace(
+      /[“”‘’'"`]/g,
+      ''
     )
-    .digest('hex');
+
+    .replace(
+      /[^\p{L}\p{N}\s]/gu,
+      ' '
+    )
+
+    .replace(
+      /\s+/g,
+      ' '
+    )
+
+    .trim();
+
 }
 
-// ================================================================
-// TITLE SIMILARITY
-// ================================================================
 
-function tokenize(value) {
+function createEventHash(
+  title,
+  sourceName
+) {
+
+  return crypto
+
+    .createHash(
+      'sha256'
+    )
+
+    .update(
+      `${lower(sourceName)}|${normalizedTitle(title)}`
+    )
+
+    .digest(
+      'hex'
+    );
+
+}
+
+
+function tokenize(
+  value
+) {
+
   return lower(value)
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .split(/\s+/)
-    .filter((token) => token.length >= 2);
+
+    .replace(
+      /[^\p{L}\p{N}\s]/gu,
+      ' '
+    )
+
+    .split(
+      /\s+/
+    )
+
+    .filter(
+      (token) =>
+        token.length >= 2
+    );
+
 }
 
-function titleSimilarity(first, second) {
-  const a = new Set(tokenize(first));
-  const b = new Set(tokenize(second));
 
-  if (!a.size || !b.size) return 0;
+function titleSimilarity(
+  a,
+  b
+) {
 
-  let common = 0;
+  const left =
+    new Set(
+      tokenize(a)
+    );
 
-  for (const token of a) {
-    if (b.has(token)) common++;
+
+  const right =
+    new Set(
+      tokenize(b)
+    );
+
+
+  if (
+    !left.size ||
+    !right.size
+  ) {
+
+    return 0;
+
   }
+
+
+  let common =
+    0;
+
+
+  for (
+    const token
+    of left
+  ) {
+
+    if (
+      right.has(
+        token
+      )
+    ) {
+
+      common++;
+
+    }
+
+  }
+
 
   return (
     common /
     Math.min(
-      a.size,
-      b.size
+      left.size,
+      right.size
     )
   );
+
 }
 
+
 // ================================================================
-// FETCH
+// NETWORK
 // ================================================================
 
 async function fetchWithTimeout(
   url,
   options = {}
 ) {
+
   const controller =
     new AbortController();
 
+
   const timer =
     setTimeout(
-      () => controller.abort(),
+      () =>
+        controller.abort(),
       REQUEST_TIMEOUT_MS
     );
 
+
   try {
+
     return await fetch(
       url,
       {
+
         ...options,
 
         redirect:
           'follow',
 
         headers: {
+
           ...HEADERS,
-          ...(options.headers || {}),
+
+          ...(
+            options.headers ||
+            {}
+          ),
+
         },
 
         signal:
           controller.signal,
+
       }
     );
-  } finally {
-    clearTimeout(timer);
+
   }
+
+  finally {
+
+    clearTimeout(
+      timer
+    );
+
+  }
+
 }
+
 
 async function fetchText(
   url,
   options = {}
 ) {
+
   try {
+
     const response =
       await fetchWithTimeout(
         url,
         options
       );
 
-    if (!response.ok) {
+
+    if (
+      !response.ok
+    ) {
+
       return null;
+
     }
 
+
     return {
+
       text:
         await response.text(),
 
       finalUrl:
-        response.url || url,
+        response.url ||
+        url,
 
-      status:
-        response.status,
     };
-  } catch (error) {
+
+  }
+
+  catch (
+    error
+  ) {
+
     console.log(
       `⚠️ Fetch failed: ${error.message}`
     );
 
+
     return null;
+
   }
+
 }
+
 
 // ================================================================
 // GOOGLE NEWS FEEDS
-// Agriculture is a dedicated feed and has higher processing priority.
+// Agriculture is prioritised.
+// More sections are included so homepage categories stay populated.
 // ================================================================
 
 const GOOGLE_FEEDS = [
-  {
-    category:
-      'কৃষি',
-
-    priority:
-      3,
-
-    query:
-      'বাংলাদেশ কৃষি কৃষক ফসল ধান চাল গম পাট সবজি ফল বীজ সার সেচ মৎস্য খামার পোলট্রি কৃষি মন্ত্রণালয় when:2d',
-  },
 
   {
     category:
       'কৃষি',
 
     priority:
-      3,
+      4,
 
     query:
-      'বাংলাদেশ কৃষি গবেষণা কৃষি প্রযুক্তি কৃষিপণ্য কৃষিবাজার when:2d',
+      'বাংলাদেশ কৃষি কৃষক ফসল ধান চাল গম ভুট্টা পাট সবজি ফল বীজ সার সেচ কৃষি মন্ত্রণালয় when:2d',
   },
+
+
+  {
+    category:
+      'কৃষি',
+
+    priority:
+      4,
+
+    query:
+      'বাংলাদেশ মৎস্য মাছ চাষ পোলট্রি খামার কৃষি গবেষণা কৃষি প্রযুক্তি কৃষিপণ্য কৃষিবাজার when:2d',
+  },
+
 
   {
     category:
       'বাংলাদেশ',
 
     priority:
-      1,
+      2,
 
     url:
       'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn',
   },
 
+
   {
     category:
       'বাংলাদেশ',
 
     priority:
-      1,
+      2,
 
     query:
-      'বাংলাদেশ when:1d',
+      'বাংলাদেশ জাতীয় সংবাদ when:1d',
   },
+
 
   {
     category:
       'রাজনীতি',
 
     priority:
-      1,
+      2,
 
     query:
-      'বাংলাদেশ রাজনীতি নির্বাচন সংসদ when:1d',
+      'বাংলাদেশ রাজনীতি নির্বাচন সংসদ রাজনৈতিক দল when:1d',
   },
+
 
   {
     category:
       'আন্তর্জাতিক',
 
     priority:
-      1,
+      2,
 
     query:
-      'বিশ্ব আন্তর্জাতিক when:1d',
+      'বিশ্ব আন্তর্জাতিক জাতিসংঘ এশিয়া ইউরোপ আমেরিকা when:1d',
   },
 
-  {
-    category:
-      'খেলাধুলা',
-
-    priority:
-      1,
-
-    query:
-      'ক্রিকেট ফুটবল খেলাধুলা when:1d',
-  },
 
   {
     category:
       'বাণিজ্য',
 
     priority:
-      1,
+      2,
 
     query:
-      'অর্থনীতি বাণিজ্য ব্যাংক শেয়ারবাজার when:1d',
+      'বাংলাদেশ অর্থনীতি বাণিজ্য ব্যাংক শেয়ারবাজার ব্যবসা when:1d',
   },
+
 
   {
     category:
-      'আইন-আদালত',
+      'খেলাধুলা',
 
     priority:
-      1,
+      2,
 
     query:
-      'আদালত হাইকোর্ট সুপ্রিম কোর্ট মামলা when:1d',
+      'বাংলাদেশ ক্রিকেট ফুটবল খেলাধুলা when:1d',
   },
 
-  {
-    category:
-      'প্রযুক্তি',
-
-    priority:
-      1,
-
-    query:
-      'প্রযুক্তি ইন্টারনেট কৃত্রিম বুদ্ধিমত্তা when:1d',
-  },
 
   {
     category:
@@ -558,8 +1031,21 @@ const GOOGLE_FEEDS = [
       1,
 
     query:
-      'বিনোদন চলচ্চিত্র নাটক when:1d',
+      'বাংলাদেশ বিনোদন চলচ্চিত্র নাটক সংগীত when:2d',
   },
+
+
+  {
+    category:
+      'আইন-আদালত',
+
+    priority:
+      2,
+
+    query:
+      'বাংলাদেশ আদালত হাইকোর্ট সুপ্রিম কোর্ট মামলা আইন when:2d',
+  },
+
 
   {
     category:
@@ -569,42 +1055,185 @@ const GOOGLE_FEEDS = [
       1,
 
     query:
-      'শিক্ষা বিশ্ববিদ্যালয় পরীক্ষা when:1d',
+      'বাংলাদেশ শিক্ষা বিশ্ববিদ্যালয় স্কুল কলেজ পরীক্ষা when:2d',
   },
+
+
+  {
+    category:
+      'প্রযুক্তি',
+
+    priority:
+      1,
+
+    query:
+      'বাংলাদেশ প্রযুক্তি ইন্টারনেট সাইবার এআই when:2d',
+  },
+
+
+  {
+    category:
+      'স্বাস্থ্য',
+
+    priority:
+      1,
+
+    query:
+      'বাংলাদেশ স্বাস্থ্য চিকিৎসা হাসপাতাল রোগ when:2d',
+  },
+
+
+  {
+    category:
+      'জীবনযাপন',
+
+    priority:
+      1,
+
+    query:
+      'বাংলাদেশ জীবনযাপন খাদ্য ভ্রমণ ফ্যাশন when:3d',
+  },
+
+
+  {
+    category:
+      'চাকরি',
+
+    priority:
+      1,
+
+    query:
+      'বাংলাদেশ চাকরি নিয়োগ ক্যারিয়ার when:3d',
+  },
+
+
+  {
+    category:
+      'প্রবাস',
+
+    priority:
+      1,
+
+    query:
+      'বাংলাদেশ প্রবাসী অভিবাসন বিদেশে বাংলাদেশি when:2d',
+  },
+
+
+  {
+    category:
+      'পরিবেশ',
+
+    priority:
+      1,
+
+    query:
+      'বাংলাদেশ পরিবেশ জলবায়ু দূষণ নদী বন বন্যপ্রাণী when:2d',
+  },
+
+
+  {
+    category:
+      'বিজ্ঞান',
+
+    priority:
+      1,
+
+    query:
+      'বাংলাদেশ বিজ্ঞান গবেষণা মহাকাশ আবিষ্কার when:3d',
+  },
+
+
+  {
+    category:
+      'সংস্কৃতি',
+
+    priority:
+      1,
+
+    query:
+      'বাংলাদেশ সংস্কৃতি শিল্প ঐতিহ্য উৎসব when:3d',
+  },
+
+
+  {
+    category:
+      'ধর্ম',
+
+    priority:
+      1,
+
+    query:
+      'বাংলাদেশ ধর্ম ইসলাম হিন্দু বৌদ্ধ খ্রিস্টান when:3d',
+  },
+
 ];
 
-function feedUrl(feed) {
+
+function feedUrl(
+  feed
+) {
+
   return (
+
     feed.url ||
+
     `https://news.google.com/rss/search?q=${encodeURIComponent(
       feed.query
     )}&hl=bn&gl=BD&ceid=BD:bn`
+
   );
+
 }
+
 
 // ================================================================
 // COLLECT GOOGLE NEWS ITEMS
 // ================================================================
 
 async function collectGoogleNewsItems() {
-  const items = [];
-  const seen = new Set();
 
-  for (const feed of GOOGLE_FEEDS) {
+  const items =
+    [];
+
+
+  const seen =
+    new Set();
+
+
+  for (
+    const feed
+    of GOOGLE_FEEDS
+  ) {
+
     const fetched =
       await fetchText(
-        feedUrl(feed),
+
+        feedUrl(
+          feed
+        ),
+
         {
+
           headers: {
+
             Accept:
               'application/rss+xml,application/xml,text/xml;q=0.9,*/*;q=0.8',
+
           },
+
         }
+
       );
 
-    if (!fetched) {
+
+    if (
+      !fetched
+    ) {
+
       continue;
+
     }
+
 
     const $ =
       cheerio.load(
@@ -615,17 +1244,27 @@ async function collectGoogleNewsItems() {
         }
       );
 
+
     $('item').each(
-      (_, element) => {
+      (
+        _,
+        element
+      ) => {
+
         if (
           items.length >=
-          MAX_ITEMS_TO_INSPECT * 2
+          MAX_ITEMS_TO_INSPECT *
+            3
         ) {
+
           return;
+
         }
+
 
         const node =
           $(element);
+
 
         const sourceName =
           clean(
@@ -635,14 +1274,21 @@ async function collectGoogleNewsItems() {
               .text()
           );
 
+
         const publisher =
           findPublisherByName(
             sourceName
           );
 
-        if (!publisher) {
+
+        if (
+          !publisher
+        ) {
+
           return;
+
         }
+
 
         const googleUrl =
           clean(
@@ -652,257 +1298,458 @@ async function collectGoogleNewsItems() {
               .text()
           );
 
+
         const title =
           cleanRssTitle(
+
             node
               .find('title')
               .first()
               .text(),
+
             sourceName
+
           );
+
 
         if (
           !googleUrl ||
           title.length < 10
         ) {
+
           return;
+
         }
+
 
         const key =
           `${publisher.bnName}|${lower(title)}`;
 
-        if (seen.has(key)) {
+
+        if (
+          seen.has(
+            key
+          )
+        ) {
+
           return;
+
         }
 
-        seen.add(key);
 
-        const date =
-          new Date(
-            clean(
-              node
-                .find('pubDate')
-                .first()
-                .text()
-            )
+        seen.add(
+          key
+        );
+
+
+        const rawDate =
+          clean(
+            node
+              .find('pubDate')
+              .first()
+              .text()
           );
 
-        items.push({
-          title,
-          googleUrl,
-          publisher,
-          categoryHint:
-            feed.category,
-          priority:
-            Number(
-              feed.priority || 1
-            ),
-          googlePubDate:
-            Number.isNaN(
-              date.getTime()
-            )
-              ? null
-              : date,
-        });
+
+        const parsedDate =
+          rawDate
+            ? new Date(
+                rawDate
+              )
+            : null;
+
+
+        items.push(
+          {
+
+            title,
+
+            googleUrl,
+
+            publisher,
+
+            categoryHint:
+              feed.category,
+
+            priority:
+              Number(
+                feed.priority ||
+                  1
+              ),
+
+            googlePubDate:
+              parsedDate &&
+              !Number.isNaN(
+                parsedDate.getTime()
+              )
+                ? parsedDate
+                : null,
+
+          }
+        );
+
       }
     );
 
-    await delay(180);
+
+    await delay(
+      160
+    );
+
   }
 
-  items.sort(
-    (a, b) => {
-      const priorityDiff =
-        (b.priority || 1) -
-        (a.priority || 1);
 
-      if (priorityDiff !== 0) {
+  items.sort(
+    (
+      a,
+      b
+    ) => {
+
+      const priorityDiff =
+        (
+          b.priority ||
+          1
+        ) -
+        (
+          a.priority ||
+          1
+        );
+
+
+      if (
+        priorityDiff !== 0
+      ) {
+
         return priorityDiff;
+
       }
 
+
       return (
-        (b.googlePubDate?.getTime() || 0) -
-        (a.googlePubDate?.getTime() || 0)
+        (
+          b.googlePubDate?.getTime() ||
+          0
+        ) -
+        (
+          a.googlePubDate?.getTime() ||
+          0
+        )
       );
+
     }
   );
+
 
   return items.slice(
     0,
     MAX_ITEMS_TO_INSPECT
   );
+
 }
 
+
 // ================================================================
-// GOOGLE NEWS URL RESOLVER
+// GOOGLE NEWS URL RESOLUTION
 // ================================================================
 
 const googleDecodeCache =
   new Map();
 
+
 function googleArticleId(
   rawUrl
 ) {
+
   try {
+
     const url =
       new URL(
         rawUrl
       );
 
+
     if (
       url.hostname !==
       'news.google.com'
     ) {
+
       return '';
+
     }
+
 
     const parts =
       url.pathname
         .split('/')
         .filter(Boolean);
 
-    const idx =
+
+    const index =
       parts.findIndex(
         (part) =>
-          part === 'articles' ||
-          part === 'read'
+          part ===
+            'articles' ||
+          part ===
+            'read'
       );
 
+
     if (
-      idx >= 0 &&
-      parts[idx + 1]
+      index >= 0 &&
+      parts[
+        index + 1
+      ]
     ) {
-      return parts[idx + 1];
+
+      return parts[
+        index + 1
+      ];
+
     }
+
 
     return (
       parts[
         parts.length - 1
-      ] || ''
+      ] ||
+      ''
     );
-  } catch {
-    return '';
+
   }
+
+  catch {
+
+    return '';
+
+  }
+
 }
+
+
+// ================================================================
+// OLD / OFFLINE GOOGLE DECODER
+// ================================================================
 
 function tryOfflineGoogleDecode(
   id
 ) {
+
   try {
+
     const base64 =
       id
-        .replace(/-/g, '+')
-        .replace(/_/g, '/');
+        .replace(
+          /-/g,
+          '+'
+        )
+        .replace(
+          /_/g,
+          '/'
+        );
+
 
     let buffer =
       Buffer.from(
+
         base64 +
-          '='.repeat(
+
+        '='.repeat(
+          (
+            4 -
             (
-              4 -
-              (base64.length % 4)
-            ) % 4
-          ),
+              base64.length %
+              4
+            )
+          ) %
+          4
+        ),
+
         'base64'
+
       );
+
 
     const prefix =
       Buffer.from(
         [
           0x08,
           0x13,
-          0x22,
+          0x22
         ]
       );
+
 
     const suffix =
       Buffer.from(
         [
           0xd2,
           0x01,
-          0x00,
+          0x00
         ]
       );
 
-    if (
-      buffer
-        .subarray(0, 3)
-        .equals(prefix)
-    ) {
-      buffer =
-        buffer.subarray(3);
-    }
 
     if (
-      buffer.length >= 3 &&
       buffer
         .subarray(
-          buffer.length - 3
+          0,
+          3
         )
-        .equals(suffix)
+        .equals(
+          prefix
+        )
     ) {
+
+      buffer =
+        buffer.subarray(
+          3
+        );
+
+    }
+
+
+    if (
+
+      buffer.length >= 3 &&
+
+      buffer
+        .subarray(
+          buffer.length -
+            3
+        )
+        .equals(
+          suffix
+        )
+
+    ) {
+
       buffer =
         buffer.subarray(
           0,
-          buffer.length - 3
+          buffer.length -
+            3
         );
+
     }
 
-    let pos = 0;
-    let length = 0;
-    let shift = 0;
+
+    let position =
+      0;
+
+
+    let length =
+      0;
+
+
+    let shift =
+      0;
+
 
     while (
-      pos < buffer.length &&
-      shift <= 28
+
+      position <
+        buffer.length &&
+
+      shift <=
+        28
+
     ) {
+
       const byte =
-        buffer[pos++];
+        buffer[
+          position++
+        ];
+
 
       length |=
-        (byte & 0x7f) << shift;
+        (
+          byte &
+          0x7f
+        ) <<
+        shift;
 
-      if (!(byte & 0x80)) {
+
+      if (
+        !(
+          byte &
+          0x80
+        )
+      ) {
+
         break;
+
       }
 
-      shift += 7;
+
+      shift +=
+        7;
+
     }
 
+
     if (
-      length <= 0 ||
-      pos + length >
+
+      length <=
+        0 ||
+
+      position +
+        length >
         buffer.length
+
     ) {
+
       return '';
+
     }
+
 
     const text =
       buffer
         .subarray(
-          pos,
-          pos + length
+          position,
+          position + length
         )
-        .toString('utf8');
+        .toString(
+          'utf8'
+        );
 
-    return /^https?:\/\//i.test(
-      text
-    )
-      ? text
-      : '';
-  } catch {
-    return '';
+
+    return (
+      /^https?:\/\//i.test(
+        text
+      )
+        ? text
+        : ''
+    );
+
   }
+
+  catch {
+
+    return '';
+
+  }
+
 }
+
+
+// ================================================================
+// GOOGLE BATCHEXECUTE RESPONSE
+// ================================================================
 
 function parseBatchExecuteResponse(
   text
 ) {
+
   const raw =
-    String(text);
+    String(
+      text
+    );
+
 
   const candidates =
     [];
+
 
   const cleaned =
     raw
@@ -912,16 +1759,25 @@ function parseBatchExecuteResponse(
       )
       .trim();
 
-  if (cleaned) {
+
+  if (
+    cleaned
+  ) {
+
     candidates.push(
       cleaned
     );
+
   }
+
 
   for (
     const block
-    of raw.split('\n\n')
+    of raw.split(
+      '\n\n'
+    )
   ) {
+
     const piece =
       block
         .replace(
@@ -930,17 +1786,27 @@ function parseBatchExecuteResponse(
         )
         .trim();
 
-    if (piece) {
+
+    if (
+      piece
+    ) {
+
       candidates.push(
         piece
       );
+
     }
+
   }
+
 
   for (
     const line
-    of raw.split('\n')
+    of raw.split(
+      '\n'
+    )
   ) {
+
     const piece =
       line
         .replace(
@@ -949,289 +1815,476 @@ function parseBatchExecuteResponse(
         )
         .trim();
 
+
     if (
-      piece.startsWith('[')
+      piece.startsWith(
+        '['
+      )
     ) {
+
       candidates.push(
         piece
       );
+
     }
+
   }
+
 
   for (
     const candidate
     of candidates
   ) {
-    const jsonStart =
-      candidate.indexOf('[');
 
-    if (jsonStart < 0) {
+    const start =
+      candidate.indexOf(
+        '['
+      );
+
+
+    if (
+      start < 0
+    ) {
+
       continue;
+
     }
 
+
     try {
+
       const parsed =
         JSON.parse(
           candidate.slice(
-            jsonStart
+            start
           )
         );
 
-      if (
-        Array.isArray(parsed) &&
-        parsed[0] &&
-        typeof parsed[0][2] ===
-          'string'
-      ) {
-        const inner =
-          JSON.parse(
-            parsed[0][2]
-          );
 
-        if (
-          Array.isArray(inner) &&
-          typeof inner[1] ===
-            'string'
-        ) {
-          return inner[1];
-        }
-      }
-
-      if (
-        Array.isArray(parsed) &&
+      const rows =
         Array.isArray(
           parsed[0]
-        ) &&
-        parsed[0][0] &&
-        typeof parsed[0][0][2] ===
-          'string'
+        )
+          ? parsed[0]
+          : parsed;
+
+
+      for (
+        const row
+        of rows
       ) {
-        const inner =
-          JSON.parse(
-            parsed[0][0][2]
-          );
 
         if (
-          Array.isArray(inner) &&
-          typeof inner[1] ===
+          !Array.isArray(
+            row
+          ) ||
+          typeof row[2] !==
             'string'
         ) {
-          return inner[1];
+
+          continue;
+
         }
+
+
+        try {
+
+          const inner =
+            JSON.parse(
+              row[2]
+            );
+
+
+          if (
+
+            Array.isArray(
+              inner
+            ) &&
+
+            inner[0] ===
+              'garturlres' &&
+
+            typeof inner[1] ===
+              'string'
+
+          ) {
+
+            return inner[1];
+
+          }
+
+        }
+
+        catch {
+
+          // continue
+
+        }
+
       }
-    } catch {
-      // try next candidate
+
     }
+
+    catch {
+
+      // continue
+
+    }
+
   }
 
-  const rawMatch =
+
+  const match =
     raw.match(
       /\[\\"garturlres\\",\\"(https?:\\\/\\\/[^"]+)/i
     );
 
-  if (rawMatch) {
-    return rawMatch[1]
-      .replace(/\\\//g, '/')
-      .replace(
-        /\\u003d/g,
-        '='
-      )
-      .replace(
-        /\\u0026/g,
-        '&'
-      );
+
+  if (
+    !match
+  ) {
+
+    return '';
+
   }
 
-  return '';
+
+  return match[1]
+
+    .replace(
+      /\\\//g,
+      '/'
+    )
+
+    .replace(
+      /\\u003d/g,
+      '='
+    )
+
+    .replace(
+      /\\u0026/g,
+      '&'
+    );
+
 }
+
+
+// ================================================================
+// GOOGLE DATA-P DECODER
+// ================================================================
 
 async function decodeWithDataP(
   googleUrl
 ) {
+
   const fetched =
     await fetchText(
+
       googleUrl,
+
       {
+
         headers: {
+
           Referer:
             'https://news.google.com/',
+
         },
+
       }
+
     );
 
-  if (!fetched) {
+
+  if (
+    !fetched
+  ) {
+
     return '';
+
   }
+
 
   const $ =
     cheerio.load(
       fetched.text
     );
 
-  const dataP =
-    $('c-wiz[data-p]')
-      .first()
-      .attr('data-p');
 
-  if (!dataP) {
+  const dataP =
+    $(
+      'c-wiz[data-p]'
+    )
+      .first()
+      .attr(
+        'data-p'
+      );
+
+
+  if (
+    !dataP
+  ) {
+
     return '';
+
   }
 
-  let obj;
+
+  let requestObject;
+
 
   try {
-    obj =
+
+    requestObject =
       JSON.parse(
+
         dataP.replace(
           '%.@.',
           '["garturlreq",'
         )
+
       );
-  } catch {
-    return '';
+
   }
+
+  catch {
+
+    return '';
+
+  }
+
 
   if (
-    !Array.isArray(obj) ||
-    obj.length < 8
+
+    !Array.isArray(
+      requestObject
+    ) ||
+
+    requestObject.length <
+      8
+
   ) {
+
     return '';
+
   }
 
-  const shortened =
-    obj
-      .slice(0, -6)
+
+  const compact =
+    requestObject
+      .slice(
+        0,
+        -6
+      )
       .concat(
-        obj.slice(-2)
+        requestObject.slice(
+          -2
+        )
       );
 
+
   const rpc = [
+
     'Fbv4je',
+
     JSON.stringify(
-      shortened
+      compact
     ),
+
     null,
+
     'generic',
+
   ];
 
-  const body =
-    new URLSearchParams({
-      'f.req':
-        JSON.stringify([
-          [rpc],
-        ]),
-    }).toString();
 
   const response =
     await fetchWithTimeout(
+
       'https://news.google.com/_/DotsSplashUi/data/batchexecute',
+
       {
+
         method:
           'POST',
 
         headers: {
+
           'Content-Type':
             'application/x-www-form-urlencoded;charset=UTF-8',
 
           Referer:
             'https://news.google.com/',
+
         },
 
-        body,
+        body:
+          new URLSearchParams(
+            {
+
+              'f.req':
+                JSON.stringify(
+                  [
+                    [
+                      rpc
+                    ]
+                  ]
+                ),
+
+            }
+          ).toString(),
+
       }
+
     );
 
-  if (!response.ok) {
+
+  if (
+    !response.ok
+  ) {
+
     return '';
+
   }
+
 
   return parseBatchExecuteResponse(
     await response.text()
   );
+
 }
+
+
+// ================================================================
+// SIGNED GOOGLE URL DECODER
+// ================================================================
 
 async function decodeWithSignedParams(
   googleUrl,
   articleId
 ) {
+
   const pages = [
+
     googleUrl,
 
     `https://news.google.com/articles/${articleId}?hl=en-US&gl=US&ceid=US:en`,
 
     `https://news.google.com/rss/articles/${articleId}?hl=en-US&gl=US&ceid=US:en`,
+
   ];
+
 
   for (
     const pageUrl
     of pages
   ) {
+
     const fetched =
       await fetchText(
+
         pageUrl,
+
         {
+
           headers: {
+
             Referer:
               'https://news.google.com/',
+
           },
+
         }
+
       );
 
-    if (!fetched) {
+
+    if (
+      !fetched
+    ) {
+
       continue;
+
     }
+
 
     const $ =
       cheerio.load(
         fetched.text
       );
 
+
     let node =
       $(
+
         `div[data-n-a-id="${articleId}"][data-n-a-sg][data-n-a-ts]`
+
       ).first();
 
-    if (!node.length) {
+
+    if (
+      !node.length
+    ) {
+
       node =
         $(
           'c-wiz > div[data-n-a-sg][data-n-a-ts]'
         ).first();
+
     }
 
-    if (!node.length) {
+
+    if (
+      !node.length
+    ) {
+
       continue;
+
     }
+
 
     const dataId =
       node.attr(
         'data-n-a-id'
-      ) || articleId;
+      ) ||
+      articleId;
+
 
     const signature =
       node.attr(
         'data-n-a-sg'
       );
 
+
     const timestamp =
       node.attr(
         'data-n-a-ts'
       );
 
+
     if (
       !signature ||
       !timestamp
     ) {
+
       continue;
+
     }
 
-    const req = [
+
+    const request = [
+
       'garturlreq',
 
       [
+
         [
           'X',
           'X',
-          ['X', 'X'],
+          [
+            'X',
+            'X'
+          ],
           null,
           null,
           1,
@@ -1249,110 +2302,130 @@ async function decodeWithSignedParams(
         ],
 
         'X',
+
         'X',
+
         1,
-        [1, 1, 1],
+
+        [
+          1,
+          1,
+          1
+        ],
+
         1,
+
         1,
+
         null,
+
         0,
+
         0,
+
         null,
+
         0,
+
       ],
 
       dataId,
-      Number(timestamp),
+
+      Number(
+        timestamp
+      ),
+
       signature,
+
     ];
+
 
     const rpc = [
+
       'Fbv4je',
-      JSON.stringify(req),
+
+      JSON.stringify(
+        request
+      ),
+
       null,
+
       'generic',
+
     ];
 
-    const body =
-      new URLSearchParams({
-        'f.req':
-          JSON.stringify([
-            [rpc],
-          ]),
-      }).toString();
 
     const response =
       await fetchWithTimeout(
+
         'https://news.google.com/_/DotsSplashUi/data/batchexecute',
+
         {
+
           method:
             'POST',
 
           headers: {
+
             'Content-Type':
               'application/x-www-form-urlencoded;charset=UTF-8',
 
             Referer:
               'https://news.google.com/',
+
           },
 
-          body,
+          body:
+            new URLSearchParams(
+              {
+
+                'f.req':
+                  JSON.stringify(
+                    [
+                      [
+                        rpc
+                      ]
+                    ]
+                  ),
+
+              }
+            ).toString(),
+
         }
+
       );
 
-    if (!response.ok) {
+
+    if (
+      !response.ok
+    ) {
+
       continue;
+
     }
+
 
     const decoded =
       parseBatchExecuteResponse(
         await response.text()
       );
 
-    if (decoded) {
+
+    if (
+      decoded
+    ) {
+
       return decoded;
+
     }
+
   }
+
 
   return '';
+
 }
 
-async function decodeWithLegacyBatch(
-  articleId
-) {
-  const s =
-    '[[["Fbv4je","[\\"garturlreq\\",[[\\"en-US\\",\\"US\\",[\\"FINANCE_TOP_INDICES\\",\\"WEB_TEST_1_0_0\\"],null,null,1,1,\\"US:en\\",null,180,null,null,null,null,null,0,null,null,[1608992183,723341000]],\\"en-US\\",\\"US\\",1,[2,3,4,8],1,0,\\"655000234\\",0,0,null,0],\\"' +
-    articleId +
-    '\\"]",null,"generic"]]]';
-
-  const response =
-    await fetchWithTimeout(
-      'https://news.google.com/_/DotsSplashUi/data/batchexecute?rpcids=Fbv4je',
-      {
-        method:
-          'POST',
-
-        headers: {
-          'Content-Type':
-            'application/x-www-form-urlencoded;charset=utf-8',
-
-          Referer:
-            'https://news.google.com/',
-        },
-
-        body:
-          `f.req=${encodeURIComponent(s)}`,
-      }
-    );
-
-  if (!response.ok) {
-    return '';
-  }
-
-  return parseBatchExecuteResponse(
-    await response.text()
-  );
-}
 
 // ================================================================
 // ARTICLE URL VALIDATION
@@ -1362,96 +2435,154 @@ function isLikelyArticleHref(
   url,
   publisher
 ) {
+
   if (
     !url ||
-    !findPublisherByUrl(url)
-  ) {
-    return false;
-  }
-
-  const lowerUrl =
-    url.toLowerCase();
-
-  const bad = [
-    '/tag/',
-    '/tags/',
-    '/topic/',
-    '/topics/',
-    '/category/',
-    '/categories/',
-    '/archive/',
-    '/archives/',
-    '/author/',
-    '/authors/',
-    '/photo/',
-    '/photos/',
-    '/video/',
-    '/videos/',
-    '/search',
-    '/epaper',
-    '/e-paper',
-  ];
-
-  if (
-    bad.some(
-      (part) =>
-        lowerUrl.includes(part)
+    !findPublisherByUrl(
+      url
     )
   ) {
+
     return false;
+
   }
 
+
+  const value =
+    url.toLowerCase();
+
+
+  const blocked = [
+
+    '/tag/',
+    '/tags/',
+
+    '/topic/',
+    '/topics/',
+
+    '/category/',
+    '/categories/',
+
+    '/archive/',
+    '/archives/',
+
+    '/author/',
+    '/authors/',
+
+    '/photo/',
+    '/photos/',
+
+    '/video/',
+    '/videos/',
+
+    '/search',
+
+    '/epaper',
+    '/e-paper',
+
+  ];
+
+
+  if (
+    blocked.some(
+      (part) =>
+        value.includes(
+          part
+        )
+    )
+  ) {
+
+    return false;
+
+  }
+
+
   return (
-    findPublisherByUrl(url)?.bnName ===
+    findPublisherByUrl(
+      url
+    )?.bnName ===
     publisher.bnName
   );
+
 }
 
+
 // ================================================================
-// PUBLISHER HOMEPAGE TITLE MATCH FALLBACK
+// PUBLISHER HOMEPAGE TITLE FALLBACK
 // ================================================================
 
 async function findPublisherUrlByTitle(
   item
 ) {
+
   const fetched =
     await fetchText(
       item.publisher.home
     );
 
-  if (!fetched) {
+
+  if (
+    !fetched
+  ) {
+
     return '';
+
   }
+
 
   const $ =
     cheerio.load(
       fetched.text
     );
 
+
   let best = {
-    url: '',
-    score: 0,
+
+    url:
+      '',
+
+    score:
+      0,
+
   };
 
+
   $('a[href]').each(
-    (_, el) => {
+    (
+      _,
+      element
+    ) => {
+
       const anchorText =
         clean(
-          $(el).text()
+          $(element)
+            .text()
         );
 
+
       if (
-        anchorText.length < 8
+        anchorText.length <
+        8
       ) {
+
         return;
+
       }
+
 
       const url =
         absoluteUrl(
-          $(el).attr('href'),
+
+          $(element)
+            .attr(
+              'href'
+            ),
+
           fetched.finalUrl ||
-            item.publisher.home
+          item.publisher.home
+
         );
+
 
       if (
         !isLikelyArticleHref(
@@ -1459,8 +2590,11 @@ async function findPublisherUrlByTitle(
           item.publisher
         )
       ) {
+
         return;
+
       }
+
 
       const score =
         titleSimilarity(
@@ -1468,24 +2602,37 @@ async function findPublisherUrlByTitle(
           item.title
         );
 
+
       if (
         score >
         best.score
       ) {
+
         best = {
+
           url,
+
           score,
+
         };
+
       }
+
     }
   );
 
+
   return (
-    best.score >= 0.58
+    best.score >=
+      0.58
+
       ? best.url
+
       : ''
   );
+
 }
+
 
 // ================================================================
 // MASTER GOOGLE URL RESOLVER
@@ -1494,159 +2641,222 @@ async function findPublisherUrlByTitle(
 async function resolveGoogleUrl(
   item
 ) {
+
   const rawUrl =
     item.googleUrl;
+
 
   if (
     !rawUrl.includes(
       'news.google.com/'
     )
   ) {
+
     return rawUrl;
+
   }
+
 
   if (
     googleDecodeCache.has(
       rawUrl
     )
   ) {
+
     return googleDecodeCache.get(
       rawUrl
     );
+
   }
+
 
   const articleId =
     googleArticleId(
       rawUrl
     );
 
-  if (!articleId) {
+
+  if (
+    !articleId
+  ) {
+
     return '';
+
   }
+
 
   const offline =
     tryOfflineGoogleDecode(
       articleId
     );
 
+
   if (
+
     offline &&
+
     findPublisherByUrl(
       offline
     )?.bnName ===
       item.publisher.bnName
+
   ) {
+
     googleDecodeCache.set(
       rawUrl,
       offline
     );
 
+
     console.log(
       `🔓 Google URL resolved → ${new URL(offline).hostname}`
     );
 
+
     return offline;
+
   }
 
+
   const methods = [
-    async () =>
+
+    () =>
       decodeWithDataP(
         rawUrl
       ),
 
-    async () =>
+    () =>
       decodeWithSignedParams(
         rawUrl,
         articleId
       ),
 
-    async () =>
-      decodeWithLegacyBatch(
-        articleId
-      ),
-
-    async () =>
+    () =>
       findPublisherUrlByTitle(
         item
       ),
+
   ];
+
 
   for (
     const method
     of methods
   ) {
+
     try {
+
       const decoded =
         await method();
 
+
       if (
+
         decoded &&
+
         findPublisherByUrl(
           decoded
         )?.bnName ===
           item.publisher.bnName
+
       ) {
+
         googleDecodeCache.set(
           rawUrl,
           decoded
         );
 
+
         console.log(
           `🔓 Google URL resolved → ${new URL(decoded).hostname}`
         );
 
+
         return decoded;
+
       }
-    } catch {
-      // try next method
+
     }
+
+    catch {
+
+      // try next resolver
+
+    }
+
   }
+
 
   console.log(
     `⚠️ Google URL resolve failed: ${item.publisher.bnName}`
   );
 
+
   return '';
+
 }
 
+
 // ================================================================
-// ARTICLE METADATA
+// ORIGINAL ARTICLE METADATA
+// Used for validation/date/category only.
+// Publisher body/description is not stored publicly.
 // ================================================================
 
 function getMeta(
   $,
   names
 ) {
+
   for (
     const name
     of names
   ) {
+
     const selectors = [
+
       `meta[property="${name}"]`,
+
       `meta[name="${name}"]`,
+
       `meta[itemprop="${name}"]`,
+
     ];
+
 
     for (
       const selector
       of selectors
     ) {
+
       const value =
         $(selector)
           .first()
-          .attr('content');
+          .attr(
+            'content'
+          );
+
 
       if (
         value &&
         clean(value)
       ) {
-        return clean(value);
+
+        return clean(
+          value
+        );
+
       }
+
     }
+
   }
 
+
   return '';
+
 }
+
 
 // ================================================================
 // JSON-LD
@@ -1655,106 +2865,204 @@ function getMeta(
 function jsonLdNodes(
   $
 ) {
-  const output = [];
+
+  const output =
+    [];
+
 
   function walk(
     value
   ) {
+
     if (
       !value ||
-      typeof value !== 'object'
+      typeof value !==
+        'object'
     ) {
+
       return;
+
     }
 
-    if (
-      Array.isArray(value)
-    ) {
-      value.forEach(walk);
-      return;
-    }
-
-    output.push(value);
 
     if (
-      value['@graph']
+      Array.isArray(
+        value
+      )
     ) {
-      walk(
-        value['@graph']
+
+      value.forEach(
+        walk
       );
+
+
+      return;
+
     }
+
+
+    output.push(
+      value
+    );
+
+
+    if (
+      value[
+        '@graph'
+      ]
+    ) {
+
+      walk(
+        value[
+          '@graph'
+        ]
+      );
+
+    }
+
   }
+
 
   $(
     'script[type="application/ld+json"]'
   ).each(
-    (_, element) => {
+    (
+      _,
+      element
+    ) => {
+
       const raw =
         $(element)
           .contents()
           .text()
           .trim();
 
-      if (!raw) {
+
+      if (
+        !raw
+      ) {
+
         return;
+
       }
 
+
       try {
+
         walk(
-          JSON.parse(raw)
+          JSON.parse(
+            raw
+          )
         );
-      } catch {
-        // ignore invalid JSON-LD
+
       }
+
+      catch {
+
+        // invalid JSON-LD ignored
+
+      }
+
     }
   );
 
+
   return output;
+
 }
+
 
 function articleJsonLd(
   $
 ) {
-  const types =
-    new Set([
-      'NewsArticle',
-      'Article',
-      'ReportageNewsArticle',
-      'LiveBlogPosting',
-    ]);
+
+  const allowed =
+    new Set(
+      [
+        'NewsArticle',
+        'Article',
+        'ReportageNewsArticle',
+        'LiveBlogPosting',
+      ]
+    );
+
 
   return (
-    jsonLdNodes($).find(
-      (node) => {
-        const type =
-          node['@type'];
 
-        return Array.isArray(type)
-          ? type.some(
-              (x) =>
-                types.has(x)
+    jsonLdNodes(
+      $
+    )
+      .find(
+        (
+          node
+        ) => {
+
+          const type =
+            node[
+              '@type'
+            ];
+
+
+          return (
+            Array.isArray(
+              type
             )
-          : types.has(type);
-      }
-    ) || null
+
+              ? type.some(
+                  (
+                    value
+                  ) =>
+                    allowed.has(
+                      value
+                    )
+                )
+
+              : allowed.has(
+                  type
+                )
+          );
+
+        }
+      ) ||
+
+    null
+
   );
+
 }
+
+
+// ================================================================
+// CANONICAL URL
+// ================================================================
 
 function canonicalUrl(
   $,
   pageUrl
 ) {
+
   return (
+
     absoluteUrl(
+
       $(
         'link[rel="canonical"]'
       )
         .first()
-        .attr('href'),
+        .attr(
+          'href'
+        ),
+
       pageUrl
-    ) || pageUrl
+
+    ) ||
+
+    pageUrl
+
   );
+
 }
+
 
 // ================================================================
 // ARTICLE TITLE
@@ -1765,1145 +3073,753 @@ function articleTitle(
   json,
   rssTitle
 ) {
+
   const title =
+
     clean(
       json?.headline ||
-        json?.name ||
-        ''
+      json?.name ||
+      ''
     ) ||
+
     getMeta(
       $,
-      ['og:title']
+      [
+        'og:title'
+      ]
     ) ||
+
     getMeta(
       $,
-      ['twitter:title']
+      [
+        'twitter:title'
+      ]
     ) ||
+
     clean(
-      $('article h1')
+      $(
+        'article h1'
+      )
         .first()
         .text()
     ) ||
+
     clean(
-      $('main h1')
+      $(
+        'main h1'
+      )
         .first()
         .text()
     ) ||
+
     clean(
-      $('h1')
+      $(
+        'h1'
+      )
         .first()
         .text()
     ) ||
-    clean(rssTitle);
+
+    clean(
+      rssTitle
+    );
+
 
   return clean(
+
     title.replace(
+
       /\s+[|–—-]\s+[^|–—-]{2,45}$/u,
+
       ''
+
     )
+
   );
+
 }
 
+
 // ================================================================
-// ARTICLE DESCRIPTION
+// ARTICLE CONTEXT
+// Only used internally for classification.
+// It is NOT stored as the public article body.
 // ================================================================
 
-function articleDescription(
+function articleContext(
   $,
   json
 ) {
-  const meta =
+
+  const description =
+
     clean(
       json?.description ||
-        ''
+      ''
     ) ||
+
     getMeta(
       $,
-      ['og:description']
+      [
+        'og:description'
+      ]
     ) ||
+
     getMeta(
       $,
-      ['twitter:description']
+      [
+        'twitter:description'
+      ]
     ) ||
+
     getMeta(
       $,
-      ['description']
+      [
+        'description'
+      ]
     );
+
 
   if (
-    meta.length >= 35
+    description
   ) {
-    return stripHtml(
-      meta
-    );
+
+    return description;
+
   }
 
-  const paragraphs =
-    [];
 
-  const selectors = [
-    'article p',
-    '[class*="article"] p',
-    '[class*="story"] p',
-    '[class*="details"] p',
-    'main p',
-  ];
+  const firstParagraph =
+    clean(
 
-  for (
-    const selector
-    of selectors
-  ) {
-    $(selector).each(
-      (_, element) => {
-        const text =
-          clean(
-            $(element)
-              .text()
-          );
+      $(
+        'article p, [class*="article"] p, [class*="story"] p, main p'
+      )
 
-        if (
-          text.length >= 45 &&
-          text.length <= 700
-        ) {
-          paragraphs.push(
-            text
-          );
-        }
-      }
+        .filter(
+          (
+            _,
+            element
+          ) =>
+            clean(
+              $(element)
+                .text()
+            ).length >=
+            40
+        )
+
+        .first()
+        .text()
+
     );
 
-    if (
-      paragraphs.length
-    ) {
-      break;
-    }
-  }
 
-  return clean(
-    paragraphs
-      .slice(0, 2)
-      .join(' ')
-  );
+  return firstParagraph;
+
 }
 
+
 // ================================================================
-// ARTICLE DATE
+// PUBLISHED DATE
 // ================================================================
 
 function parseDate(
   value
 ) {
-  if (!value) {
+
+  if (
+    !value
+  ) {
+
     return null;
+
   }
 
-  const date =
-    new Date(value);
 
-  return Number.isNaN(
-    date.getTime()
-  )
-    ? null
-    : date;
+  const date =
+    new Date(
+      value
+    );
+
+
+  return (
+    Number.isNaN(
+      date.getTime()
+    )
+
+      ? null
+
+      : date
+  );
+
 }
+
 
 function publishedAt(
   $,
   json,
   rssDate
 ) {
+
   const values = [
+
     json?.datePublished,
+
     json?.dateCreated,
 
     getMeta(
       $,
-      ['article:published_time']
+      [
+        'article:published_time'
+      ]
     ),
 
     getMeta(
       $,
-      ['datePublished']
+      [
+        'datePublished'
+      ]
     ),
 
     $(
       'time[datetime]'
     )
       .first()
-      .attr('datetime'),
+      .attr(
+        'datetime'
+      ),
+
   ];
+
 
   for (
     const value
     of values
   ) {
-    const date =
-      parseDate(value);
 
-    if (date) {
+    const date =
+      parseDate(
+        value
+      );
+
+
+    if (
+      date
+    ) {
+
       return date;
+
     }
+
   }
 
-  return rssDate || null;
+
+  return (
+    rssDate ||
+    null
+  );
+
 }
 
+
 // ================================================================
-// LANDING / TOPIC PAGE FILTER
+// TOPIC / LANDING PAGE FILTER
 // ================================================================
 
 const BLOCKED_PAGE_PATHS = [
+
   '/tag/',
   '/tags/',
+
   '/topic/',
   '/topics/',
+
   '/category/',
   '/categories/',
+
   '/archive/',
   '/archives/',
+
   '/author/',
   '/authors/',
+
   '/photo/',
   '/photos/',
+
   '/video/',
   '/videos/',
+
   '/search',
+
   '/epaper',
   '/e-paper',
+
 ];
 
+
 const KNOWN_BAD_TOPIC_TITLES =
-  new Set([
-    'করোনাভাইরাস মহামারী',
-    'মুজিব শতবর্ষ',
-    'সমগ্র বাংলাদেশ',
-    'বাজেট ২০২৬-২৭',
-  ]);
+  new Set(
+    [
+      'করোনাভাইরাস মহামারী',
+      'মুজিব শতবর্ষ',
+      'সমগ্র বাংলাদেশ',
+      'বাজেট ২০২৬-২৭',
+    ]
+  );
+
 
 function isLandingOrTopicPage(
   pageUrl,
   $,
   articleJson,
   pageTitle,
-  googleNewsTitle
+  rssTitle
 ) {
+
   try {
+
     const pathname =
-      new URL(pageUrl)
+      new URL(
+        pageUrl
+      )
         .pathname
         .toLowerCase();
 
+
     if (
       BLOCKED_PAGE_PATHS.some(
-        (part) =>
+        (
+          part
+        ) =>
           pathname.includes(
             part
           )
       )
     ) {
+
       return true;
+
     }
+
 
     if (
       KNOWN_BAD_TOPIC_TITLES.has(
-        clean(pageTitle)
+        clean(
+          pageTitle
+        )
       )
     ) {
+
       return true;
+
     }
 
+
     const hasArticleSignal =
-      Boolean(articleJson) ||
-      $('article').length > 0;
+      Boolean(
+        articleJson
+      ) ||
+      $(
+        'article'
+      ).length >
+        0;
+
 
     const hasPublishedSignal =
       Boolean(
+
         articleJson?.datePublished ||
-          getMeta(
-            $,
-            [
-              'article:published_time',
-              'datePublished',
-            ]
-          ) ||
-          $(
-            'time[datetime]'
+
+        getMeta(
+          $,
+          [
+            'article:published_time',
+            'datePublished',
+          ]
+        ) ||
+
+        $(
+          'time[datetime]'
+        )
+          .first()
+          .attr(
+            'datetime'
           )
-            .first()
-            .attr('datetime')
+
       );
+
 
     if (
       !hasArticleSignal &&
       !hasPublishedSignal
     ) {
+
       return true;
+
     }
+
 
     return (
       titleSimilarity(
         pageTitle,
-        googleNewsTitle
-      ) < 0.34
+        rssTitle
+      ) <
+      0.34
     );
-  } catch {
+
+  }
+
+  catch {
+
     return true;
+
   }
+
 }
 
-// ================================================================
-// IMAGE SELECTION
-// ================================================================
-
-const BAD_IMAGE_WORDS = [
-  'logo',
-  'favicon',
-  'brand',
-  'branding',
-  'avatar',
-  'author',
-  'profile',
-  'placeholder',
-  'default-image',
-  'default_image',
-  'no-image',
-  'no_image',
-  'sprite',
-  'icon',
-  'loading',
-  'blank',
-  'advertisement',
-  '/ads/',
-  'social-share',
-  'share-icon',
-];
-
-function badImage(
-  url
-) {
-  if (!url) {
-    return true;
-  }
-
-  const value =
-    url.toLowerCase();
-
-  return (
-    value.startsWith(
-      'data:'
-    ) ||
-    /\.(svg|gif)(\?|$)/i.test(
-      value
-    ) ||
-    BAD_IMAGE_WORDS.some(
-      (word) =>
-        value.includes(word)
-    )
-  );
-}
-
-function dimension(
-  value
-) {
-  const number =
-    parseInt(
-      String(
-        value || ''
-      ).replace(
-        /[^0-9]/g,
-        ''
-      ),
-      10
-    );
-
-  return Number.isFinite(
-    number
-  )
-    ? number
-    : 0;
-}
-
-function imageFromElement(
-  $,
-  element,
-  base
-) {
-  const node =
-    $(element);
-
-  const values = [
-    node.attr('data-src'),
-    node.attr('data-lazy-src'),
-    node.attr('data-original'),
-    node.attr('data-image'),
-    node.attr('src'),
-  ];
-
-  const srcset =
-    node.attr('srcset') ||
-    node.attr('data-srcset');
-
-  if (srcset) {
-    values.unshift(
-      ...srcset
-        .split(',')
-        .map(
-          (item) =>
-            clean(item)
-              .split(/\s+/)[0]
-        )
-        .filter(Boolean)
-        .reverse()
-    );
-  }
-
-  for (
-    const raw
-    of values
-  ) {
-    const url =
-      absoluteUrl(
-        raw,
-        base
-      );
-
-    if (
-      url &&
-      !badImage(url)
-    ) {
-      return {
-        url,
-
-        alt:
-          clean(
-            node.attr('alt') ||
-              node.attr('title') ||
-              ''
-          ),
-
-        width:
-          dimension(
-            node.attr('width')
-          ),
-
-        height:
-          dimension(
-            node.attr('height')
-          ),
-      };
-    }
-  }
-
-  return null;
-}
-
-// ================================================================
-// JSON-LD IMAGES
-// ================================================================
-
-function addJsonImages(
-  output,
-  json,
-  base
-) {
-  if (!json?.image) {
-    return;
-  }
-
-  const images =
-    Array.isArray(
-      json.image
-    )
-      ? json.image
-      : [json.image];
-
-  for (
-    const image
-    of images
-  ) {
-    let raw = '';
-    let width = 0;
-    let height = 0;
-    let alt = '';
-
-    if (
-      typeof image ===
-      'string'
-    ) {
-      raw = image;
-    } else if (
-      image &&
-      typeof image ===
-        'object'
-    ) {
-      raw =
-        image.url ||
-        image.contentUrl ||
-        '';
-
-      width =
-        dimension(
-          image.width?.value ??
-            image.width
-        );
-
-      height =
-        dimension(
-          image.height?.value ??
-            image.height
-        );
-
-      alt =
-        clean(
-          image.caption ||
-            image.name ||
-            image.description ||
-            ''
-        );
-    }
-
-    const url =
-      absoluteUrl(
-        raw,
-        base
-      );
-
-    if (url) {
-      output.push({
-        url,
-        score: 112,
-        width,
-        height,
-        alt,
-        kind: 'jsonld',
-      });
-    }
-  }
-}
-
-function titleOverlap(
-  title,
-  alt
-) {
-  const titleTokens =
-    new Set(
-      tokenize(title)
-        .filter(
-          (x) =>
-            x.length >= 3
-        )
-    );
-
-  return tokenize(alt)
-    .filter(
-      (x) =>
-        x.length >= 3 &&
-        titleTokens.has(x)
-    )
-    .length;
-}
-
-// ================================================================
-// SMART IMAGE SELECTION
-// ================================================================
-
-function bestImage(
-  $,
-  json,
-  base,
-  title,
-  publisher,
-  imageUseCounts
-) {
-  const output = [];
-
-  const strongSelectors = [
-    'article figure img',
-    'article picture img',
-    '[class*="article"] figure img',
-    '[class*="article"] picture img',
-    '[class*="story"] figure img',
-    '[class*="story"] picture img',
-    '[class*="details"] figure img',
-    'main figure img',
-    'main picture img',
-  ];
-
-  for (
-    const selector
-    of strongSelectors
-  ) {
-    $(selector).each(
-      (_, element) => {
-        const image =
-          imageFromElement(
-            $,
-            element,
-            base
-          );
-
-        if (image) {
-          output.push({
-            ...image,
-            score: 140,
-            kind:
-              'article-dom',
-          });
-        }
-      }
-    );
-  }
-
-  const bodySelectors = [
-    'article img',
-    '[class*="article"] img',
-    '[class*="story"] img',
-    'main img',
-  ];
-
-  for (
-    const selector
-    of bodySelectors
-  ) {
-    $(selector)
-      .slice(0, 15)
-      .each(
-        (_, element) => {
-          const node =
-            $(element);
-
-          if (
-            node.closest(
-              'header,nav,aside,footer'
-            ).length
-          ) {
-            return;
-          }
-
-          const image =
-            imageFromElement(
-              $,
-              element,
-              base
-            );
-
-          if (image) {
-            output.push({
-              ...image,
-              score: 105,
-              kind:
-                'body-dom',
-            });
-          }
-        }
-      );
-  }
-
-  addJsonImages(
-    output,
-    json,
-    base
-  );
-
-  const ogWidth =
-    dimension(
-      getMeta(
-        $,
-        ['og:image:width']
-      )
-    );
-
-  const ogHeight =
-    dimension(
-      getMeta(
-        $,
-        ['og:image:height']
-      )
-    );
-
-  const ogAlt =
-    getMeta(
-      $,
-      ['og:image:alt']
-    );
-
-  const metadataImages = [
-    [
-      getMeta(
-        $,
-        ['og:image:secure_url']
-      ),
-      100,
-      ogWidth,
-      ogHeight,
-      ogAlt,
-    ],
-
-    [
-      getMeta(
-        $,
-        ['og:image']
-      ),
-      98,
-      ogWidth,
-      ogHeight,
-      ogAlt,
-    ],
-
-    [
-      getMeta(
-        $,
-        ['twitter:image']
-      ),
-      92,
-      0,
-      0,
-      getMeta(
-        $,
-        ['twitter:image:alt']
-      ),
-    ],
-
-    [
-      $(
-        'link[rel="image_src"]'
-      )
-        .first()
-        .attr('href'),
-      88,
-      0,
-      0,
-      '',
-    ],
-  ];
-
-  for (
-    const candidate
-    of metadataImages
-  ) {
-    const url =
-      absoluteUrl(
-        candidate[0],
-        base
-      );
-
-    if (url) {
-      output.push({
-        url,
-
-        score:
-          candidate[1],
-
-        width:
-          candidate[2],
-
-        height:
-          candidate[3],
-
-        alt:
-          candidate[4],
-
-        kind:
-          'meta',
-      });
-    }
-  }
-
-  const merged =
-    new Map();
-
-  for (
-    const candidate
-    of output
-  ) {
-    if (
-      !candidate.url ||
-      badImage(
-        candidate.url
-      )
-    ) {
-      continue;
-    }
-
-    if (
-      !merged.has(
-        candidate.url
-      ) ||
-      candidate.score >
-        merged.get(
-          candidate.url
-        ).score
-    ) {
-      merged.set(
-        candidate.url,
-        candidate
-      );
-    }
-  }
-
-  const publisherText =
-    lower(
-      [
-        publisher?.bnName,
-        ...(
-          publisher?.aliases ||
-          []
-        ),
-      ].join(' ')
-    );
-
-  const scored =
-    [...merged.values()]
-      .map(
-        (candidate) => {
-          let score =
-            candidate.score;
-
-          const alt =
-            lower(
-              candidate.alt ||
-                ''
-            );
-
-          const overlap =
-            titleOverlap(
-              title,
-              candidate.alt ||
-                ''
-            );
-
-          if (
-            candidate.width >= 600 &&
-            candidate.height >= 300
-          ) {
-            score += 25;
-          }
-
-          if (
-            candidate.width &&
-            candidate.height &&
-            (
-              candidate.width < 280 ||
-              candidate.height < 150
-            )
-          ) {
-            score -= 120;
-          }
-
-          score +=
-            Math.min(
-              overlap * 12,
-              36
-            );
-
-          if (
-            alt &&
-            publisherText.includes(
-              alt
-            ) &&
-            overlap === 0
-          ) {
-            score -= 110;
-          }
-
-          if (
-            /\/static\/.*(logo|brand)/i.test(
-              candidate.url
-            )
-          ) {
-            score -= 150;
-          }
-
-          const used =
-            imageUseCounts.get(
-              candidate.url
-            ) || 0;
-
-          if (used >= 2) {
-            score -= 160;
-          } else if (
-            used === 1
-          ) {
-            score -= 35;
-          }
-
-          return {
-            ...candidate,
-            finalScore:
-              score,
-          };
-        }
-      )
-      .sort(
-        (a, b) =>
-          b.finalScore -
-          a.finalScore
-      );
-
-  return (
-    scored.find(
-      (candidate) =>
-        candidate.finalScore >=
-        70
-    )?.url || ''
-  );
-}
 
 // ================================================================
 // CATEGORY DETECTION
 // ================================================================
 
-const AGRICULTURE_WORDS = [
-  'কৃষি',
-  'কৃষক',
-  'ফসল',
-  'ধান',
-  'চাল',
-  'গম',
-  'ভুট্টা',
-  'পাট',
-  'সবজি',
-  'ফল',
-  'বীজ',
-  'সার',
-  'সেচ',
-  'মৎস্য',
-  'মাছ চাষ',
-  'পোলট্রি',
-  'খামার',
-  'কৃষিপণ্য',
-  'কৃষিবাজার',
-  'কৃষি গবেষণা',
-  'কৃষি মন্ত্রণালয়',
-];
+const CATEGORY_RULES = {
 
-const CATEGORY_RULES = [
-  [
+  কৃষি: [
+
     'কৃষি',
-    AGRICULTURE_WORDS,
+    'কৃষক',
+    'ফসল',
+    'ধান',
+    'চাল',
+    'গম',
+    'ভুট্টা',
+    'পাট',
+    'সবজি',
+    'বীজ',
+    'সার',
+    'সেচ',
+    'মৎস্য',
+    'মাছ চাষ',
+    'পোলট্রি',
+    'খামার',
+    'কৃষিপণ্য',
+    'কৃষিবাজার',
+    'কৃষি গবেষণা',
+    'কৃষি মন্ত্রণালয়',
+
   ],
 
-  [
-    'খেলাধুলা',
-    [
-      'ক্রিকেট',
-      'ফুটবল',
-      'ম্যাচ',
-      'টেস্ট',
-      'ওয়ানডে',
-      'টি-টোয়েন্টি',
-      'বিশ্বকাপ',
-      'বিসিবি',
-      'ফিফা',
-    ],
+
+  খেলাধুলা: [
+
+    'ক্রিকেট',
+    'ফুটবল',
+    'ম্যাচ',
+    'টেস্ট',
+    'ওয়ানডে',
+    'বিশ্বকাপ',
+    'বিসিবি',
+    'ফিফা',
+
   ],
 
-  [
+
+  বাণিজ্য: [
+
+    'ব্যাংক',
+    'অর্থনীতি',
     'বাণিজ্য',
-    [
-      'ব্যাংক',
-      'অর্থনীতি',
-      'বাণিজ্য',
-      'শেয়ারবাজার',
-      'পুঁজিবাজার',
-      'ডলার',
-      'রপ্তানি',
-      'আমদানি',
-      'বাজেট',
-      'ঋণ',
-    ],
+    'শেয়ারবাজার',
+    'পুঁজিবাজার',
+    'ডলার',
+    'রপ্তানি',
+    'আমদানি',
+    'বাজেট',
+    'ঋণ',
+    'ব্যবসা',
+
   ],
 
-  [
+
+  রাজনীতি: [
+
+    'বিএনপি',
+    'আওয়ামী লীগ',
+    'জামায়াত',
+    'নির্বাচন',
+    'ভোট',
     'রাজনীতি',
-    [
-      'বিএনপি',
-      'আওয়ামী লীগ',
-      'জামায়াত',
-      'নির্বাচন',
-      'ভোট',
-      'রাজনীতি',
-      'সংসদ',
-      'প্রার্থী',
-    ],
+    'সংসদ',
+    'প্রার্থী',
+
   ],
 
-  [
-    'আইন-আদালত',
-    [
-      'আদালত',
-      'হাইকোর্ট',
-      'সুপ্রিম কোর্ট',
-      'আপিল বিভাগ',
-      'মামলা',
-      'জামিন',
-      'রিমান্ড',
-      'রায়',
-      'ট্রাইব্যুনাল',
-    ],
+
+  'আইন-আদালত': [
+
+    'আদালত',
+    'হাইকোর্ট',
+    'সুপ্রিম কোর্ট',
+    'আপিল বিভাগ',
+    'মামলা',
+    'জামিন',
+    'রিমান্ড',
+    'রায়',
+    'ট্রাইব্যুনাল',
+
   ],
 
-  [
+
+  প্রযুক্তি: [
+
     'প্রযুক্তি',
-    [
-      'প্রযুক্তি',
-      'স্মার্টফোন',
-      'ইন্টারনেট',
-      'গুগল',
-      'মাইক্রোসফট',
-      'কৃত্রিম বুদ্ধিমত্তা',
-      'এআই',
-      'সাইবার',
-    ],
+    'স্মার্টফোন',
+    'ইন্টারনেট',
+    'গুগল',
+    'মাইক্রোসফট',
+    'কৃত্রিম বুদ্ধিমত্তা',
+    'এআই',
+    'সাইবার',
+
   ],
 
-  [
-    'বিনোদন',
-    [
-      'সিনেমা',
-      'অভিনেতা',
-      'অভিনেত্রী',
-      'নায়ক',
-      'নায়িকা',
-      'নাটক',
-      'চলচ্চিত্র',
-      'বলিউড',
-      'হলিউড',
-    ],
+
+  বিনোদন: [
+
+    'সিনেমা',
+    'অভিনেতা',
+    'অভিনেত্রী',
+    'নায়ক',
+    'নায়িকা',
+    'নাটক',
+    'চলচ্চিত্র',
+    'বলিউড',
+    'হলিউড',
+    'সংগীত',
+
   ],
 
-  [
+
+  শিক্ষা: [
+
+    'বিশ্ববিদ্যালয়',
     'শিক্ষা',
-    [
-      'বিশ্ববিদ্যালয়',
-      'শিক্ষা',
-      'স্কুল',
-      'কলেজ',
-      'শিক্ষার্থী',
-      'পরীক্ষা',
-      'ভর্তি',
-      'শিক্ষক',
-    ],
+    'স্কুল',
+    'কলেজ',
+    'শিক্ষার্থী',
+    'পরীক্ষা',
+    'ভর্তি',
+    'শিক্ষক',
+
   ],
 
-  [
+
+  চাকরি: [
+
     'চাকরি',
-    [
-      'চাকরি',
-      'নিয়োগ',
-      'ক্যারিয়ার',
-      'বেতন',
-      'পদসংখ্যা',
-    ],
+    'নিয়োগ',
+    'ক্যারিয়ার',
+    'বেতন',
+    'পদসংখ্যা',
+
   ],
 
-  [
+
+  স্বাস্থ্য: [
+
+    'স্বাস্থ্য',
+    'চিকিৎসা',
+    'হাসপাতাল',
+    'চিকিৎসক',
+    'রোগ',
+    'ওষুধ',
+
+  ],
+
+
+  প্রবাস: [
+
+    'প্রবাস',
+    'প্রবাসী',
+    'অভিবাসন',
+    'রেমিট্যান্স',
+    'বিদেশে বাংলাদেশি',
+
+  ],
+
+
+  পরিবেশ: [
+
+    'পরিবেশ',
+    'জলবায়ু',
+    'দূষণ',
+    'নদী',
+    'বন',
+    'বন্যপ্রাণী',
+    'ঘূর্ণিঝড়',
+    'তাপপ্রবাহ',
+
+  ],
+
+
+  বিজ্ঞান: [
+
+    'বিজ্ঞান',
+    'গবেষণা',
+    'মহাকাশ',
+    'উপগ্রহ',
+    'আবিষ্কার',
+    'বিজ্ঞানী',
+
+  ],
+
+
+  সংস্কৃতি: [
+
+    'সংস্কৃতি',
+    'শিল্প',
+    'ঐতিহ্য',
+    'উৎসব',
+    'চিত্রকলা',
+    'নৃত্য',
+
+  ],
+
+
+  ধর্ম: [
+
+    'ইসলাম',
+    'হজ',
+    'ওমরাহ',
+    'মসজিদ',
+    'কোরআন',
+    'রমজান',
+    'পূজা',
+    'মন্দির',
     'ধর্ম',
-    [
-      'ইসলাম',
-      'হজ',
-      'ওমরাহ',
-      'মসজিদ',
-      'কোরআন',
-      'রমজান',
-      'পূজা',
-      'মন্দির',
-      'ধর্ম',
-    ],
+
   ],
 
-  [
+
+  জীবনযাপন: [
+
     'জীবনযাপন',
-    [
-      'স্বাস্থ্য',
-      'জীবনযাপন',
-      'খাদ্য',
-      'রেসিপি',
-      'ফ্যাশন',
-      'ভ্রমণ',
-      'লাইফস্টাইল',
-    ],
+    'খাদ্য',
+    'রেসিপি',
+    'ফ্যাশন',
+    'ভ্রমণ',
+    'লাইফস্টাইল',
+
   ],
 
-  [
-    'আন্তর্জাতিক',
-    [
-      'যুক্তরাষ্ট্র',
-      'ভারত',
-      'চীন',
-      'রাশিয়া',
-      'ইউক্রেন',
-      'গাজা',
-      'ইসরায়েল',
-      'পাকিস্তান',
-      'জাতিসংঘ',
-      'ট্রাম্প',
-      'মোদি',
-      'ইরান',
-      'নেপাল',
-      'মিয়ানমার',
-    ],
+
+  আন্তর্জাতিক: [
+
+    'যুক্তরাষ্ট্র',
+    'ভারত',
+    'চীন',
+    'রাশিয়া',
+    'ইউক্রেন',
+    'গাজা',
+    'ইসরায়েল',
+    'পাকিস্তান',
+    'জাতিসংঘ',
+    'ইরান',
+    'নেপাল',
+    'মিয়ানমার',
+
   ],
-];
 
-// ================================================================
-// STRICT AGRICULTURE CHECK
-// ================================================================
+};
 
-function hasAgricultureSignal(
+
+function hasCategorySignal(
+  category,
   title,
-  description
+  context
 ) {
+
+  const words =
+    CATEGORY_RULES[
+      category
+    ] ||
+    [];
+
+
   const text =
     lower(
-      `${title} ${description}`
+      `${title} ${context}`
     );
 
-  return AGRICULTURE_WORDS.some(
-    (word) =>
+
+  return words.some(
+    (
+      word
+    ) =>
       text.includes(
-        lower(word)
+        lower(
+          word
+        )
       )
   );
+
 }
 
-// ================================================================
-// CATEGORY DETECTION
-// ================================================================
 
 function detectCategory(
   title,
-  description,
+  context,
   hint = 'বাংলাদেশ'
 ) {
+
   const text =
     lower(
-      `${title} ${description}`
+      `${title} ${context}`
     );
 
+
   if (
-    hint === 'কৃষি' &&
-    hasAgricultureSignal(
+
+    CATEGORY_RULES[
+      hint
+    ] &&
+
+    hasCategorySignal(
+      hint,
       title,
-      description
+      context
     )
+
   ) {
-    return 'কৃষি';
+
+    return hint;
+
   }
 
+
   let best =
-    hint;
+    hint ===
+      'কৃষি'
+
+      ? 'বাংলাদেশ'
+
+      : hint;
+
 
   let bestScore =
     0;
 
+
   for (
     const [
       category,
-      words,
+      words
     ]
-    of CATEGORY_RULES
+    of Object.entries(
+      CATEGORY_RULES
+    )
   ) {
+
     const score =
       words.reduce(
         (
@@ -2913,48 +3829,103 @@ function detectCategory(
           sum +
           (
             text.includes(
-              lower(word)
+              lower(
+                word
+              )
             )
+
               ? 1
+
               : 0
           ),
         0
       );
 
+
     if (
       score >
       bestScore
     ) {
+
       bestScore =
         score;
 
+
       best =
         category;
+
     }
+
   }
 
+
   return best;
+
 }
+
 
 // ================================================================
 // CATEGORY LIMITS
 // ================================================================
 
 const CATEGORY_LIMITS = {
-  বাংলাদেশ: 7,
-  রাজনীতি: 4,
-  আন্তর্জাতিক: 3,
-  'আইন-আদালত': 3,
-  বাণিজ্য: 3,
-  খেলাধুলা: 3,
-  কৃষি: 4,
-  বিনোদন: 2,
-  প্রযুক্তি: 2,
-  শিক্ষা: 2,
-  চাকরি: 1,
-  ধর্ম: 1,
-  জীবনযাপন: 1,
+
+  বাংলাদেশ:
+    7,
+
+  রাজনীতি:
+    4,
+
+  আন্তর্জাতিক:
+    4,
+
+  'আইন-আদালত':
+    3,
+
+  বাণিজ্য:
+    4,
+
+  খেলাধুলা:
+    4,
+
+  কৃষি:
+    4,
+
+  বিনোদন:
+    3,
+
+  প্রযুক্তি:
+    3,
+
+  শিক্ষা:
+    3,
+
+  স্বাস্থ্য:
+    3,
+
+  জীবনযাপন:
+    2,
+
+  চাকরি:
+    2,
+
+  প্রবাস:
+    3,
+
+  পরিবেশ:
+    3,
+
+  বিজ্ঞান:
+    2,
+
+  সংস্কৃতি:
+    2,
+
+  ধর্ম:
+    2,
+
 };
+
 
 // ================================================================
 // ARTICLE AGE
@@ -2963,41 +3934,63 @@ const CATEGORY_LIMITS = {
 function tooOld(
   date
 ) {
-  if (!date) {
+
+  if (
+    !date
+  ) {
+
     return false;
+
   }
 
-  const diff =
+
+  const age =
     Date.now() -
     date.getTime();
 
+
   return (
-    diff >= 0 &&
-    diff >
+    age >=
+      0 &&
+
+    age >
       MAX_ARTICLE_AGE_HOURS *
-        3600000
+      60 *
+      60 *
+      1000
   );
+
 }
 
+
 // ================================================================
-// IMPORTANCE SCORE
+// IMPORTANCE
 // ================================================================
 
 function importance(
   title,
   category
 ) {
+
   let score =
+
     [
       'বাংলাদেশ',
       'রাজনীতি',
       'আন্তর্জাতিক',
       'আইন-আদালত',
-    ].includes(category)
+    ]
+      .includes(
+        category
+      )
+
       ? 7
+
       : 6;
 
-  const words = [
+
+  const importantWords = [
+
     'প্রধানমন্ত্রী',
     'রাষ্ট্রপতি',
     'নির্বাচন',
@@ -3010,109 +4003,169 @@ function importance(
     'নিহত',
     'গ্রেপ্তার',
     'বাজেট',
+
   ];
+
 
   for (
     const word
-    of words
+    of importantWords
   ) {
+
     if (
-      lower(title).includes(
-        lower(word)
+      lower(
+        title
       )
+        .includes(
+          lower(
+            word
+          )
+        )
     ) {
+
       score++;
+
     }
+
   }
+
 
   return Math.min(
     10,
     score
   );
+
 }
 
+
 // ================================================================
-// ARTICLE EXTRACTION
+// EXTRACT ARTICLE
 // ================================================================
 
 async function extractArticle(
-  item,
-  imageUseCounts
+  item
 ) {
+
   const resolved =
     await resolveGoogleUrl(
       item
     );
 
-  if (!resolved) {
+
+  if (
+    !resolved
+  ) {
+
     return null;
+
   }
+
 
   const publisher =
     findPublisherByUrl(
       resolved
     );
 
+
   if (
+
     !publisher ||
+
     publisher.bnName !==
       item.publisher.bnName
+
   ) {
+
     return null;
+
   }
+
 
   const fetched =
     await fetchText(
       resolved
     );
 
-  if (!fetched) {
+
+  if (
+    !fetched
+  ) {
+
     return null;
+
   }
+
 
   const $ =
     cheerio.load(
       fetched.text
     );
 
+
   const pageUrl =
     canonicalUrl(
+
       $,
+
       fetched.finalUrl ||
-        resolved
+      resolved
+
     );
 
+
   const finalPublisher =
+
     findPublisherByUrl(
       pageUrl
-    ) || publisher;
+    ) ||
+
+    publisher;
+
 
   if (
     finalPublisher.bnName !==
     item.publisher.bnName
   ) {
+
     return null;
+
   }
+
 
   const json =
     articleJsonLd(
       $
     );
 
+
   const title =
     articleTitle(
+
       $,
+
       json,
+
       item.title
+
     );
 
+
   if (
+
     !title ||
-    title.length < 10 ||
-    title.length > 260
+
+    title.length <
+      10 ||
+
+    title.length >
+      260
+
   ) {
+
     return null;
+
   }
+
 
   if (
     isLandingOrTopicPage(
@@ -3123,6 +4176,7 @@ async function extractArticle(
       item.title
     )
   ) {
+
     console.log(
       `⏭️ Topic/landing page reject: ${title.substring(
         0,
@@ -3130,14 +4184,18 @@ async function extractArticle(
       )}...`
     );
 
+
     return null;
+
   }
 
-  const description =
-    articleDescription(
+
+  const context =
+    articleContext(
       $,
       json
     );
+
 
   const date =
     publishedAt(
@@ -3146,25 +4204,34 @@ async function extractArticle(
       item.googlePubDate
     );
 
+
   if (
     date &&
-    tooOld(date)
-  ) {
-    return null;
-  }
-
-  // Agriculture feed is strict:
-  // no agriculture signal = reject
-  // instead of mislabelling.
-
-  if (
-    item.categoryHint ===
-      'কৃষি' &&
-    !hasAgricultureSignal(
-      title,
-      description
+    tooOld(
+      date
     )
   ) {
+
+    return null;
+
+  }
+
+
+  // Strict agriculture filtering.
+
+  if (
+
+    item.categoryHint ===
+      'কৃষি' &&
+
+    !hasCategorySignal(
+      'কৃষি',
+      title,
+      context
+    )
+
+  ) {
+
     console.log(
       `🌾 কৃষি নয়, স্কিপ: ${title.substring(
         0,
@@ -3172,39 +4239,19 @@ async function extractArticle(
       )}...`
     );
 
-    return null;
-  }
-
-  const image =
-    bestImage(
-      $,
-      json,
-      pageUrl,
-      title,
-      finalPublisher,
-      imageUseCounts
-    );
-
-  if (
-    REQUIRE_IMAGE &&
-    !image
-  ) {
-    console.log(
-      `🖼️ Story image পাওয়া যায়নি: ${title.substring(
-        0,
-        60
-      )}...`
-    );
 
     return null;
+
   }
+
 
   const category =
     detectCategory(
       title,
-      description,
+      context,
       item.categoryHint
     );
+
 
   const importanceScore =
     importance(
@@ -3212,60 +4259,103 @@ async function extractArticle(
       category
     );
 
-  const snippetBase =
-    description ||
-    `${finalPublisher.bnName}-এ প্রকাশিত সংবাদ।`;
+
+  /*
+    IMPORTANT:
+
+    Publisher-এর paragraph, article body বা meta-description
+    database-এর public content হিসেবে save করা হচ্ছে না।
+
+    কেবল একটি neutral aggregator preview তৈরি করা হচ্ছে।
+  */
+
+  const safePreview =
+
+    `${finalPublisher.bnName}-এর প্রতিবেদনে “${title}” বিষয়ে তথ্য প্রকাশিত হয়েছে। ` +
+
+    'বিস্তারিত জানতে মূল প্রতিবেদনে যান।';
+
 
   return {
+
     title,
 
+
     content:
-      description ||
-      `${finalPublisher.bnName}-এ প্রকাশিত সংবাদটির বিস্তারিত জানতে শিরোনামে ক্লিক করুন।`,
+      safePreview,
+
 
     snippet:
-      snippetBase.length > 220
-        ? `${snippetBase.substring(
-            0,
-            220
-          )}…`
-        : snippetBase,
+
+      safePreview.length >
+        220
+
+        ?
+
+        `${safePreview.substring(
+          0,
+          220
+        )}…`
+
+        :
+
+        safePreview,
+
+
+    /*
+      Third-party image deliberately OFF.
+
+      Homepage code-generated editorial visual দেখাবে।
+    */
 
     image_url:
-      image || null,
+      null,
+
+
+    image_source:
+      null,
+
 
     source_url:
       pageUrl,
 
+
     source_name:
       finalPublisher.bnName,
 
+
     category,
 
-    image_source:
-      finalPublisher.bnName,
 
     is_published:
       true,
 
+
     is_custom:
       false,
 
+
     is_lead:
-      importanceScore >= 9,
+      importanceScore >=
+      9,
+
 
     importance_score:
       importanceScore,
+
 
     editorial_score:
       Math.min(
         100,
         68 +
-          importanceScore * 3
+          importanceScore *
+          3
       ),
+
 
     breaking_news:
       false,
+
 
     event_hash:
       createEventHash(
@@ -3273,30 +4363,42 @@ async function extractArticle(
         finalPublisher.bnName
       ),
 
+
     event_type:
       category,
+
 
     created_at:
       (
         date ||
         new Date()
-      ).toISOString(),
+      )
+        .toISOString(),
+
   };
+
 }
+
 
 // ================================================================
 // DUPLICATE CHECK
 // ================================================================
 
-async function exists(
+async function alreadyExists(
   article
 ) {
+
   const {
     count:
-      urlCount,
+      urlCount
   } =
+
     await supabase
-      .from('news')
+
+      .from(
+        'news'
+      )
+
       .select(
         '*',
         {
@@ -3306,23 +4408,37 @@ async function exists(
             true,
         }
       )
+
       .eq(
         'source_url',
         article.source_url
       );
 
+
   if (
-    (urlCount || 0) > 0
+    (
+      urlCount ||
+      0
+    ) >
+    0
   ) {
+
     return true;
+
   }
+
 
   const {
     count:
-      hashCount,
+      hashCount
   } =
+
     await supabase
-      .from('news')
+
+      .from(
+        'news'
+      )
+
       .select(
         '*',
         {
@@ -3332,275 +4448,441 @@ async function exists(
             true,
         }
       )
+
       .eq(
         'event_hash',
         article.event_hash
       );
 
+
   return (
-    (hashCount || 0) > 0
+    (
+      hashCount ||
+      0
+    ) >
+    0
   );
+
 }
 
+
 // ================================================================
-// OLD BAD TOPIC CARDS CLEANUP
+// CLEAN OLD BAD TOPIC CARDS
 // ================================================================
 
 async function hideKnownBadLegacyCards() {
+
   const badTitles = [
+
     'করোনাভাইরাস মহামারী',
+
     'মুজিব শতবর্ষ',
+
     'সমগ্র বাংলাদেশ',
+
     'বাজেট ২০২৬-২৭',
+
   ];
 
+
   try {
+
     const {
       data,
-      error,
+      error
     } =
+
       await supabase
-        .from('news')
+
+        .from(
+          'news'
+        )
+
         .select(
           'id,title'
         )
+
         .eq(
           'is_custom',
           false
         )
+
         .eq(
           'is_published',
           true
         )
+
         .in(
           'title',
           badTitles
         );
 
+
     if (
       error ||
       !data?.length
     ) {
+
       return;
+
     }
+
 
     const ids =
       data.map(
-        (row) => row.id
+        (
+          row
+        ) =>
+          row.id
       );
+
 
     const {
       error:
-        updateError,
+        updateError
     } =
+
       await supabase
-        .from('news')
-        .update({
-          is_published:
-            false,
-        })
+
+        .from(
+          'news'
+        )
+
+        .update(
+          {
+            is_published:
+              false,
+          }
+        )
+
         .in(
           'id',
           ids
         );
 
-    if (!updateError) {
+
+    if (
+      !updateError
+    ) {
+
       console.log(
         `🧹 ${ids.length}টি পুরোনো ভুল topic card hide করা হয়েছে।`
       );
+
     }
-  } catch (error) {
+
+  }
+
+  catch (
+    error
+  ) {
+
     console.log(
       `⚠️ Cleanup skipped: ${error.message}`
     );
+
   }
+
 }
+
 
 // ================================================================
 // MAIN
 // ================================================================
 
 async function runBot() {
+
   console.log(
-    '🚀 বঙ্গীয় টাইমস Google News Discovery Aggregator শুরু...'
+    '🚀 বঙ্গীয় টাইমস Aggregator শুরু...'
   );
+
 
   console.log(
     '🔎 Discovery = Google News RSS'
   );
 
-  console.log(
-    '🌾 Agriculture fallback = ON (dedicated Google News feeds)'
-  );
 
   console.log(
-    '🖼️ Image = Original publisher article'
+    '🔗 Destination = original publisher'
   );
+
+
+  console.log(
+    '🌾 Agriculture = dedicated Google News feeds + strict filter'
+  );
+
+
+  console.log(
+    '🖼️ Third-party publisher images = OFF'
+  );
+
+
+  console.log(
+    '🎨 Frontend visual = code-generated editorial artwork'
+  );
+
+
+  console.log(
+    '📝 Publisher article body/meta description = NOT republished'
+  );
+
 
   console.log(
     '✍️ Gemini rewrite = OFF'
   );
 
+
   await hideKnownBadLegacyCards();
+
 
   const items =
     await collectGoogleNewsItems();
+
 
   console.log(
     `\n📰 অনুমোদিত Google News candidate: ${items.length}`
   );
 
-  const imageUseCounts =
-    new Map();
 
   const categoryCounts =
     {};
 
-  let published = 0;
-  let inspected = 0;
+
+  let published =
+    0;
+
+
+  let inspected =
+    0;
+
 
   for (
     const item
     of items
   ) {
+
     if (
+
       published >=
         MAX_ARTICLES_PER_RUN ||
+
       inspected >=
         MAX_ITEMS_TO_INSPECT
+
     ) {
+
       break;
+
     }
+
 
     inspected++;
 
+
     try {
+
       console.log(
+
         `\n➡️ ${item.publisher.bnName}: ${item.title.substring(
           0,
           72
         )}...`
+
       );
+
 
       const article =
         await extractArticle(
-          item,
-          imageUseCounts
+          item
         );
 
-      if (!article) {
+
+      if (
+        !article
+      ) {
+
         continue;
+
       }
 
+
       const limit =
+
         CATEGORY_LIMITS[
           article.category
-        ] || 2;
+        ] ||
+
+        2;
+
 
       categoryCounts[
         article.category
       ] =
+
         categoryCounts[
           article.category
-        ] || 0;
+        ] ||
+
+        0;
+
 
       if (
+
         categoryCounts[
           article.category
-        ] >= limit
+        ] >=
+        limit
+
       ) {
+
         continue;
+
       }
 
+
       if (
-        await exists(
+        await alreadyExists(
           article
         )
       ) {
+
         console.log(
           '⏭️ ডুপ্লিকেট, স্কিপ।'
         );
 
+
         continue;
+
       }
 
-      const {
-        error,
-      } =
-        await supabase
-          .from('news')
-          .insert([
-            article,
-          ]);
 
-      if (error) {
+      const {
+        error
+      } =
+
+        await supabase
+
+          .from(
+            'news'
+          )
+
+          .insert(
+            [
+              article
+            ]
+          );
+
+
+      if (
+        error
+      ) {
+
         console.error(
           `❌ Supabase insert error: ${error.message}`
         );
 
+
         continue;
+
       }
 
-      if (
-        article.image_url
-      ) {
-        imageUseCounts.set(
-          article.image_url,
-          (
-            imageUseCounts.get(
-              article.image_url
-            ) || 0
-          ) + 1
-        );
-      }
 
       categoryCounts[
         article.category
       ]++;
 
+
       published++;
 
+
       console.log(
-        `✅ পাবলিশ: [${article.category}] ${article.title.substring(
+
+        `✅ পাবলিশ: ` +
+
+        `[${article.category}] ` +
+
+        `${article.title.substring(
           0,
           60
-        )}... | ${article.source_name}`
+        )}... | ` +
+
+        `${article.source_name}`
+
       );
 
-      await delay(420);
-    } catch (error) {
+
+      await delay(
+        400
+      );
+
+    }
+
+    catch (
+      error
+    ) {
+
       console.log(
         `⚠️ Candidate failed: ${error.message}`
       );
+
     }
+
   }
+
 
   console.log(
     `\n🎉 কাজ শেষ। মোট নতুন সংবাদ: ${published}`
   );
 
+
   console.log(
     `🌾 কৃষি প্রকাশ: ${categoryCounts['কৃষি'] || 0}`
   );
 
-  if (!published) {
+
+  if (
+    !published
+  ) {
+
     console.log(
-      'ℹ️ ০ হলে সম্ভাব্য কারণ: সব খবর duplicate, publisher page block করেছে, Google URL resolve হয়নি, বা usable lead image পাওয়া যায়নি।'
+
+      'ℹ️ ০ হলে সম্ভাব্য কারণ: ' +
+
+      'সব খবর duplicate, ' +
+
+      'Google URL resolve হয়নি, ' +
+
+      'publisher page block করেছে, ' +
+
+      'অথবা সব candidate validation-এ বাদ গেছে।'
+
     );
+
   }
+
 }
+
 
 // ================================================================
 // START
 // ================================================================
 
-runBot().catch(
-  (error) => {
-    console.error(
-      '❌ Fatal scraper error:',
-      error
-    );
+runBot()
 
-    process.exit(1);
-  }
-);
+  .catch(
+    (
+      error
+    ) => {
+
+      console.error(
+        '❌ Fatal scraper error:',
+        error
+      );
+
+
+      process.exit(
+        1
+      );
+
+    }
+  );
